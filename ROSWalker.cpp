@@ -1,21 +1,23 @@
-//
-// Created by bmuscede on 07/04/17.
-//
-
 #include "ROSWalker.h"
 
-ROSWalker::ROSWalker(){
+ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) {}
 
+bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
+    outs() << decl->getQualifiedNameAsString() << "\n";
+    return true;
 }
 
-ROSWalker::~ROSWalker(){
-
+bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl *decl) {
+    outs() << decl->getQualifiedNameAsString() << "\n";
+    return true;
 }
 
-void ROSWalker::run(const MatchFinder::MatchResult &result){
-    //Check what the
+ROSConsumer::ROSConsumer(ASTContext *Context) : Visitor(Context) {}
+
+void ROSConsumer::HandleTranslationUnit(ASTContext &Context) {
+    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
 }
 
-void ROSWalker::setMatchers(MatchFinder *finder){
-    finder->addMatcher(functionDecl().bind(FUNCTION_DECL), this);
+std::unique_ptr<ASTConsumer> ROSAction::CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile) {
+    return std::unique_ptr<ASTConsumer>(new ROSConsumer(&Compiler.getASTContext()));
 }

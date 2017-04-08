@@ -5,23 +5,42 @@
 #ifndef REX_ROSWALKER_H
 #define REX_ROSWALKER_H
 
-#include "clang/ASTMatchers/ASTMatchers.h"
-#include "clang/ASTMatchers/ASTMatchFinder.h"
+#include "clang/AST/ASTConsumer.h"
+#include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Frontend/CompilerInstance.h"
+#include "clang/Frontend/FrontendAction.h"
+#include "clang/Tooling/Tooling.h"
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "llvm/Support/CommandLine.h"
 
-using namespace clang::ast_matchers;
+using namespace llvm;
+using namespace clang;
+using namespace clang::tooling;
 
-class ROSWalker : public MatchFinder::MatchCallback {
+class ROSWalker : public RecursiveASTVisitor<ROSWalker> {
 public:
-    ROSWalker();
-    ~ROSWalker();
+    explicit ROSWalker(ASTContext *Context);
 
-    virtual void run(const MatchFinder::MatchResult &result);
-    void setMatchers(MatchFinder *finder);
+    //ASTWalker Functions
+    bool VisitFunctionDecl(FunctionDecl* decl);
+    bool VisitCXXRecordDecl(CXXRecordDecl *Declaration);
 
 private:
-    const std::string FUNCTION_DECL = "fd";
-
+    ASTContext *Context;
 };
 
+class ROSConsumer : public ASTConsumer {
+public:
+    explicit ROSConsumer(ASTContext *Context);
+    virtual void HandleTranslationUnit(ASTContext &Context);
+
+private:
+    ROSWalker Visitor;
+};
+
+class ROSAction : public ASTFrontendAction {
+public:
+    virtual std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile);
+};
 
 #endif //REX_ROSWALKER_H
