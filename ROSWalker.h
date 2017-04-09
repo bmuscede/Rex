@@ -22,11 +22,17 @@ public:
     explicit ROSWalker(ASTContext *Context);
 
     //ASTWalker Functions
+    bool VisitStmt(Stmt* statement);
     bool VisitFunctionDecl(FunctionDecl* decl);
     bool VisitCXXRecordDecl(CXXRecordDecl *Declaration);
 
 private:
     ASTContext *Context;
+
+    //Helper Functions
+    bool isInSystemHeader(const Stmt* statement);
+    bool isInSystemHeader(const Decl* decl);
+    bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
 };
 
 class ROSConsumer : public ASTConsumer {
