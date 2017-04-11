@@ -20,15 +20,15 @@ public:
     void addEdge(RexEdge* edge);
 
     void removeNode(std::string nodeID);
-    void removeEdge(std::string srcID, std::string dstID);
+    void removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
     RexNode* findNode(std::string nodeID);
-    RexEdge* findEdge(std::string srcID, std::string dstID);
+    RexEdge* findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type);
     std::vector<RexEdge*> findEdgesBySrc(std::string srcID);
     std::vector<RexEdge*> findEdgesByDst(std::string dstID);
 
     bool doesNodeExist(std::string nodeID);
-    bool doesEdgeExist(std::string srcID, std::string dstID);
+    bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
     void purgeUnestablishedEdges();
 
