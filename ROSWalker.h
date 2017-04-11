@@ -29,6 +29,19 @@ public:
 private:
     ASTContext *Context;
 
+    const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
+    const std::string SUBSCRIBE_FUNCTION = "ros::Subscriber::subscribe";
+
+    //ROS Detectors
+    bool isPublish(const CallExpr* expr);
+    bool isSubscribe(const CallExpr* expr);
+    bool isFunction(const CallExpr* expr, std::string functionName);
+    void recordPublish(const CallExpr* expr);
+    void recordSubscribe(const CallExpr* expr);
+
+    //Helper for Publishers
+    std::vector<std::string> getArgs(const CallExpr* expr);
+
     //Helper Functions
     bool isInSystemHeader(const Stmt* statement);
     bool isInSystemHeader(const Decl* decl);
