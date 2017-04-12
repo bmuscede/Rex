@@ -5,6 +5,8 @@
 #ifndef REX_REXEDGE_H
 #define REX_REXEDGE_H
 
+#include <boost/assign/list_of.hpp>
+#include <boost/unordered_map.hpp>
 #include "RexNode.h"
 
 class RexEdge {
@@ -34,7 +36,12 @@ public:
     std::string getSingleAttribute(std::string key);
     std::vector<std::string> getMultiAttribute(std::string key);
 
+    std::string generateTAEdge();
+    std::string generateTAAttribute();
+
 private:
+    const boost::unordered_map<EdgeType, const char*> eTypeToString;
+
     RexNode* sourceNode;
     RexNode* destNode;
 

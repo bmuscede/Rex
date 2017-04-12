@@ -12,6 +12,7 @@
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "llvm/Support/CommandLine.h"
+#include "TAGraph.h"
 
 using namespace llvm;
 using namespace clang;
@@ -20,17 +21,25 @@ using namespace clang::tooling;
 class ROSWalker : public RecursiveASTVisitor<ROSWalker> {
 public:
     explicit ROSWalker(ASTContext *Context);
+    ~ROSWalker();
 
     //ASTWalker Functions
     bool VisitStmt(Stmt* statement);
     bool VisitFunctionDecl(FunctionDecl* decl);
-    bool VisitCXXRecordDecl(CXXRecordDecl *Declaration);
+
+    //TA Generator
+    static void flushTAGraph();
+    static int generateTAModel(std::string fileName);
 
 private:
     ASTContext *Context;
+    static TAGraph* graph;
 
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
     const std::string SUBSCRIBE_FUNCTION = "ros::Subscriber::subscribe";
+
+    //C++ Detectors
+    void recordFunctionDecl(const FunctionDecl* decl);
 
     //ROS Detectors
     bool isPublish(const CallExpr* expr);
@@ -46,6 +55,10 @@ private:
     bool isInSystemHeader(const Stmt* statement);
     bool isInSystemHeader(const Decl* decl);
     bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
+
+    //Name Helper Functions
+    std::string generateID(const FunctionDecl* decl);
+    std::string generateName(const NamedDecl* decl);
 };
 
 class ROSConsumer : public ASTConsumer {

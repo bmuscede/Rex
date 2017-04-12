@@ -141,3 +141,33 @@ void TAGraph::purgeUnestablishedEdges(){
         }
     }
 }
+
+string TAGraph::getTAModel(){
+    string model = TA_SCHEMA;
+
+    //Writes the nodes.
+    model += RELATION_STRING + "\n";
+    for (auto &entry : idList){
+        model += entry.second->generateTANode() + "\n";
+    }
+
+    //Writes the edges.
+    for (auto &entry : edgeSrcList){
+        for (auto &vecEntry : entry.second){
+            model += vecEntry->generateTAEdge() + "\n";
+        }
+    }
+
+    //Writes the attributes.
+    model += ATTRIBUTE_STRING + "\n";
+    for (auto &entry : idList){
+        model += entry.second->generateTAAttribute() + "\n";
+    }
+    for (auto &entry : edgeSrcList){
+        for (auto &vecEntry : entry.second){
+            model += vecEntry->generateTAAttribute() + "\n";
+        }
+    }
+
+    return model;
+}

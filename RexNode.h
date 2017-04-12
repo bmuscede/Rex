@@ -8,6 +8,8 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <boost/assign/list_of.hpp>
+#include <boost/unordered_map.hpp>
 
 class RexNode {
 public:
@@ -30,13 +32,20 @@ public:
     void addSingleAttribute(std::string key, std::string value);
     void addMultiAttribute(std::string key, std::string value);
 
+    std::string generateTANode();
+    std::string generateTAAttribute();
+
 private:
+    const boost::unordered_map<NodeType, const char*> nTypeToString;
+
     std::string ID;
     std::string name;
     NodeType type;
 
     std::map<std::string, std::string> singleAttributes;
     std::map<std::string, std::vector<std::string>> multiAttributes;
+
+    const std::string INSTANCE_FLAG = "$INSTANCE";
 };
 
 

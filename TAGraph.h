@@ -32,11 +32,16 @@ public:
 
     void purgeUnestablishedEdges();
 
+    std::string getTAModel();
+
 private:
     std::unordered_map<std::string, RexNode*> idList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeSrcList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeDstList;
 
+    const std::string TA_SCHEMA = "";
+    const std::string RELATION_STRING = "FACT RELATION : ";
+    const std::string ATTRIBUTE_STRING = "FACT ATTRIBUTE : ";
 };
 
 

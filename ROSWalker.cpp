@@ -1,8 +1,16 @@
+#include <fstream>
 #include "ROSWalker.h"
+#include "RexNode.h"
 
 using namespace std;
 
-ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) {}
+TAGraph* ROSWalker::graph = new TAGraph();
+
+ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) { }
+
+ROSWalker::~ROSWalker(){
+    delete graph;
+}
 
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
@@ -22,15 +30,42 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
 bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
-    outs() << "Function: " << decl->getQualifiedNameAsString() << "\n";
+    //Record the function declaration.
+    recordFunctionDecl(decl);
     return true;
 }
 
-bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl *decl) {
-    if (isInSystemHeader(decl)) return true;
+void ROSWalker::flushTAGraph(){
+    delete graph;
+    graph = new TAGraph();
+}
 
-    outs() << "Class: " << decl->getQualifiedNameAsString() << "\n";
-    return true;
+int ROSWalker::generateTAModel(string fileName){
+    //Purge the edges.
+    graph->purgeUnestablishedEdges();
+
+    //Gets the string for the model.
+    string model = graph->getTAModel();
+
+    //Creates the file stream.
+    ofstream file(fileName);
+    if (!file.is_open()) return 1;
+
+    //Writes to the file.
+    file << model;
+
+    file.close();
+    return 0;
+}
+
+void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
+    //Generates some fields.
+    string ID = generateID(decl);
+    string name = generateName(decl);
+
+    //Creates the node.
+    RexNode* node = new RexNode(ID, name, RexNode::FUNCTION);
+    graph->addNode(node);
 }
 
 bool ROSWalker::isPublish(const CallExpr *expr) {
@@ -51,12 +86,16 @@ bool ROSWalker::isFunction(const CallExpr *expr, string functionName){
     if (callee->getQualifiedNameAsString().compare(functionName)) return false;
     return true;
 }
+
 void ROSWalker::recordPublish(const CallExpr *expr) {
     //Gets certain arguments about the publisher.
     int numArgs = expr->getNumArgs();
+
+    //Check if the number of arguments is valid.
+    if (numArgs != 1) return;
+
+    //Get the argument(s).
     vector<string> publisherArgs = getArgs(expr);
-
-
 }
 
 void ROSWalker::recordSubscribe(const CallExpr *expr) {
@@ -137,6 +176,25 @@ bool ROSWalker::isInSystemHeader(const SourceManager& manager, SourceLocation lo
 
     //Get if we have a system header.
     return manager.isInSystemHeader(loc);
+}
+
+string ROSWalker::generateID(const FunctionDecl* decl){
+    //Gets the return type and then the qualified name.
+    string qualName = decl->getReturnType().getAsString() + "--";
+    qualName += decl->getQualifiedNameAsString();
+
+    //Gets the return types.
+    int numParam = decl->getNumParams();
+    for (int i = 0; i < numParam; i++){
+        const ParmVarDecl* parm = decl->getParamDecl(i);
+        qualName += "--" + parm->getType().getAsString();
+    }
+
+    return qualName;
+}
+
+string ROSWalker::generateName(const NamedDecl* decl){
+    return decl->getQualifiedNameAsString();
 }
 
 ROSConsumer::ROSConsumer(ASTContext *Context) : Visitor(Context) {}

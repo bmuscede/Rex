@@ -4,10 +4,18 @@
 
 #include "RexNode.h"
 
+using boost::assign::map_list_of;
 using namespace std;
+
+boost::unordered_map<RexNode::NodeType, const char*> nTypeToString = map_list_of
+        (RexNode::FUNCTION, "cFunction")
+        (RexNode::VARIABLE, "cVariable")
+        (RexNode::CLASS, "cClass")
+        (RexNode::TOPIC, "rosTopic");
 
 RexNode::RexNode(std::string ID, NodeType type){
     this->ID = ID;
+    this->name = ID;
     this->type = type;
 }
 
@@ -63,4 +71,26 @@ void RexNode::addSingleAttribute(std::string key, std::string value){
 void RexNode::addMultiAttribute(std::string key, std::string value){
     //Add the pair to the list.
     multiAttributes[key].push_back(value);
+}
+
+string RexNode::generateTANode(){
+    return INSTANCE_FLAG + " " + ID + " " + nTypeToString.at(type);
+}
+
+string RexNode::generateTAAttribute(){
+    string attributes = ID + " { ";
+    //Starts by generating all the single attributes.
+    for (auto &entry : singleAttributes){
+        attributes += entry.first + " = " + "\"" + entry.second + "\" ";
+    }
+    for (auto &entry : multiAttributes){
+        attributes += entry.first + " = ( ";
+        for (auto &vecEntry : entry.second){
+            attributes += vecEntry + " ";
+        }
+        attributes += ") ";
+    }
+    attributes += "}";
+
+    return attributes;
 }

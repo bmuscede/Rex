@@ -4,7 +4,12 @@
 
 #include "RexEdge.h"
 
+using boost::assign::map_list_of;
 using namespace std;
+
+boost::unordered_map<RexEdge::EdgeType, const char*> eTypeToString = map_list_of
+        (RexEdge::CONTAINS, "contains")
+        (RexEdge::REFERENCES, "references");
 
 RexEdge::RexEdge(RexNode* src, RexNode* dst){
     sourceNode = src;
@@ -93,4 +98,27 @@ vector<string> RexEdge::getMultiAttribute(string key){
     //Check if the attribute exists.
     if (multiAttributes.find(key) == multiAttributes.end()) return vector<string>();
     return multiAttributes[key];
+}
+
+string RexEdge::generateTAEdge(){
+    return getSourceID() + " " + getDestinationID() + eTypeToString.at(type);
+}
+
+string RexEdge::generateTAAttribute(){
+    string attributes = "(" + getSourceID() + " " + getDestinationID() + ") {";
+
+    //Starts by generating all the single attributes.
+    for (auto &entry : singleAttributes){
+        attributes += entry.first + " = " + "\"" + entry.second + "\" ";
+    }
+    for (auto &entry : multiAttributes){
+        attributes += entry.first + " = ( ";
+        for (auto &vecEntry : entry.second){
+            attributes += vecEntry + " ";
+        }
+        attributes += ") ";
+    }
+    attributes += "}";
+
+    return attributes;
 }
