@@ -15,7 +15,6 @@ const string DEFAULT_FILENAME = "a.out";
 int main(int argc, const char **argv) {
     //Runs the processor.
     CommonOptionsParser OptionsParser(argc, argv, RexCategory);
-
     ClangTool Tool(OptionsParser.getCompilations(),
                    OptionsParser.getSourcePathList());
     int code = Tool.run(newFrontendActionFactory<ROSAction>().get());
@@ -24,5 +23,9 @@ int main(int argc, const char **argv) {
     if (code != 0) cerr << "Warning: Compilation errors were detected." << endl;
 
     //Generates the TA file.
-    return ROSWalker::generateTAModel(DEFAULT_FILENAME);
+    int ret = ROSWalker::generateTAModel(DEFAULT_FILENAME);
+
+    //Removes the TA graph to restore memory.
+    ROSWalker::deleteTAGraph();
+    return ret;
 }

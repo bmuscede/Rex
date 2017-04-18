@@ -31,6 +31,7 @@ public:
     bool VisitFieldDecl(FieldDecl* decl);
 
     //TA Generator
+    static void deleteTAGraph();
     static void flushTAGraph();
     static int generateTAModel(std::string fileName);
 
@@ -40,6 +41,9 @@ private:
 
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
     const std::string SUBSCRIBE_FUNCTION = "ros::Subscriber::subscribe";
+    const std::string PUBLISHER_CLASS = "ros::Publisher";
+    const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
+    const std::string NODE_HANDLE_CLASS = "ros:NodeHandle";
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -49,11 +53,16 @@ private:
 
     //Expr Recorders
     void recordCallExpr(const CallExpr* expr);
+    void recordVarUsage(const DeclRefExpr* expr);
 
     //ROS Detectors
+    bool isNodeHandlerObj(const CXXConstructExpr* ctor);
+    bool isSubscriberObj(const CXXConstructExpr* ctor);
+    bool isPublisherObj(const CXXConstructExpr* ctor);
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
     bool isFunction(const CallExpr* expr, std::string functionName);
+    bool isClass(const CXXConstructExpr* ctor, std::string className);
     void recordPublish(const CallExpr* expr);
     void recordSubscribe(const CallExpr* expr);
 
@@ -67,7 +76,7 @@ private:
 
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
-    const FunctionDecl* getParentFunction(const CallExpr* callExpr);
+    const FunctionDecl* getParentFunction(const Expr* callExpr);
 
     //Name Helper Functions
     std::string generateID(const FunctionDecl* decl);

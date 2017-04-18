@@ -10,21 +10,35 @@ TAGraph* ROSWalker::graph = new TAGraph();
 
 ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) { }
 
-ROSWalker::~ROSWalker(){
-    //delete graph;
-}
+ROSWalker::~ROSWalker(){ }
 
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
+    //Handle ROS Publisher and Subscriber object creations.
+    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)){
+        if (isNodeHandlerObj(cxxExpr)){
+            //TODO
+        } else if (isSubscriberObj(cxxExpr)){
+            //TODO
+        } else if (isPublisherObj(cxxExpr)){
+            //TODO
+        }
+    }
+
     //Handle ROS statements.
-    if (CallExpr* expr = dyn_cast<CallExpr>(statement)){
+    if (CallExpr* callExpr = dyn_cast<CallExpr>(statement)){
         //Deal with the expression.
-        if (isPublish(expr)) recordPublish(expr);
-        else if (isSubscribe(expr)) recordSubscribe(expr);
+        if (isPublish(callExpr)) recordPublish(callExpr);
+        else if (isSubscribe(callExpr)) recordSubscribe(callExpr);
 
         //Next, deal with call expressions.
-        recordCallExpr(expr);
+        recordCallExpr(callExpr);
+    }
+
+    if (DeclRefExpr* usageExpr = dyn_cast<DeclRefExpr>(statement)){
+        //Deal with the expression.
+        recordVarUsage(usageExpr);
     }
 
     return true;
@@ -64,8 +78,12 @@ bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     return true;
 }
 
-void ROSWalker::flushTAGraph(){
+void ROSWalker::deleteTAGraph(){
     delete graph;
+}
+
+void ROSWalker::flushTAGraph(){
+    ROSWalker::deleteTAGraph();
     graph = new TAGraph();
 }
 
@@ -165,6 +183,41 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
     graph->addEdge(edge);
 }
 
+//TODO: This doesn't work quite well yet. Fields and ParmDecls aren't captured.
+void ROSWalker::recordVarUsage(const DeclRefExpr* expr){
+    //Get the sub-variable.
+    auto subVar = expr->getFoundDecl();
+    string subVarID = generateID(subVar);
+    RexNode* subVarNode = graph->findNode(subVarID);
+
+    //Get the parent expression.
+    auto parDecl = getParentFunction(expr);
+    if (parDecl == nullptr) return;
+
+    //Get the ID for the parent.
+    string callerID = generateID(parDecl);
+    RexNode* callerNode = graph->findNode(callerID);
+
+    //Adds the edge.
+    if (graph->doesEdgeExist(callerID, subVarID, RexEdge::REFERENCES)) return;
+    RexEdge* edge = (subVarNode == nullptr) ?
+                    new RexEdge(callerNode, subVarID, RexEdge::REFERENCES) :
+                    new RexEdge(callerNode, subVarNode, RexEdge::REFERENCES);
+    graph->addEdge(edge);
+}
+
+bool ROSWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, NODE_HANDLE_CLASS);
+}
+
+bool ROSWalker::isSubscriberObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, SUBSCRIBER_CLASS);
+}
+
+bool ROSWalker::isPublisherObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, PUBLISHER_CLASS);
+}
+
 bool ROSWalker::isPublish(const CallExpr *expr) {
     return isFunction(expr, PUBLISH_FUNCTION);
 }
@@ -184,6 +237,17 @@ bool ROSWalker::isFunction(const CallExpr *expr, string functionName){
     return true;
 }
 
+bool ROSWalker::isClass(const CXXConstructExpr* ctor, string className){
+    //Get the underlying class.
+    auto record = ctor->getBestDynamicClassType();
+    if (record == nullptr) return false;
+
+    //Check the qualified name.
+    if (record->getQualifiedNameAsString().compare(className)) return false;
+    return true;
+}
+
+//TODO: Actually implement.
 void ROSWalker::recordPublish(const CallExpr *expr) {
     //Gets certain arguments about the publisher.
     int numArgs = expr->getNumArgs();
@@ -192,15 +256,18 @@ void ROSWalker::recordPublish(const CallExpr *expr) {
     if (numArgs != 1) return;
 
     //Get the argument(s).
-    vector<string> publisherArgs = getArgs(expr);
+    string publisherVar = getArgs(expr)[0];
+
 }
 
+//TODO: Actually implement.
 void ROSWalker::recordSubscribe(const CallExpr *expr) {
     //Gets certain arguments about the subscriber.
     int numArgs = expr->getNumArgs();
     vector<string> subscriberArgs = getArgs(expr);
 
-
+    //Creates the
+    //
 }
 
 vector<string> ROSWalker::getArgs(const CallExpr* expr){
@@ -317,7 +384,7 @@ void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
     }
 }
 
-const FunctionDecl* ROSWalker::getParentFunction(const CallExpr* callExpr){
+const FunctionDecl* ROSWalker::getParentFunction(const Expr* callExpr){
     bool getParent = true;
 
     //Get the parent.
