@@ -2,16 +2,30 @@
 // Created by bmuscede on 10/04/17.
 //
 
+#include <openssl/md5.h>
+#include <cstring>
 #include "RexNode.h"
 
-using boost::assign::map_list_of;
 using namespace std;
 
-boost::unordered_map<RexNode::NodeType, const char*> nTypeToString = map_list_of
-        (RexNode::FUNCTION, "cFunction")
-        (RexNode::VARIABLE, "cVariable")
-        (RexNode::CLASS, "cClass")
-        (RexNode::TOPIC, "rosTopic");
+string RexNode::typeToString(RexNode::NodeType type){
+    switch (type){
+        case FUNCTION:
+            return "cFunction";
+
+        case VARIABLE:
+            return "cVariable";
+
+        case CLASS:
+            return "cClass";
+
+        case TOPIC:
+            return "rosTopic";
+
+    }
+
+    return "cRoot";
+}
 
 RexNode::RexNode(std::string ID, NodeType type){
     this->ID = ID;
@@ -23,6 +37,9 @@ RexNode::RexNode(std::string ID, std::string name, NodeType type){
     this->ID = ID;
     this->name = name;
     this->type = type;
+
+    //Add the label.
+    addSingleAttribute(LABEL_FLAG, name);
 }
 
 RexNode::~RexNode(){ }
@@ -51,12 +68,19 @@ std::vector<std::string> RexNode::getMultiAttribute(std::string key){
     return multiAttributes[key];
 }
 
+int RexNode::getNumAttributes(){
+    return (int) (singleAttributes.size() + multiAttributes.size());
+}
+
 void RexNode::setID(std::string newID){
     ID = newID;
 }
 
 void RexNode::setName(std::string newName){
     name = newName;
+
+    //Add the new label.
+    addSingleAttribute(LABEL_FLAG, name);
 }
 
 void RexNode::setType(NodeType newType){
@@ -74,7 +98,7 @@ void RexNode::addMultiAttribute(std::string key, std::string value){
 }
 
 string RexNode::generateTANode(){
-    return INSTANCE_FLAG + " " + ID + " " + nTypeToString.at(type);
+    return INSTANCE_FLAG + " " + ID + " " + RexNode::typeToString(type);
 }
 
 string RexNode::generateTAAttribute(){

@@ -15,14 +15,13 @@ const string DEFAULT_FILENAME = "a.out";
 int main(int argc, const char **argv) {
     //Runs the processor.
     CommonOptionsParser OptionsParser(argc, argv, RexCategory);
+
     ClangTool Tool(OptionsParser.getCompilations(),
                    OptionsParser.getSourcePathList());
     int code = Tool.run(newFrontendActionFactory<ROSAction>().get());
 
     //Gets the code and checks for warnings.
-    if (code != 0){
-        cerr << "Warning: Compilations were detected." << endl;
-    }
+    if (code != 0) cerr << "Warning: Compilation errors were detected." << endl;
 
     //Generates the TA file.
     return ROSWalker::generateTAModel(DEFAULT_FILENAME);

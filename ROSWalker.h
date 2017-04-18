@@ -26,6 +26,9 @@ public:
     //ASTWalker Functions
     bool VisitStmt(Stmt* statement);
     bool VisitFunctionDecl(FunctionDecl* decl);
+    bool VisitCXXRecordDecl(CXXRecordDecl* decl);
+    bool VisitVarDecl(VarDecl* decl);
+    bool VisitFieldDecl(FieldDecl* decl);
 
     //TA Generator
     static void flushTAGraph();
@@ -40,6 +43,12 @@ private:
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
+    void recordClassDecl(const CXXRecordDecl* decl);
+    void recordVarDecl(const VarDecl* decl);
+    void recordFieldDecl(const FieldDecl* decl);
+
+    //Expr Recorders
+    void recordCallExpr(const CallExpr* expr);
 
     //ROS Detectors
     bool isPublish(const CallExpr* expr);
@@ -56,8 +65,13 @@ private:
     bool isInSystemHeader(const Decl* decl);
     bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
 
+    //Secondary Helper Functions
+    void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
+    const FunctionDecl* getParentFunction(const CallExpr* callExpr);
+
     //Name Helper Functions
     std::string generateID(const FunctionDecl* decl);
+    std::string generateID(const NamedDecl* decl);
     std::string generateName(const NamedDecl* decl);
 };
 

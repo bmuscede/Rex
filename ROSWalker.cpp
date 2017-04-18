@@ -1,4 +1,6 @@
 #include <fstream>
+#include <iostream>
+#include "clang/AST/Mangle.h"
 #include "ROSWalker.h"
 #include "RexNode.h"
 
@@ -9,7 +11,7 @@ TAGraph* ROSWalker::graph = new TAGraph();
 ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) { }
 
 ROSWalker::~ROSWalker(){
-    delete graph;
+    //delete graph;
 }
 
 bool ROSWalker::VisitStmt(Stmt *statement) {
@@ -17,11 +19,12 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
 
     //Handle ROS statements.
     if (CallExpr* expr = dyn_cast<CallExpr>(statement)){
-        recordPublish(expr);
-
         //Deal with the expression.
         if (isPublish(expr)) recordPublish(expr);
         else if (isSubscribe(expr)) recordSubscribe(expr);
+
+        //Next, deal with call expressions.
+        recordCallExpr(expr);
     }
 
     return true;
@@ -35,6 +38,32 @@ bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
     return true;
 }
 
+bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
+    if (isInSystemHeader(decl)) return true;
+
+    //Check what type of structure it is.
+    if (decl->isClass()){
+        recordClassDecl(decl);
+    }
+    return true;
+}
+
+bool ROSWalker::VisitVarDecl(VarDecl* decl){
+    if (isInSystemHeader(decl)) return true;
+
+    //Record the function declaration.
+    recordVarDecl(decl);
+    return true;
+}
+
+bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
+    if (isInSystemHeader(decl)) return true;
+
+    //Record the function declaration.
+    recordFieldDecl(decl);
+    return true;
+}
+
 void ROSWalker::flushTAGraph(){
     delete graph;
     graph = new TAGraph();
@@ -42,7 +71,7 @@ void ROSWalker::flushTAGraph(){
 
 int ROSWalker::generateTAModel(string fileName){
     //Purge the edges.
-    graph->purgeUnestablishedEdges();
+    graph->purgeUnestablishedEdges(true);
 
     //Gets the string for the model.
     string model = graph->getTAModel();
@@ -66,6 +95,74 @@ void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::FUNCTION);
     graph->addNode(node);
+
+    //Get the parent.
+    addParentRelationship(decl, ID);
+}
+
+void ROSWalker::recordClassDecl(const CXXRecordDecl *decl){
+    //Generates some fields.
+    string ID = generateID(decl);
+    string name = generateName(decl);
+
+    //Creates the node.
+    RexNode* node = new RexNode(ID, name, RexNode::CLASS);
+    graph->addNode(node);
+
+    //Get the parent.
+    addParentRelationship(decl, ID);
+}
+
+void ROSWalker::recordVarDecl(const VarDecl* decl){
+    //Generates some fields.
+    string ID = generateID(decl);
+    string name = generateName(decl);
+
+    //Creates the node.
+    RexNode* node = new RexNode(ID, name, RexNode::VARIABLE);
+    graph->addNode(node);
+
+    //Get the parent.
+    addParentRelationship(decl, ID);
+}
+
+void ROSWalker::recordFieldDecl(const FieldDecl* decl){
+    //Generates some fields.
+    string ID = generateID(decl);
+    string name = generateName(decl);
+
+    //Creates the node.
+    RexNode* node = new RexNode(ID, name, RexNode::VARIABLE);
+    graph->addNode(node);
+
+    //Get the parent.
+    addParentRelationship(decl, ID);
+}
+
+void ROSWalker::recordCallExpr(const CallExpr* expr){
+    //Get the sub-function.
+    auto callee = expr->getCalleeDecl();
+    if (callee == nullptr) return;
+    auto cDecl = dyn_cast<FunctionDecl>(callee);
+
+    //Gets the ID for the cDecl.
+    string calleeID = generateID(cDecl);
+    RexNode* calleeNode = graph->findNode(calleeID);
+
+    //Gets the parent expression.
+    auto parDecl = getParentFunction(expr);
+    if (parDecl == nullptr) return;
+
+    //Gets the ID for the parent.
+    string callerID = generateID(parDecl);
+    RexNode* callerNode = graph->findNode(callerID);
+
+    //Adds the edge.
+    if (graph->doesEdgeExist(callerID, calleeID, RexEdge::CALLS)) return;
+    RexEdge* edge = (calleeNode == nullptr) ?
+                    new RexEdge(callerNode, calleeID, RexEdge::CALLS) :
+                    new RexEdge(callerNode, calleeNode, RexEdge::CALLS);
+    graph->addEdge(edge);
 }
 
 bool ROSWalker::isPublish(const CallExpr *expr) {
@@ -178,19 +275,160 @@ bool ROSWalker::isInSystemHeader(const SourceManager& manager, SourceLocation lo
     return manager.isInSystemHeader(loc);
 }
 
-string ROSWalker::generateID(const FunctionDecl* decl){
-    //Gets the return type and then the qualified name.
-    string qualName = decl->getReturnType().getAsString() + "--";
-    qualName += decl->getQualifiedNameAsString();
+void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
+    bool getParent = true;
+    auto currentDecl = baseDecl;
 
-    //Gets the return types.
-    int numParam = decl->getNumParams();
-    for (int i = 0; i < numParam; i++){
-        const ParmVarDecl* parm = decl->getParamDecl(i);
-        qualName += "--" + parm->getType().getAsString();
+    //Get the parent.
+    auto parent = Context->getParents(*currentDecl);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        currentDecl = parent[0].get<clang::NamedDecl>();
+        if (currentDecl) {
+            //Get the parent as a NamedDecl.
+            string parentID = "";
+
+            if (isa<clang::FunctionDecl>(currentDecl)){
+                const FunctionDecl* funcDec = static_cast<const FunctionDecl*>(currentDecl);
+                parentID = generateID(funcDec);
+            } else {
+                parentID = generateID(currentDecl);
+            }
+
+            //Get the IDs.
+            RexNode* dst = graph->findNode(baseID);
+            RexNode* src = graph->findNode(parentID);
+            if (graph->doesEdgeExist(parentID, baseID, RexEdge::CONTAINS)){
+                return;
+            }
+
+            RexEdge* edge = new RexEdge(src, dst, RexEdge::CONTAINS);
+            graph->addEdge(edge);
+            return;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+}
+
+const FunctionDecl* ROSWalker::getParentFunction(const CallExpr* callExpr){
+    bool getParent = true;
+
+    //Get the parent.
+    auto parent = Context->getParents(*callExpr);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        auto currentDecl = parent[0].get<clang::NamedDecl>();
+        if (currentDecl && isa<clang::FunctionDecl>(currentDecl)){
+            return dyn_cast<FunctionDecl>(currentDecl);
+        }
+
+        parent = Context->getParents(parent[0]);
     }
 
-    return qualName;
+    return nullptr;
+}
+
+string ROSWalker::generateID(const FunctionDecl* decl){
+    auto mangleContext = Context->createMangleContext();
+
+    //Check whether we need to mangle.
+    if (!mangleContext->shouldMangleDeclName(decl)) {
+        if (decl->getDefinition() != nullptr)
+            decl = decl->getDefinition();
+
+        //Gets the return type and then the qualified name.
+        string qualName = decl->getReturnType().getAsString() + "--";
+        qualName += decl->getQualifiedNameAsString();
+
+        //Gets the return types.
+        int numParam = decl->getNumParams();
+        for (int i = 0; i < numParam; i++){
+            const ParmVarDecl* parm = decl->getParamDecl(i);
+            qualName += "--" + parm->getType().getAsString();
+        }
+
+        return qualName;
+    }
+
+    //Mangle the name
+    string mangledName;
+    raw_string_ostream stream(mangledName);
+
+    //Check the type.
+    if (isa<CXXDestructorDecl>(decl)){
+        auto dtorDecl = dyn_cast<CXXDestructorDecl>(decl);
+        mangleContext->mangleCXXDtor(dtorDecl, CXXDtorType::Dtor_Complete, stream);
+    } else if (isa<CXXConstructorDecl>(decl)){
+        auto ctorDecl = dyn_cast<CXXConstructorDecl>(decl);
+        mangleContext->mangleCXXCtor(ctorDecl, CXXCtorType::Ctor_Complete, stream);
+    } else {
+        mangleContext->mangleCXXName(decl,stream);
+    }
+
+    stream.flush();
+    return mangledName;
+}
+
+string ROSWalker::generateID(const NamedDecl* decl){
+    string name = decl->getNameAsString();
+    bool getParent = true;
+    bool recurse = false;
+    const NamedDecl* originalDecl = decl;
+
+    //Get the parent.
+    auto parent = Context->getParents(*decl);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        decl = parent[0].get<clang::NamedDecl>();
+        if (decl) {
+            name = generateID(decl) + "::" + name;
+            recurse = true;
+            getParent = false;
+            continue;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    //Sees if no true qualified name was used.
+    Decl::Kind kind = originalDecl->getKind();
+    if (!recurse) {
+        if (kind == Decl::Function || kind == Decl::CXXMethod){
+            name = originalDecl->getQualifiedNameAsString();
+        } else {
+            //We need to get the parent function.
+            const DeclContext *parentContext = originalDecl->getParentFunctionOrMethod();
+
+            //If we have nullptr, get the parent function.
+            if (parentContext != nullptr) {
+                string parentQualName = generateID(static_cast<const FunctionDecl *>(parentContext));
+                name = parentQualName + "::" + originalDecl->getNameAsString();
+            }
+        }
+    }
+
+    int lineNum = Context->getSourceManager().getSpellingLineNumber(originalDecl->getSourceRange().getBegin());
+    name = name + "--" + std::to_string(lineNum);
+    return name;
 }
 
 string ROSWalker::generateName(const NamedDecl* decl){

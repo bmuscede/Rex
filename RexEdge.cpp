@@ -2,41 +2,56 @@
 // Created by bmuscede on 10/04/17.
 //
 
+#include <iostream>
 #include "RexEdge.h"
 
-using boost::assign::map_list_of;
 using namespace std;
 
-boost::unordered_map<RexEdge::EdgeType, const char*> eTypeToString = map_list_of
-        (RexEdge::CONTAINS, "contains")
-        (RexEdge::REFERENCES, "references");
+string RexEdge::typeToString(RexEdge::EdgeType type){
+    switch(type){
+        case CONTAINS:
+            return "contain";
 
-RexEdge::RexEdge(RexNode* src, RexNode* dst){
+        case REFERENCES:
+            return "reference";
+
+        case CALLS:
+            return "call";
+    }
+
+    return "unknown";
+}
+
+RexEdge::RexEdge(RexNode* src, RexNode* dst, RexEdge::EdgeType type){
     sourceNode = src;
     destNode = dst;
     sourceID = src->getID();
     destID = dst->getID();
+    this->type = type;
 }
 
-RexEdge::RexEdge(string src, string dst){
+RexEdge::RexEdge(string src, string dst, RexEdge::EdgeType type){
     sourceNode = nullptr;
     destNode = nullptr;
     sourceID = src;
     destID = dst;
+    this->type = type;
 }
 
-RexEdge::RexEdge(RexNode* src, string dst){
+RexEdge::RexEdge(RexNode* src, string dst, RexEdge::EdgeType type){
     sourceNode = src;
     destNode = nullptr;
     sourceID = src->getID();
     destID = dst;
+    this->type = type;
 }
 
-RexEdge::RexEdge(string src, RexNode* dst){
+RexEdge::RexEdge(string src, RexNode* dst, RexEdge::EdgeType type){
     sourceNode = nullptr;
     destNode = dst;
     sourceID = src;
     destID = dst->getID();
+    this->type = type;
 }
 
 RexEdge::~RexEdge(){ }
@@ -57,6 +72,18 @@ void RexEdge::setDestination(RexNode* dst){
     destID = dst->getID();
 }
 
+void RexEdge::setSourceID(string ID){
+    if (!sourceNode){
+        sourceID = ID;
+    }
+}
+
+void RexEdge::setDestinationID(string ID){
+    if (!destNode){
+        destID = ID;
+    }
+}
+
 void RexEdge::setType(RexEdge::EdgeType type){
     this->type = type;
 }
@@ -73,11 +100,21 @@ RexEdge::EdgeType RexEdge::getType(){
 }
 
 string RexEdge::getSourceID(){
+    if (sourceNode) {
+        return sourceNode->getID();
+    }
     return sourceID;
 }
 
 string RexEdge::getDestinationID(){
+    if (destNode) {
+        return destNode->getID();
+    }
     return destID;
+}
+
+int RexEdge::getNumAttributes(){
+return (int) (singleAttributes.size() + multiAttributes.size());
 }
 
 void RexEdge::addSingleAttribute(std::string key, std::string value){
@@ -101,7 +138,7 @@ vector<string> RexEdge::getMultiAttribute(string key){
 }
 
 string RexEdge::generateTAEdge(){
-    return getSourceID() + " " + getDestinationID() + eTypeToString.at(type);
+    return RexEdge::typeToString(type) + " " + getSourceID() + " " + getDestinationID();
 }
 
 string RexEdge::generateTAAttribute(){

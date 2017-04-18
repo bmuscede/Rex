@@ -5,24 +5,25 @@
 #ifndef REX_REXEDGE_H
 #define REX_REXEDGE_H
 
-#include <boost/assign/list_of.hpp>
-#include <boost/unordered_map.hpp>
 #include "RexNode.h"
 
 class RexEdge {
 public:
-    enum EdgeType {CONTAINS, REFERENCES};
+    enum EdgeType {CONTAINS, REFERENCES, CALLS};
+    static std::string typeToString(EdgeType type);
 
-    RexEdge(RexNode* src, RexNode* dst);
-    RexEdge(std::string src, std::string dst);
-    RexEdge(RexNode* src, std::string dst);
-    RexEdge(std::string src, RexNode* dst);
+    RexEdge(RexNode* src, RexNode* dst, EdgeType type);
+    RexEdge(std::string src, std::string dst, EdgeType type);
+    RexEdge(RexNode* src, std::string dst, EdgeType type);
+    RexEdge(std::string src, RexNode* dst, EdgeType type);
     ~RexEdge();
 
     bool isEstablished();
 
     void setSource(RexNode* src);
     void setDestination(RexNode* dst);
+    void setSourceID(std::string ID);
+    void setDestinationID(std::string ID);
     void setType(EdgeType type);
 
     RexNode* getSource();
@@ -30,6 +31,7 @@ public:
     EdgeType getType();
     std::string getSourceID();
     std::string getDestinationID();
+    int getNumAttributes();
 
     void addSingleAttribute(std::string key, std::string value);
     void addMultiAttribute(std::string key, std::string value);
@@ -40,8 +42,6 @@ public:
     std::string generateTAAttribute();
 
 private:
-    const boost::unordered_map<EdgeType, const char*> eTypeToString;
-
     RexNode* sourceNode;
     RexNode* destNode;
 

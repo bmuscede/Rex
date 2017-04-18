@@ -8,12 +8,11 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <boost/assign/list_of.hpp>
-#include <boost/unordered_map.hpp>
 
 class RexNode {
 public:
     enum NodeType {FUNCTION, VARIABLE, CLASS, TOPIC};
+    static std::string typeToString(NodeType type);
 
     RexNode(std::string ID, NodeType type);
     RexNode(std::string ID, std::string name, NodeType type);
@@ -24,6 +23,9 @@ public:
     NodeType getType();
     std::string getSingleAttribute(std::string key);
     std::vector<std::string> getMultiAttribute(std::string key);
+    int getNumAttributes();
+
+    bool isHashed();
 
     void setID(std::string newID);
     void setName(std::string newName);
@@ -36,8 +38,6 @@ public:
     std::string generateTAAttribute();
 
 private:
-    const boost::unordered_map<NodeType, const char*> nTypeToString;
-
     std::string ID;
     std::string name;
     NodeType type;
@@ -46,6 +46,7 @@ private:
     std::map<std::string, std::vector<std::string>> multiAttributes;
 
     const std::string INSTANCE_FLAG = "$INSTANCE";
+    const std::string LABEL_FLAG = "label";
 };
 
 
