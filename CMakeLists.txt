@@ -178,4 +178,4 @@ target_link_libraries(Rex
 
 add_custom_command(TARGET Rex POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/../Shared/include $<TARGET_FILE_DIR:Rex>/include)
+        ${CMAKE_SOURCE_DIR}/include $<TARGET_FILE_DIR:Rex>/include)

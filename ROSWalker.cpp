@@ -17,6 +17,7 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
 
     //Handle ROS Publisher and Subscriber object creations.
     if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)){
+        cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
         if (isNodeHandlerObj(cxxExpr)){
             //TODO
         } else if (isSubscriberObj(cxxExpr)){
@@ -375,7 +376,8 @@ void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
                 return;
             }
 
-            RexEdge* edge = new RexEdge(src, dst, RexEdge::CONTAINS);
+            RexEdge* edge = (!src) ? new RexEdge(parentID, dst, RexEdge::CONTAINS) :
+                                     new RexEdge(src, dst, RexEdge::CONTAINS);
             graph->addEdge(edge);
             return;
         }
