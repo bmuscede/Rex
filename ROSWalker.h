@@ -39,11 +39,18 @@ private:
     ASTContext *Context;
     static TAGraph* graph;
 
+    const std::string TOPIC_PREFIX = "ros--topic--";
+
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
-    const std::string SUBSCRIBE_FUNCTION = "ros::Subscriber::subscribe";
+    const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
+    const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
     const std::string PUBLISHER_CLASS = "ros::Publisher";
     const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
-    const std::string NODE_HANDLE_CLASS = "ros:NodeHandle";
+    const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+
+    //ROS Attribute Names.
+    const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
+    const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -61,10 +68,15 @@ private:
     bool isPublisherObj(const CXXConstructExpr* ctor);
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
+    bool isAdvertise(const CallExpr* expr);
     bool isFunction(const CallExpr* expr, std::string functionName);
     bool isClass(const CXXConstructExpr* ctor, std::string className);
+
+    //ROS Recorders
+    void recordTopic(std::string name);
     void recordPublish(const CallExpr* expr);
     void recordSubscribe(const CallExpr* expr);
+    void recordAdvertise(const CallExpr* expr);
 
     //Helper for Publishers
     std::vector<std::string> getArgs(const CallExpr* expr);
@@ -77,6 +89,7 @@ private:
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
     const FunctionDecl* getParentFunction(const Expr* callExpr);
+    std::string getParentVariable(const Expr* callExpr);
 
     //Name Helper Functions
     std::string generateID(const FunctionDecl* decl);

@@ -17,13 +17,15 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
 
     //Handle ROS Publisher and Subscriber object creations.
     if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)){
-        cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
         if (isNodeHandlerObj(cxxExpr)){
             //TODO
+            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
         } else if (isSubscriberObj(cxxExpr)){
             //TODO
+            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
         } else if (isPublisherObj(cxxExpr)){
             //TODO
+            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
         }
     }
 
@@ -32,6 +34,7 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
         //Deal with the expression.
         if (isPublish(callExpr)) recordPublish(callExpr);
         else if (isSubscribe(callExpr)) recordSubscribe(callExpr);
+        else if (isAdvertise(callExpr)) recordAdvertise(callExpr);
 
         //Next, deal with call expressions.
         recordCallExpr(callExpr);
@@ -227,6 +230,10 @@ bool ROSWalker::isSubscribe(const CallExpr *expr) {
     return isFunction(expr, SUBSCRIBE_FUNCTION);
 }
 
+bool ROSWalker::isAdvertise(const CallExpr* expr){
+    return isFunction(expr, ADVERTISE_FUNCTION);
+}
+
 bool ROSWalker::isFunction(const CallExpr *expr, string functionName){
     //Gets the underlying callee.
     if (expr->getCalleeDecl() == nullptr) return false;
@@ -248,8 +255,19 @@ bool ROSWalker::isClass(const CXXConstructExpr* ctor, string className){
     return true;
 }
 
+void ROSWalker::recordTopic(string name){
+    string ID = TOPIC_PREFIX + name;
+    if (graph->doesNodeExist(ID)) return;
+
+    //Create the node.
+    RexNode* node = new RexNode(ID, name, RexNode::TOPIC);
+    graph->addNode(node);
+}
+
 //TODO: Actually implement.
 void ROSWalker::recordPublish(const CallExpr *expr) {
+    return;
+
     //Gets certain arguments about the publisher.
     int numArgs = expr->getNumArgs();
 
@@ -257,18 +275,59 @@ void ROSWalker::recordPublish(const CallExpr *expr) {
     if (numArgs != 1) return;
 
     //Get the argument(s).
-    string publisherVar = getArgs(expr)[0];
+    string publisherContents = getArgs(expr)[0];
+
+    //Finds the topic based on the variable being used.
+    string parentVariableName = getParentVariable(expr);
+    if (parentVariableName.compare(string()) == 0) return;
+
 
 }
 
-//TODO: Actually implement.
 void ROSWalker::recordSubscribe(const CallExpr *expr) {
     //Gets certain arguments about the subscriber.
     int numArgs = expr->getNumArgs();
     vector<string> subscriberArgs = getArgs(expr);
 
-    //Creates the
-    //
+    //Get the name of the topic and record it if not present.
+    string topicName = subscriberArgs[0];
+    recordTopic(topicName);
+    RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
+
+    //Get the parent function.
+    const FunctionDecl* p = getParentFunction(expr);
+    RexNode* parent = graph->findNode(generateID(p));
+
+    //Create the edge.
+    RexEdge* edge = new RexEdge(parent, topic, RexEdge::SUBSCRIBE);
+    edge->addSingleAttribute(ROS_TOPIC_BUF_SIZE, subscriberArgs[1]);
+    edge->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
+    graph->addEdge(edge);
+
+    //Get the callback function.
+    //TODO Write callback detector.
+    string callback = subscriberArgs[2];
+
+}
+
+void ROSWalker::recordAdvertise(const CallExpr* expr) {
+    int numArgs = expr->getNumArgs();
+    vector<string> advertiseArgs = getArgs(expr);
+
+    //Get the name of the topic and record it if not present.
+    string topicName = advertiseArgs[0];
+    recordTopic(topicName);
+    RexNode* dst = graph->findNode(TOPIC_PREFIX + topicName);
+
+    //Get the parent function.
+    const FunctionDecl* parent = getParentFunction(expr);
+    RexNode* src = graph->findNode(generateID(parent));
+
+    //Create the edge.
+    RexEdge* edge = new RexEdge(src, dst, RexEdge::ADVERTISE);
+    edge->addSingleAttribute(ROS_TOPIC_BUF_SIZE, advertiseArgs[1]);
+    edge->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
+    graph->addEdge(edge);
 }
 
 vector<string> ROSWalker::getArgs(const CallExpr* expr){
@@ -408,6 +467,22 @@ const FunctionDecl* ROSWalker::getParentFunction(const Expr* callExpr){
     }
 
     return nullptr;
+}
+
+string ROSWalker::getParentVariable(const Expr *callExpr) {
+    //Get the CXX Member Call.
+    auto call = dyn_cast<CXXMemberCallExpr>(callExpr);
+    if (call == nullptr) return string();
+
+    //Next, get the implicit object.
+    auto parentVar = call->getImplicitObjectArgument();
+    if (parentVar == nullptr) return string();
+
+    //Finally, works on a print pretty system.
+    string sBuffer = "";
+    llvm::raw_string_ostream strStream(sBuffer);
+    parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
+    return strStream.str();
 }
 
 string ROSWalker::generateID(const FunctionDecl* decl){

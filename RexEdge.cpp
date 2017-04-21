@@ -17,6 +17,12 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case CALLS:
             return "call";
+
+        case ADVERTISE:
+            return "advertise";
+
+        case SUBSCRIBE:
+            return "subscribe";
     }
 
     return "unknown";
@@ -142,7 +148,7 @@ string RexEdge::generateTAEdge(){
 }
 
 string RexEdge::generateTAAttribute(){
-    string attributes = "(" + getSourceID() + " " + getDestinationID() + ") {";
+    string attributes = "(" + generateTAEdge() + ") {";
 
     //Starts by generating all the single attributes.
     for (auto &entry : singleAttributes){

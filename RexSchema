@@ -25,6 +25,8 @@ subscribe	cFunction	rosTopic
 call		cFunction	cFunction
 reference	cAsgNds		cAsgNds
 inherits	cClass		cClass
+advertise	cRoot		cRoot
+subscribe	cRoot		cRoot
 
 SCHEME ATTRIBUTE :
 $ENTITY {
