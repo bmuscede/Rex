@@ -276,7 +276,21 @@ void ROSWalker::recordParentSubscribe(const CXXConstructExpr* expr){
 }
 
 void ROSWalker::recordParentPublish(const CXXConstructExpr* expr){
+    //First, see if we have parents.
+    const NamedDecl* parentVar = getParentAssign(expr);
+    if (!parentVar) return;
 
+    //Next, we record the relationship between the two items.
+    RexNode* src = graph->findNode(generateID(parentVar));
+    src->addSingleAttribute(ROS_PUB_VAR_FLAG, "1");
+    RexNode* dst = graph->generatePublisherNode(generateID(parentVar), generateName(parentVar));
+
+    //Creates the edge.
+    RexEdge* edge = new RexEdge(src, dst, RexEdge::SUBSCRIBE);
+    graph->addEdge(edge);
+
+    //Keeps track of the node being published.
+    currentPublisher = dst;
 }
 
 void ROSWalker::recordParentNodeHandle(const CXXConstructExpr* expr){
@@ -305,7 +319,6 @@ void ROSWalker::recordSubscribe(const CallExpr* expr){
 
     //Get the name of the topic and record it if not present.
     string topicName = subscriberArgs[0];
-    topicName.replace(topicName.begin(), topicName.end(), '\"', '-');
     recordTopic(topicName);
     RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
     RexEdge* topEdge = new RexEdge(currentSubscriber, topic, RexEdge::SUBSCRIBE);
@@ -337,6 +350,24 @@ void ROSWalker::recordPublish(const CallExpr* expr){
 
 void ROSWalker::recordAdvertise(const CallExpr* expr) {
     if (currentPublisher == nullptr) return;
+
+    //First, get the arguments.
+    int numArgs = expr->getNumArgs();
+    auto publisherArgs = getArgs(expr);
+
+    //Get the name of the topic and record it if not present.
+    string topicName = publisherArgs[0];
+    recordTopic(topicName);
+    RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
+    RexEdge* topEdge = new RexEdge(currentPublisher, topic, RexEdge::SUBSCRIBE);
+    graph->addEdge(topEdge);
+
+    //Record specific attributes.
+    currentPublisher->addSingleAttribute(ROS_TOPIC_BUF_SIZE, publisherArgs[1]);
+    currentPublisher->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
+    currentPublisher->addSingleAttribute(ROS_PUB_TYPE, getPublisherType(expr));
+
+    currentPublisher = nullptr;
 }
 
 RexNode* ROSWalker::findCallbackFunction(std::string callbackQualified){
@@ -370,6 +401,30 @@ vector<string> ROSWalker::getArgs(const CallExpr* expr){
     }
 
     return args;
+}
+
+string ROSWalker::getPublisherType(const CallExpr* expr) {
+    //Get the string representation of the expression.
+    string sBuffer = "";
+    llvm::raw_string_ostream strStream(sBuffer);
+    expr->printPretty(strStream, nullptr, Context->getPrintingPolicy());
+    sBuffer = strStream.str();
+
+    //Loop through the string.
+    string type = "";
+    bool inBetween = false;
+    for (int i = 0; i < sBuffer.size(); i++){
+        if (sBuffer.at(i) == '<'){
+            inBetween = true;
+        } else if (inBetween && sBuffer.at(i) == '>'){
+            break;
+        } else if (inBetween) {
+            type += sBuffer.at(i);
+        }
+    }
+
+    if (type.compare("") == 0) return "none";
+    return type;
 }
 
 bool ROSWalker::isInSystemHeader(const Stmt *statement) {

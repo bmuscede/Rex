@@ -57,6 +57,7 @@ private:
     const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
     const std::string ROS_PUB_VAR_FLAG = "isPublisher";
     const std::string ROS_CALLBACK = "callbackFunc";
+    const std::string ROS_PUB_TYPE = "publisherType";
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -91,6 +92,7 @@ private:
     //Helpers for ROS
     RexNode* findCallbackFunction(std::string callbackQualified);
     std::vector<std::string> getArgs(const CallExpr* expr);
+    std::string getPublisherType(const CallExpr* expr);
 
     //Helper Functions
     bool isInSystemHeader(const Stmt* statement);
