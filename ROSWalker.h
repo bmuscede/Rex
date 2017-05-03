@@ -39,6 +39,9 @@ private:
     ASTContext *Context;
     static TAGraph* graph;
 
+    RexNode* currentSubscriber = nullptr;
+    RexNode* currentPublisher = nullptr;
+
     const std::string TOPIC_PREFIX = "ros--topic--";
 
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
@@ -51,6 +54,9 @@ private:
     //ROS Attribute Names.
     const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
     const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
+    const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
+    const std::string ROS_PUB_VAR_FLAG = "isPublisher";
+    const std::string ROS_CALLBACK = "callbackFunc";
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -73,12 +79,17 @@ private:
     bool isClass(const CXXConstructExpr* ctor, std::string className);
 
     //ROS Recorders
+    void recordParentSubscribe(const CXXConstructExpr* expr);
+    void recordParentPublish(const CXXConstructExpr* expr);
+    void recordParentNodeHandle(const CXXConstructExpr* expr);
     void recordTopic(std::string name);
-    void recordPublish(const CallExpr* expr);
+    void recordNodeHandle(const CXXConstructExpr* expr);
     void recordSubscribe(const CallExpr* expr);
+    void recordPublish(const CallExpr* expr);
     void recordAdvertise(const CallExpr* expr);
 
-    //Helper for Publishers
+    //Helpers for ROS
+    RexNode* findCallbackFunction(std::string callbackQualified);
     std::vector<std::string> getArgs(const CallExpr* expr);
 
     //Helper Functions
@@ -90,6 +101,7 @@ private:
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
     const FunctionDecl* getParentFunction(const Expr* callExpr);
     std::string getParentVariable(const Expr* callExpr);
+    const NamedDecl* getParentAssign(const CXXConstructExpr* expr);
 
     //Name Helper Functions
     std::string generateID(const FunctionDecl* decl);

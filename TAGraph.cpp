@@ -107,6 +107,16 @@ RexNode* TAGraph::findNode(std::string nodeID){
     return idList[getMD5(nodeID)];
 }
 
+RexNode* TAGraph::findNodeByName(string nodeName) {
+    //Loop through the map.
+    for (auto entry : idList){
+        if (entry.second->getName().compare(nodeName) == 0)
+            return entry.second;
+    }
+
+    return nullptr;
+}
+
 RexEdge* TAGraph::findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type){
     //Gets the edges for a source.
     vector<RexEdge*> edges = edgeSrcList[getMD5(srcID)];
@@ -216,6 +226,14 @@ string TAGraph::getTAModel(){
     return model;
 }
 
+RexNode* TAGraph::generateSubscriberNode(std::string parentID, std::string parentName){
+    return generateROSNode(parentID, parentName, RexNode::SUBSCRIBER);
+}
+
+RexNode* TAGraph::generatePublisherNode(std::string parentID, std::string parentName){
+    return generateROSNode(parentID, parentName, RexNode::PUBLISHER);
+}
+
 string TAGraph::getMD5(string ID){
     //Creates a digest buffer.
     unsigned char digest[MD5_DIGEST_LENGTH];
@@ -257,4 +275,49 @@ bool TAGraph::resolveEdge(RexEdge *edge) {
     }
 
     return true;
+}
+
+RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::NodeType type){
+    //Generates the ID.
+    string rosID = parentID + "::" + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + "::";
+
+    //Generates the name.
+    string rosName = parentName + "\'s " + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + " ";
+
+    //Gets the current number.
+    int num = getLastROSNumber(rosID);
+    rosID += to_string(num);
+    rosName += to_string(num);
+
+    //Now creates the node.
+    RexNode* node = new RexNode(rosID, rosName, type);
+    node->addSingleAttribute(ROS_NUM, to_string(num));
+    addNode(node);
+
+    return node;
+}
+
+//TODO: Inefficient
+int TAGraph::getLastROSNumber(std::string rosID){
+    int curNum = 0;
+    bool exists = true;
+
+    //Loops through until we don't find an entry.
+    while (exists) {
+        bool found = false;
+
+        //Loops through the map.
+        for (auto mapItem : idList){
+            if (mapItem.first.compare(rosID + to_string(curNum)) == 0){
+                found = true;
+                break;
+            }
+        }
+
+        //Check if we found the item.
+        if (!found) exists = false;
+        else curNum++;
+    }
+
+    return curNum;
 }

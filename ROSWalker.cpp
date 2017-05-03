@@ -16,16 +16,18 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
     //Handle ROS Publisher and Subscriber object creations.
-    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)){
-        if (isNodeHandlerObj(cxxExpr)){
-            //TODO
-            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
-        } else if (isSubscriberObj(cxxExpr)){
-            //TODO
-            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
-        } else if (isPublisherObj(cxxExpr)){
-            //TODO
-            cout << cxxExpr->getBestDynamicClassType()->getQualifiedNameAsString() << endl;
+    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
+        //Generate the printing policy.
+        clang::LangOptions LangOpts;
+        clang::PrintingPolicy Policy(LangOpts);
+
+        if (isNodeHandlerObj(cxxExpr)) {
+            recordNodeHandle(cxxExpr);
+            recordParentNodeHandle(cxxExpr);
+        } else if (isSubscriberObj(cxxExpr)) {
+            recordParentSubscribe(cxxExpr);
+        } else if (isPublisherObj(cxxExpr)) {
+            recordParentPublish(cxxExpr);
         }
     }
 
@@ -255,6 +257,32 @@ bool ROSWalker::isClass(const CXXConstructExpr* ctor, string className){
     return true;
 }
 
+void ROSWalker::recordParentSubscribe(const CXXConstructExpr* expr){
+    //First, see if we have parents.
+    const NamedDecl* parentVar = getParentAssign(expr);
+    if (!parentVar) return;
+
+    //Next, we record the relationship between the two items.
+    RexNode* src = graph->findNode(generateID(parentVar));
+    src->addSingleAttribute(ROS_SUB_VAR_FLAG, "1");
+    RexNode* dst = graph->generateSubscriberNode(generateID(parentVar), generateName(parentVar));
+
+    //Creates the edge.
+    RexEdge* edge = new RexEdge(src, dst, RexEdge::SUBSCRIBE);
+    graph->addEdge(edge);
+
+    //Keeps track of the node being published.
+    currentSubscriber = dst;
+}
+
+void ROSWalker::recordParentPublish(const CXXConstructExpr* expr){
+
+}
+
+void ROSWalker::recordParentNodeHandle(const CXXConstructExpr* expr){
+
+}
+
 void ROSWalker::recordTopic(string name){
     string ID = TOPIC_PREFIX + name;
     if (graph->doesNodeExist(ID)) return;
@@ -264,70 +292,61 @@ void ROSWalker::recordTopic(string name){
     graph->addNode(node);
 }
 
-//TODO: Actually implement.
-void ROSWalker::recordPublish(const CallExpr *expr) {
-    return;
-
-    //Gets certain arguments about the publisher.
-    int numArgs = expr->getNumArgs();
-
-    //Check if the number of arguments is valid.
-    if (numArgs != 1) return;
-
-    //Get the argument(s).
-    string publisherContents = getArgs(expr)[0];
-
-    //Finds the topic based on the variable being used.
-    string parentVariableName = getParentVariable(expr);
-    if (parentVariableName.compare(string()) == 0) return;
-
+void ROSWalker::recordNodeHandle(const CXXConstructExpr* expr){
 
 }
 
-void ROSWalker::recordSubscribe(const CallExpr *expr) {
-    //Gets certain arguments about the subscriber.
+void ROSWalker::recordSubscribe(const CallExpr* expr){
+    if (currentSubscriber == nullptr) return;
+
+    //Now, adds information to the destination node.
     int numArgs = expr->getNumArgs();
-    vector<string> subscriberArgs = getArgs(expr);
+    auto subscriberArgs = getArgs(expr);
 
     //Get the name of the topic and record it if not present.
     string topicName = subscriberArgs[0];
+    topicName.replace(topicName.begin(), topicName.end(), '\"', '-');
     recordTopic(topicName);
     RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
+    RexEdge* topEdge = new RexEdge(currentSubscriber, topic, RexEdge::SUBSCRIBE);
+    graph->addEdge(topEdge);
 
-    //Get the parent function.
-    const FunctionDecl* p = getParentFunction(expr);
-    RexNode* parent = graph->findNode(generateID(p));
+    //Record attributes.
+    currentSubscriber->addSingleAttribute(ROS_TOPIC_BUF_SIZE, subscriberArgs[1]);
+    currentSubscriber->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
+    currentSubscriber->addSingleAttribute(ROS_CALLBACK, subscriberArgs[2]);
 
-    //Create the edge.
-    RexEdge* edge = new RexEdge(parent, topic, RexEdge::SUBSCRIBE);
-    edge->addSingleAttribute(ROS_TOPIC_BUF_SIZE, subscriberArgs[1]);
-    edge->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
-    graph->addEdge(edge);
+    //Gets the callback information.
+    RexNode* callback = findCallbackFunction(subscriberArgs[2]);
 
-    //Get the callback function.
-    //TODO Write callback detector.
-    string callback = subscriberArgs[2];
+    //Finally, adds in the callback function.
+    RexEdge* callbackEdge;
+    if (callback){
+        callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
+    } else {
+        callbackEdge = new RexEdge(currentSubscriber, subscriberArgs[2], RexEdge::CALLS);
+    }
+    graph->addEdge(callbackEdge);
+
+    currentSubscriber = nullptr;
+}
+
+void ROSWalker::recordPublish(const CallExpr* expr){
 
 }
 
 void ROSWalker::recordAdvertise(const CallExpr* expr) {
-    int numArgs = expr->getNumArgs();
-    vector<string> advertiseArgs = getArgs(expr);
+    if (currentPublisher == nullptr) return;
+}
 
-    //Get the name of the topic and record it if not present.
-    string topicName = advertiseArgs[0];
-    recordTopic(topicName);
-    RexNode* dst = graph->findNode(TOPIC_PREFIX + topicName);
+RexNode* ROSWalker::findCallbackFunction(std::string callbackQualified){
+    //First, check to see if the string starts with &.
+    if (callbackQualified.at(0) == '&'){
+        callbackQualified = callbackQualified.erase(0, 1);
+    }
 
-    //Get the parent function.
-    const FunctionDecl* parent = getParentFunction(expr);
-    RexNode* src = graph->findNode(generateID(parent));
-
-    //Create the edge.
-    RexEdge* edge = new RexEdge(src, dst, RexEdge::ADVERTISE);
-    edge->addSingleAttribute(ROS_TOPIC_BUF_SIZE, advertiseArgs[1]);
-    edge->addSingleAttribute(ROS_NUM_ATTRIBUTES, to_string(numArgs));
-    graph->addEdge(edge);
+    //Find a node by name.
+    return graph->findNodeByName(callbackQualified);
 }
 
 vector<string> ROSWalker::getArgs(const CallExpr* expr){
@@ -483,6 +502,34 @@ string ROSWalker::getParentVariable(const Expr *callExpr) {
     llvm::raw_string_ostream strStream(sBuffer);
     parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
     return strStream.str();
+}
+
+const NamedDecl* ROSWalker::getParentAssign(const CXXConstructExpr* expr){
+    bool getParent = true;
+
+    //Get the parent.
+    auto parent = Context->getParents(*expr);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        auto currentDecl = parent[0].get<clang::NamedDecl>();
+        if (currentDecl && (isa<clang::VarDecl>(currentDecl) || isa<clang::FieldDecl>(currentDecl)
+                           || isa<clang::ParmVarDecl>(currentDecl))){
+            return currentDecl;
+        } else if (currentDecl && isa<clang::FunctionDecl>(currentDecl)){
+            getParent = false;
+            continue;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    return nullptr;
 }
 
 string ROSWalker::generateID(const FunctionDecl* decl){

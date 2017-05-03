@@ -13,6 +13,8 @@ $INHERIT	cFunction		cAsgNds
 $INHERIT	cVariable		cAsgNds
 $INHERIT	cLang			cAsgNds
 $INHERIT	rosTopic		rosMsg
+$INHERIT	rosPublisher		rosMsg
+$INHERIT	rosSubscriber		rosMsg
 $INHERIT	cEnum			cLang
 $INHERIT	cEnumConst		cLang
 $INHERIT	cStruct			cLang
@@ -86,6 +88,8 @@ cVariable {
 	filename
 	scopeType
 	isStatic
+	isPublisher = 0
+	isSubscriber = 0
 }
 
 cClass {
@@ -105,6 +109,22 @@ cEnumConst {
 	filename
 	color = (0.9 0.2 0.5)
 	labelcolor = (0.0 0.0 0.0)
+}
+
+rosSubscriber {
+	bufferSize
+	numAttributes
+	rosNumber	
+	callbackFunc
+}
+
+rosPublisher {
+	numAttributes
+	rosNumber
+}
+
+rosTopic {
+	
 }
 
 (reference) {

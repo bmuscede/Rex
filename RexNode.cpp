@@ -22,6 +22,11 @@ string RexNode::typeToString(RexNode::NodeType type){
         case TOPIC:
             return "rosTopic";
 
+        case PUBLISHER:
+            return "rosPublisher";
+
+        case SUBSCRIBER:
+            return "rosSubscriber";
     }
 
     return "cRoot";
