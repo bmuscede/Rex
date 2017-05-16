@@ -58,6 +58,9 @@ private:
     const std::string ROS_PUB_VAR_FLAG = "isPublisher";
     const std::string ROS_CALLBACK = "callbackFunc";
     const std::string ROS_PUB_TYPE = "publisherType";
+    const std::string ROS_NUMBER = "rosNumber";
+    const std::string ROS_PUB_DATA = "pubData";
+    const int PUB_MAX = 30;
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -109,6 +112,7 @@ private:
     std::string generateID(const FunctionDecl* decl);
     std::string generateID(const NamedDecl* decl);
     std::string generateName(const NamedDecl* decl);
+    std::string validateStringArg(std::string name);
 };
 
 class ROSConsumer : public ASTConsumer {

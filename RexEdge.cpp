@@ -23,6 +23,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case SUBSCRIBE:
             return "subscribe";
+
+        case PUBLISH:
+            return "publish";
     }
 
     return "unknown";

@@ -318,7 +318,7 @@ void ROSWalker::recordSubscribe(const CallExpr* expr){
     auto subscriberArgs = getArgs(expr);
 
     //Get the name of the topic and record it if not present.
-    string topicName = subscriberArgs[0];
+    string topicName = validateStringArg(subscriberArgs[0]);
     recordTopic(topicName);
     RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
     RexEdge* topEdge = new RexEdge(currentSubscriber, topic, RexEdge::SUBSCRIBE);
@@ -344,8 +344,56 @@ void ROSWalker::recordSubscribe(const CallExpr* expr){
     currentSubscriber = nullptr;
 }
 
+//TODO: This won't work since the qualified name isn't right.
 void ROSWalker::recordPublish(const CallExpr* expr){
+    //Get the publisher object.
+    auto parent = getParentVariable(expr);
+    if (parent.compare(string()) == 0) return;
+    RexNode* parentVar = graph->findNodeByName(parent);
+    if (!parentVar) return;
 
+    //Next, gets the publisher that it's pointing to.
+    auto destinations = graph->findEdgesBySrc(parentVar->getID(), false);
+    RexNode* pubItem = nullptr;
+    for (int i = 0; i < destinations.size(); i++){
+        auto item = destinations.at(i);
+
+        //Narrows down the item.
+        if (item->getType() != RexEdge::SUBSCRIBE) continue;
+        auto dest = item->getDestination();
+        if (dest->getType() != RexNode::PUBLISHER) continue;
+
+        if (pubItem == nullptr){
+            pubItem = dest;
+        } else if (atoi(pubItem->getSingleAttribute(ROS_NUMBER).c_str()) < atoi(item->getSingleAttribute(ROS_NUMBER).c_str())){
+            pubItem = dest;
+        }
+    }
+    if (!pubItem) return;
+
+    //Next, gets the topic it publishes to.
+    destinations = graph->findEdgesBySrc(pubItem->getID(), false);
+    RexNode* topic = nullptr;
+    for (int i = 0; i < destinations.size(); i++){
+        auto item = destinations.at(i);
+
+        //Narrows the item.
+        if (item->getType() != RexEdge::ADVERTISE) continue;
+        topic = item->getDestination();
+    }
+    if (!topic) return;
+
+    //Now, generates the edge.
+    RexEdge* edge = new RexEdge(parentVar, topic, RexEdge::PUBLISH);
+
+    //Gets the publish data.
+    auto args = getArgs(expr);
+    string data = validateStringArg(args.at(0));
+    if (data.size() > PUB_MAX) data = data.substr(0, PUB_MAX);
+    edge->addSingleAttribute(ROS_PUB_DATA, data);
+
+    //Adds the result to the graph.
+    graph->addEdge(edge);
 }
 
 void ROSWalker::recordAdvertise(const CallExpr* expr) {
@@ -356,10 +404,10 @@ void ROSWalker::recordAdvertise(const CallExpr* expr) {
     auto publisherArgs = getArgs(expr);
 
     //Get the name of the topic and record it if not present.
-    string topicName = publisherArgs[0];
+    string topicName = validateStringArg(publisherArgs[0]);
     recordTopic(topicName);
     RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
-    RexEdge* topEdge = new RexEdge(currentPublisher, topic, RexEdge::SUBSCRIBE);
+    RexEdge* topEdge = new RexEdge(currentPublisher, topic, RexEdge::ADVERTISE);
     graph->addEdge(topEdge);
 
     //Record specific attributes.
@@ -679,6 +727,19 @@ string ROSWalker::generateID(const NamedDecl* decl){
 
 string ROSWalker::generateName(const NamedDecl* decl){
     return decl->getQualifiedNameAsString();
+}
+
+string ROSWalker::validateStringArg(string name){
+    //Checks the topic name.
+    std::string prefix("\"");
+    if (!name.compare(0, prefix.size(), prefix)){
+        name = name.substr(1);
+    }
+    if (!name.compare(name.size() - 1, prefix.size(), prefix)){
+        name = name.substr(0, name.size() - 1);
+    }
+
+    return name;
 }
 
 ROSConsumer::ROSConsumer(ASTContext *Context) : Visitor(Context) {}

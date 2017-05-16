@@ -25,8 +25,8 @@ public:
     RexNode* findNode(std::string nodeID);
     RexNode* findNodeByName(std::string nodeName);
     RexEdge* findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type);
-    std::vector<RexEdge*> findEdgesBySrc(std::string srcID);
-    std::vector<RexEdge*> findEdgesByDst(std::string dstID);
+    std::vector<RexEdge*> findEdgesBySrc(std::string srcID, bool md5 = true);
+    std::vector<RexEdge*> findEdgesByDst(std::string dstID, bool md5 = true);
 
     bool doesNodeExist(std::string nodeID);
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);

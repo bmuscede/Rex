@@ -3,7 +3,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 cmake_minimum_required(VERSION 2.8.4)
 project(Rex)
 
-find_package(Boost 1.58 COMPONENTS system filesystem serialization REQUIRED)
+find_package(Boost 1.58 COMPONENTS system filesystem serialization regex REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
 set(LLVM_PATH /home/bmuscede/Applications/LLVM-Build)
@@ -17,7 +17,7 @@ add_definitions(
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES main.cpp ROSWalker.cpp ROSWalker.h TAGraph.cpp TAGraph.h RexNode.cpp RexNode.h RexEdge.cpp RexEdge.h)
+set(SOURCE_FILES main.cpp ROSWalker.cpp ROSWalker.h TAGraph.cpp TAGraph.h RexNode.cpp RexNode.h RexEdge.cpp RexEdge.h RexMaster.cpp RexHandler.cpp RexHandler.h)
 add_executable(Rex ${SOURCE_FILES})
 
 target_link_libraries(Rex

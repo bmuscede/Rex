@@ -130,12 +130,14 @@ RexEdge* TAGraph::findEdge(std::string srcID, std::string dstID, RexEdge::EdgeTy
     return nullptr;
 }
 
-std::vector<RexEdge*> TAGraph::findEdgesBySrc(std::string srcID){
-    return edgeSrcList[getMD5(srcID)];
+std::vector<RexEdge*> TAGraph::findEdgesBySrc(std::string srcID, bool md5){
+    if (md5) return edgeSrcList[getMD5(srcID)];
+    return edgeSrcList[srcID];
 }
 
-std::vector<RexEdge*> TAGraph::findEdgesByDst(std::string dstID){
-    return edgeDstList[getMD5(dstID)];
+std::vector<RexEdge*> TAGraph::findEdgesByDst(std::string dstID, bool md5){
+    if (md5) return edgeDstList[getMD5(dstID)];
+    return edgeDstList[dstID];
 }
 
 bool TAGraph::doesNodeExist(std::string nodeID){
