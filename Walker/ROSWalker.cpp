@@ -2,7 +2,7 @@
 #include <iostream>
 #include "clang/AST/Mangle.h"
 #include "ROSWalker.h"
-#include "RexNode.h"
+#include "../Graph/RexNode.h"
 
 using namespace std;
 

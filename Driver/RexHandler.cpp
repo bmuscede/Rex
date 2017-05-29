@@ -1,15 +1,40 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// RexHandler.cpp
 //
-// Created by bmuscede on 15/05/17.
+// Created By: Bryan J Muscedere
+// Date: 15/05/17.
 //
+// Driver that connects to all the backend functions
+// and coordinates them based on a user's commands
+// from the master driver.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include "RexHandler.h"
-#include "ROSWalker.h"
+#include "../Walker/ROSWalker.h"
 
 using namespace std;
 using namespace clang::tooling;
 
+/**
+ * Constructor that prepares the RexHandler.
+ */
 RexHandler::RexHandler(){
     //Sets the C, C++ extensions.
     ext.push_back(C_FILE_EXT);
@@ -17,18 +42,31 @@ RexHandler::RexHandler(){
     ext.push_back(CPLUSPLUS_FILE_EXT);
 }
 
+/** Deletes all the TA graphs */
 RexHandler::~RexHandler(){
     ROSWalker::deleteTAGraphs();
 }
 
+/**
+ * Gets the number of already generated graphs.
+ * @return Number of generated graphs.
+ */
 int RexHandler::getNumGraphs(){
     return ROSWalker::getNumGraphs();
 }
 
+/**
+ * Number of files currently in the queue.
+ * @return The size of the queue.
+ */
 int RexHandler::getNumFiles(){
     return (int) files.size();
 }
 
+/**
+ * Gets a list of all the files.
+ * @return A vector of all the files.
+ */
 vector<string> RexHandler::getFiles(){
     vector<string> strFiles;
     for (path file : files) strFiles.push_back(file.string());
@@ -36,6 +74,12 @@ vector<string> RexHandler::getFiles(){
     return strFiles;
 }
 
+/**
+ * General method that processes the Clangtool code.
+ * @param argc Argc command.
+ * @param argv Argv command.
+ * @return Returns a boolean indicating success.
+ */
 bool RexHandler::processClangToolCode(int argc, const char** argv){
     bool success = true;
     llvm::cl::OptionCategory RexCategory("Rex Options");
@@ -62,6 +106,10 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
     return success;
 }
 
+/**
+ * Runs through all files in the queue and generates a graph.
+ * @return Boolean indicating success.
+ */
 bool RexHandler::processAllFiles(){
     bool success = true;
     llvm::cl::OptionCategory RexCategory("Rex Options");
@@ -92,10 +140,12 @@ bool RexHandler::processAllFiles(){
     return success;
 }
 
-bool RexHandler::processROSProject(std::string projName){
-    return false;
-}
-
+/**
+ * Outputs an individual TA model to TA format.
+ * @param modelNum The number of the model to output.
+ * @param fileName The filename to output as.
+ * @return Boolean indicating success.
+ */
 bool RexHandler::outputIndividualModel(int modelNum, std::string fileName){
     if (fileName.compare(string()) == 0) fileName = DEFAULT_FILENAME;
 
@@ -104,7 +154,7 @@ bool RexHandler::outputIndividualModel(int modelNum, std::string fileName){
 
     int succ = ROSWalker::generateTAModel(modelNum, fileName + DEFAULT_EXT);
     if (succ == 0) {
-        cerr << "Error writing model to " << fileName << "!" << endl
+        cerr << "Error writing to " << fileName << "!" << endl
                                                              << "Check the file and retry!" << endl;
         return false;
     }
@@ -113,6 +163,11 @@ bool RexHandler::outputIndividualModel(int modelNum, std::string fileName){
     return true;
 }
 
+/**
+ * Outputs all models generated based on a file name.
+ * @param baseFileName The base file name to output on.
+ * @return A boolean indicating success.
+ */
 bool RexHandler::outputAllModels(std::string baseFileName){
     bool succ = true;
 
@@ -125,6 +180,11 @@ bool RexHandler::outputAllModels(std::string baseFileName){
     return succ;
 }
 
+/**
+ * Adds a file/directory by path.
+ * @param curPath The path to add.
+ * @return Integer indicating the number of files added.
+ */
 int RexHandler::addByPath(path curPath){
     int num = 0;
 
@@ -138,6 +198,11 @@ int RexHandler::addByPath(path curPath){
     return num;
 }
 
+/**
+ * Removes a file/directory from the queue.
+ * @param curPath The path to remove.
+ * @return The number of files removed.
+ */
 int RexHandler::removeByPath(path curPath){
     int num = 0;
 
@@ -151,6 +216,12 @@ int RexHandler::removeByPath(path curPath){
     return num;
 }
 
+/**
+ * Generates arguments with the include directory.
+ * @param argc The argc to update.
+ * @param argv The previous argv.
+ * @return The new argv.
+ */
 const char** RexHandler::prepareUpdatedArgs(int *argc, const char** argv){
     //Checks if the folder exists.
     boost::filesystem::path includePath(INCLUDE_DIR);
@@ -180,6 +251,11 @@ const char** RexHandler::prepareUpdatedArgs(int *argc, const char** argv){
     return (const char**) updated;
 }
 
+/**
+ * Generates an argv array based on the files in the queue and Clang's input format.
+ * @param argc The number of tokens.
+ * @return The new argv command.
+ */
 char** RexHandler::prepareArgs(int *argc){
     //Sets argc.
     *argc = BASE_LEN + (int) files.size();
@@ -204,12 +280,22 @@ char** RexHandler::prepareArgs(int *argc){
     return argv;
 }
 
+/**
+ * Adds a file to the queue.
+ * @param file The file to add.
+ * @return Returns 1.
+ */
 int RexHandler::addFile(path file){
     //Gets the string that is added.
     files.push_back(canonical(file));
     return 1;
 }
 
+/**
+ * Recursively adds a directory to the queue.
+ * @param directory The directory to add.
+ * @return The number of files added.
+ */
 int RexHandler::addDirectory(path directory){
     int numAdded = 0;
     vector<path> interiorDir = vector<path>();
@@ -243,6 +329,11 @@ int RexHandler::addDirectory(path directory){
     return numAdded;
 }
 
+/**
+ * Removes a file from the queue.
+ * @param file The file to remove.
+ * @return 1 if the file is removed, 0 if it wasn't found.
+ */
 int RexHandler::removeFile(path file){
     file = canonical(file);
 
@@ -260,6 +351,11 @@ int RexHandler::removeFile(path file){
     return 0;
 }
 
+/**
+ * Removes a directory from the queue.
+ * @param directory The directory to remove.
+ * @return The number removed.
+ */
 int RexHandler::removeDirectory(path directory){
     int numRemoved = 0;
     vector<path> interiorDir = vector<path>();

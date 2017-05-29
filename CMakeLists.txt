@@ -17,7 +17,7 @@ add_definitions(
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES ROSWalker.cpp ROSWalker.h TAGraph.cpp TAGraph.h RexNode.cpp RexNode.h RexEdge.cpp RexEdge.h RexMaster.cpp RexHandler.cpp RexHandler.h)
+set(SOURCE_FILES Walker/ROSWalker.cpp Walker/ROSWalker.h Graph/TAGraph.cpp Graph/TAGraph.h Graph/RexNode.cpp Graph/RexNode.h Graph/RexEdge.cpp Graph/RexEdge.h Driver/RexMaster.cpp Driver/RexHandler.cpp Driver/RexHandler.h)
 add_executable(Rex ${SOURCE_FILES})
 
 target_link_libraries(Rex

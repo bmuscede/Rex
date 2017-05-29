@@ -12,7 +12,7 @@
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "llvm/Support/CommandLine.h"
-#include "TAGraph.h"
+#include "../Graph/TAGraph.h"
 
 using namespace llvm;
 using namespace clang;
