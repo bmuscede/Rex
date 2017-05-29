@@ -32,6 +32,7 @@
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/make_shared.hpp>
 #include "RexHandler.h"
 
 using namespace std;
@@ -50,6 +51,18 @@ const static string LIST_ARG = "list";
 
 /** Rex Command Handler */
 static RexHandler* masterHandle;
+
+struct RexHelp {
+    RexHelp(const std::string& name = {}, const po::options_description& desc = {})
+            : name(name), desc(boost::make_shared<po::options_description>(desc)) {}
+
+    RexHelp& operator=(const RexHelp& other) = default;
+
+    boost::shared_ptr<po::options_description> desc;
+
+private:
+    std::string name;
+};
 
 /**
  * Takes in a line and tokenizes it to
@@ -114,11 +127,107 @@ bool promptForAction(string promptText){
 }
 
 /**
+ * Generates all the help messages for the system.
+ * @param helpMap Map of all the program options.
+ * @param helpString Map of all the help strings.
+ */
+void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString){
+    //First, generate the help information for about.
+    (*helpString)[ABOUT_ARG] = string("About Help\nUsage: " + ABOUT_ARG + "\n" "Prints information about the program including\n"
+            "license information and program details.\n");
+
+    //Next, generate the help information for exit.
+    (*helpString)[EXIT_ARG] = string("Quit Help\nUsage: " + EXIT_ARG + "(!)\n" "Quits the program and returns back"
+            " to the terminal.\nTyping " + EXIT_ARG + "will only quit if there are no items left to be processed.\n"
+            "Typing " + EXIT_ARG + "! will quit the program automatically without any warning.\n");
+
+    //Generate the help for generate.
+    (*helpString)[GEN_ARG] = string("Generate Help\nUsage: " + GEN_ARG + "\nGenerates a graph based on the supplied"
+            " C/C++ source files.\nYou must have at least 1 source file in the queue for the graph to be generated.\n"
+            "Additionally, in the root directory, there must a \"compile_commands.json\" file.");
+
+    //Generate the help for output.
+    (*helpMap)[OUT_ARG] = RexHelp(OUT_ARG, po::options_description("Options"));
+    helpMap->at(OUT_ARG).desc->add_options()
+            ("help,h", "Print help message for output.")
+            ("select,s", po::value<string>(), "Outputs graphs by graph number. Can separate values by comma.")
+            ("outputFile", po::value<std::vector<std::string>>(), "The base file name to save.");
+    stringstream ss;
+    ss << *helpMap->at(OUT_ARG).desc;
+    (*helpString)[OUT_ARG] = string("Output Help\nUsage: " + OUT_ARG + " [options] OutputName\nOutputs the generated"
+            " graphs to a tuple-attribute (TA) file based on a specific\nRex schema. These models can then be used"
+            " by other programs.\n\n" + ss.str());
+
+    //Generate the help for add.
+    (*helpMap)[ADD_ARG] = RexHelp(ADD_ARG, po::options_description("Options"));
+    helpMap->at(ADD_ARG).desc->add_options()
+            ("help, h", "Print help message for add.")
+            ("source, s", po::value<std::vector<std::string>>(), "A file or directory to add to the current graph.");
+    ss.str(string());
+    ss << *helpMap->at(ADD_ARG).desc;
+    (*helpString)[ADD_ARG] = string("Add Help\nUsage: " + ADD_ARG + " source\nAdds files or directories to process."
+            "By adding directories, Rex will recursively\nsearch for source files starting from the root. For"
+            " files\nyou can specify any file you want and Rex will add it to the project.\n\n" + ss.str());
+
+    //Generate the help for remove.
+    (*helpMap)[REMOVE_ARG] = RexHelp(REMOVE_ARG, po::options_description("Options"));
+    helpMap->at(REMOVE_ARG).desc->add_options()
+            ("help, h", "Print help message for add.")
+            ("source, s", po::value<std::vector<std::string>>(), "A file or directory to remove from the current graph.");
+    ss.str(string());
+    ss << *helpMap->at(REMOVE_ARG).desc;
+    (*helpString)[REMOVE_ARG] = string("Remove Help\nUsage: " + REMOVE_ARG + " source\nRemoves files or directories "
+            "from the processing queue. By removing directories, Rex will recursively\nsearch for files in the queue"
+            " that can be removed. Individual files can also be removed\ntoo. Only files that are in the queue to"
+            " begin with can be removed.\n\n" + ss.str());
+
+    //Generates the help for list.
+    (*helpMap)[LIST_ARG] = RexHelp(LIST_ARG, po::options_description("Options"));
+    helpMap->at(LIST_ARG).desc->add_options()
+            ("help,h", "Print help message for list.")
+            ("num-graphs,g", "Prints the number of graphs already generated.")
+            ("files,f", "Lists all the files for the current input.");
+    ss.str(string());
+    ss << *helpMap->at(LIST_ARG).desc;
+    (*helpString)[LIST_ARG] = string("List Help\nUsage: " + LIST_ARG + " [options]\nLists information about the "
+            "current state of Rex. This includes the number\nof graphs currently generated and all the files\nbeing"
+            " processed for the next graph.\nOnly files that are in the queue are listed.\n\n" + ss.str());
+}
+
+/**
  * Prints a simple help message.
  * Also lets users print information about commands.
+ * @param line The line to process.
+ * @param messages The help messages.
  */
-void handleHelp() {
+void handleHelp(string line, map<string, string> messages) {
+    string helpString = "Commands that can be used:\n"
+        "help           : Prints help information.\n"
+        "about          : Prints about information.\n"
+        "quit(!)        : Quits the program.\n"
+        "generate       : Generates a graph based on the current source files.\n"
+        "output         : Outputs a graph to tuple-attribute format.\n"
+        "add            : Adds a file/directory to be processed.\n"
+        "remove         : Removes a file/directory from the queue.\n"
+        "list           : Lists the current state of Rex\n\n"
+        "For more help type \"help [argument name]\" for more details.";
 
+    auto tokens = tokenizeBySpace(line);
+
+    //Check if the line is empty.
+    if (tokens.size() == 1){
+        cout << helpString << endl;
+    } else if (tokens.size() == 2){
+        //Check if the key exists.
+        if (messages.find(tokens.at(1)) == messages.end()){
+            cerr << "The token \"" + tokens.at(1) + "\" is not a valid command!" << endl << endl
+                    << helpString << endl;
+        } else {
+            cout << messages.at(tokens.at(1));
+        }
+    } else {
+        cerr << "Error: The help command must be either typed as \"help\" or as \"help [argument name]\"" << endl;
+    }
 }
 
 /**
@@ -187,7 +296,7 @@ void generateGraph() {
  * Also performs basic sanity checking.
  * @param line The line to perform command line argument parsing.
  */
-void outputGraphs(string line){
+void outputGraphs(string line, po::options_description desc){
     //Generates the arguments.
     vector<string> tokens = tokenizeBySpace(line);
     char** argv = createArgv(tokens);
@@ -197,13 +306,7 @@ void outputGraphs(string line){
     vector<int> outputIndex;
 
     //Processes the command line args.
-    po::options_description desc("Options");
     po::positional_options_description positionalOptions;
-
-    desc.add_options()
-            ("help,h", "Print help message for output.")
-            ("select,s", po::value<string>(), "Outputs graphs by graph number. Can separate values by comma.")
-            ("outputFile", po::value<std::vector<std::string> >(), "The base file name to save.");
     positionalOptions.add("outputFile", 1);
 
     po::variables_map vm;
@@ -356,7 +459,7 @@ void removeFiles(string line){
  * Prints the current state that the program is in.
  * @param line The line with all the command line arguments.
  */
-void listState(string line){
+void listState(string line, po::options_description desc){
     bool listAll = true;
     bool listGraphs = false;
     bool listFiles = false;
@@ -367,13 +470,6 @@ void listState(string line){
     //Next, we split into arguments.
     char** argv = createArgv(tokens);
     int argc = (int) tokens.size();
-
-    //Sets up the program options.
-    po::options_description desc("Options");
-    desc.add_options()
-            ("help,h", "Print help message for list.")
-            ("num-graphs,g", "Prints the number of graphs already generated.")
-            ("files,f", "Lists all the files for the current input.");
 
     po::variables_map vm;
     try {
@@ -497,6 +593,11 @@ void parseCommands() {
         username = "user";
     }
 
+    //Generates the descriptions for the help system.
+    map<string, RexHelp> helpInfo;
+    map<string ,string> helpStrings;
+    generateHelp(&helpInfo, &helpStrings);
+
     //Prints a help message.
     cout << endl << "Type \'help\' to see a list of available commands." << endl;
     while(contLoop) {
@@ -511,7 +612,7 @@ void parseCommands() {
 
         //Checks which option is used.
         if (!line.compare(0, HELP_ARG.size(), HELP_ARG)) {
-            handleHelp();
+            handleHelp(line, helpStrings);
         } else if (!line.compare(0, ABOUT_ARG.size(), ABOUT_ARG)){
             handleAbout();
         } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG)) {
@@ -520,13 +621,13 @@ void parseCommands() {
         } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG)) {
             generateGraph();
         } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG)) {
-            outputGraphs(line);
+            outputGraphs(line, *(helpInfo.at(OUT_ARG).desc.get()));
         } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {
             addFiles(line);
         } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG)) {
             removeFiles(line);
         } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG)) {
-            listState(line);
+            listState(line, *(helpInfo.at(LIST_ARG).desc.get()));
         } else {
             cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
         }
