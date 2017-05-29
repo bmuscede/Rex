@@ -23,6 +23,15 @@ public:
     explicit ROSWalker(ASTContext *Context);
     ~ROSWalker();
 
+    //TA Generator
+    static void deleteTAGraphs();
+    static void deleteTAGraph(int num);
+    static int getNumGraphs();
+    static int endCurrentGraph();
+    static int generateCurrentTAModel(std::string fileName);
+    static int generateTAModel(int num, std::string fileName);
+    static int generateAllTAModels(std::vector<std::string> fileName);
+
     //ASTWalker Functions
     bool VisitStmt(Stmt* statement);
     bool VisitFunctionDecl(FunctionDecl* decl);
@@ -30,14 +39,13 @@ public:
     bool VisitVarDecl(VarDecl* decl);
     bool VisitFieldDecl(FieldDecl* decl);
 
-    //TA Generator
-    static void deleteTAGraph();
-    static void flushTAGraph();
-    static int generateTAModel(std::string fileName);
+protected:
+    static int generateTAModel(TAGraph* graph, std::string fileName);
 
 private:
     ASTContext *Context;
     static TAGraph* graph;
+    static std::vector<TAGraph*> graphList;
 
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisher = nullptr;

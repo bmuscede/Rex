@@ -7,10 +7,57 @@
 using namespace std;
 
 TAGraph* ROSWalker::graph = new TAGraph();
+vector<TAGraph*> ROSWalker::graphList = vector<TAGraph*>();
 
 ROSWalker::ROSWalker(ASTContext *Context) : Context(Context) { }
 
 ROSWalker::~ROSWalker(){ }
+
+void ROSWalker::deleteTAGraphs(){
+    delete graph;
+    for (int i = 0; i < graphList.size(); i++)
+        delete graphList.at(i);
+
+    graphList = vector<TAGraph*>();
+}
+
+void ROSWalker::deleteTAGraph(int num){
+    if (num < 0 || num >= graphList.size()) return;
+    delete graphList.at(num);
+    graphList.erase(graphList.begin() + num);
+}
+
+int ROSWalker::getNumGraphs(){
+    return (int) graphList.size();
+}
+
+int ROSWalker::endCurrentGraph(){
+    //Moves the current graph.
+    graphList.push_back(graph);
+    graph = new TAGraph();
+
+    return (int) graphList.size() - 1;
+}
+
+int ROSWalker::generateCurrentTAModel(string fileName){
+    return ROSWalker::generateTAModel(graph, fileName);
+}
+
+int ROSWalker::generateTAModel(int num, string fileName){
+    //Get the graph at the number.
+    if (num >= graphList.size() || num < 0) return 0;
+    return ROSWalker::generateTAModel(graphList.at(num), fileName);
+}
+
+int ROSWalker::generateAllTAModels(vector<string> fileNames){
+    if (fileNames.size() != graphList.size()) return 0;
+    for (int i = 0; i < fileNames.size(); i++){
+        int code = ROSWalker::generateTAModel(graphList.at(i), fileNames.at(i));
+        if (code != 1) return 0;
+    }
+
+    return 1;
+}
 
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
@@ -84,16 +131,7 @@ bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     return true;
 }
 
-void ROSWalker::deleteTAGraph(){
-    delete graph;
-}
-
-void ROSWalker::flushTAGraph(){
-    ROSWalker::deleteTAGraph();
-    graph = new TAGraph();
-}
-
-int ROSWalker::generateTAModel(string fileName){
+int ROSWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
 
@@ -102,13 +140,13 @@ int ROSWalker::generateTAModel(string fileName){
 
     //Creates the file stream.
     ofstream file(fileName);
-    if (!file.is_open()) return 1;
+    if (!file.is_open()) return 0;
 
     //Writes to the file.
     file << model;
 
     file.close();
-    return 0;
+    return 1;
 }
 
 void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
@@ -168,6 +206,7 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
     auto callee = expr->getCalleeDecl();
     if (callee == nullptr) return;
     auto cDecl = dyn_cast<FunctionDecl>(callee);
+    if (cDecl == nullptr) return;
 
     //Gets the ID for the cDecl.
     string calleeID = generateID(cDecl);
