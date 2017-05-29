@@ -7,3 +7,4 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 .idea
+compile_commands.json

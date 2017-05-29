@@ -1,6 +1,29 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// RexMaster.cpp
 //
-// Created by bmuscede on 13/05/17.
+// Created By: Bryan J Muscedere
+// Date: 13/05/17.
 //
+// Driver source code for the Rex program. Handles
+// commands and passes it off to the RexHandler to
+// translate it into a Rex action. Also handles
+// errors gracefully.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 #include <pwd.h>
@@ -15,8 +38,7 @@ using namespace std;
 using namespace boost::filesystem;
 namespace po = boost::program_options;
 
-const static string DEFAULT_FILENAME = "a.out";
-
+/** Commands */
 const static string HELP_ARG = "help";
 const static string ABOUT_ARG = "about";
 const static string EXIT_ARG = "quit";
@@ -26,17 +48,31 @@ const static string ADD_ARG = "add";
 const static string REMOVE_ARG = "remove";
 const static string LIST_ARG = "list";
 
+/** Rex Command Handler */
 static RexHandler* masterHandle;
 
+/**
+ * Takes in a line and tokenizes it to
+ * a vector by spaces.
+ * @param line The line to tokenize.
+ * @return A vector of words.
+ */
 vector<string> tokenizeBySpace(string line){
     vector<string> result;
     istringstream iss(line);
-    for(std::string s; iss >> s; )
+    for(std::string s; iss >> s;)
         result.push_back(s);
 
     return result;
 }
 
+/**
+ * From a collection of tokens, creates
+ * a char** array of the tokens to mimic
+ * a typical argv array.
+ * @param tokens The tokens to convert to argv.
+ * @return A char** array that mimics an argv array.
+ */
 char** createArgv(vector<string> tokens){
     char** tokenC;
 
@@ -50,6 +86,12 @@ char** createArgv(vector<string> tokens){
     return tokenC;
 }
 
+/**
+ * Helper method that generates a Y/N command line prompt
+ * to ask a user if they want to do something.
+ * @param promptText The text to display to ask the user.
+ * @return Whether the user said yes (true) or no (false).
+ */
 bool promptForAction(string promptText){
     string result;
 
@@ -71,11 +113,17 @@ bool promptForAction(string promptText){
     return true;
 }
 
-//TODO
+/**
+ * Prints a simple help message.
+ * Also lets users print information about commands.
+ */
 void handleHelp() {
 
 }
 
+/**
+ * Prints a simple about message.
+ */
 void handleAbout() {
     cout << "Rex - The ROS Extractor" << endl
          << "University of Waterloo, Copyright 2017" << endl
@@ -98,6 +146,10 @@ void handleAbout() {
     return;
 }
 
+/**
+ * Handles the exit. Checks if theres still files or graphs to process.
+ * @return Whether the user requested to exit.
+ */
 bool handleExit() {
     //Checks if there are items to be processed.
     if (masterHandle->getNumFiles() > 0 || masterHandle->getNumGraphs() > 0){
@@ -108,6 +160,10 @@ bool handleExit() {
     return true;
 }
 
+/**
+ * Command to generate the current graph.
+ * No arguments to process makes this command have no input variables.
+ */
 void generateGraph() {
     //Checks whether we can generate.
     int numFiles = masterHandle->getNumFiles();
@@ -125,7 +181,12 @@ void generateGraph() {
                 << "Graph number is #" << masterHandle->getNumGraphs() - 1 << "." << endl;
 }
 
-//TODO
+/**
+ * Driver method for the OUTPUT argument.
+ * Allows users to specify what graphs to output.
+ * Also performs basic sanity checking.
+ * @param line The line to perform command line argument parsing.
+ */
 void outputGraphs(string line){
     //Generates the arguments.
     vector<string> tokens = tokenizeBySpace(line);
@@ -224,6 +285,11 @@ void outputGraphs(string line){
     }
 }
 
+/**
+ * Driver method for the ADD command.
+ * Allows users to specify files and folders to add.
+ * @param line The line with all the command line arguments.
+ */
 void addFiles(string line){
     //Tokenize by space.
     vector<string> tokens = tokenizeBySpace(line);
@@ -255,6 +321,11 @@ void addFiles(string line){
     }
 }
 
+/**
+ * Driver method for the REMOVE command.
+ * Allows users to specify files and folders to remove.
+ * @param line The line with all the command line arguments.
+ */
 void removeFiles(string line){
     //Tokenize by space.
     vector<string> tokens = tokenizeBySpace(line);
@@ -280,6 +351,11 @@ void removeFiles(string line){
     }
 }
 
+/**
+ * Driver method for the LIST command.
+ * Prints the current state that the program is in.
+ * @param line The line with all the command line arguments.
+ */
 void listState(string line){
     bool listAll = true;
     bool listGraphs = false;
@@ -343,6 +419,10 @@ void listState(string line){
     }
 }
 
+/**
+ * Simple method that prints the header for Rex
+ * to display to users what program they're running.
+ */
 void printHeader(){
     cout << "                .\"\";._   _.---._   _.-\"\".\n"
             "               /_.'_  '-'      /`-` \\_   \\\n"
@@ -369,6 +449,13 @@ void printHeader(){
             "                    Go get 'em boy!\n";
 }
 
+/**
+ * Runs Rex in simple mode. Takes in the argc and
+ * argv from the main method and uses it to run
+ * a Clang tool.
+ * @param argc Argc from main.
+ * @param argv Argv from main.
+ */
 void parseSimpleMode(int argc, const char** argv) {
     //Prints the simple mode.
     cout << endl << "Running Rex in simple mode." << endl;
@@ -382,13 +469,17 @@ void parseSimpleMode(int argc, const char** argv) {
     if (!success) outputModel = promptForAction("Do you want to output the model of this code (Y/N): ");
 
     if (outputModel) {
-        bool succ = handleTool.outputIndividualModel(0, DEFAULT_FILENAME);
-        if (succ) cout << "Model saved to " << DEFAULT_FILENAME << "!";
+        bool succ = handleTool.outputIndividualModel(0);
+        if (succ) cout << "Model saved!";
     } else {
         cout << "Model generation aborted!" <<  endl;
     }
 }
 
+/**
+ * Parses the command line arguments in non-simple mode.
+ * Loops until the user chooses to exit.
+ */
 void parseCommands() {
     masterHandle = new RexHandler();
 
@@ -442,6 +533,13 @@ void parseCommands() {
     }
 }
 
+/**
+ * Main method that drives the program. Prints the
+ * header and then determines what mode to be in.
+ * @param argc The number of arguments
+ * @param argv Char** array of arguments
+ * @return Return code denoting success.
+ */
 int main(int argc, const char** argv) {
     bool simpleMode = argc != 1;
 
