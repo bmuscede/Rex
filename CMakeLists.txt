@@ -87,7 +87,6 @@ target_link_libraries(Rex
         LLVMLanaiCodeGen
         LLVMLanaiAsmParser
         LLVMLanaiDesc
-        LLVMLanaiInstPrinter
         LLVMLanaiInfo
         LLVMHexagonDisassembler
         LLVMHexagonCodeGen

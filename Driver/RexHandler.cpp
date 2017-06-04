@@ -273,7 +273,7 @@ char** RexHandler::prepareArgs(int *argc){
 
     //Next, loops through the files and copies.
     for (int i = 0; i < files.size(); i++){
-        argv[i + BASE_LEN] = new char[files.at(i).size()];
+        argv[i + BASE_LEN] = new char[files.at(i).string().size()];
         strcpy(argv[i + BASE_LEN], files.at(i).c_str());
     }
 
@@ -287,7 +287,7 @@ char** RexHandler::prepareArgs(int *argc){
  */
 int RexHandler::addFile(path file){
     //Gets the string that is added.
-    files.push_back(canonical(file));
+    files.push_back(file);
     return 1;
 }
 
@@ -340,6 +340,7 @@ int RexHandler::removeFile(path file){
     //Check if the path exists.
     int i = 0;
     for (path curFile : files){
+        curFile = canonical(curFile);
         if (curFile.compare(file.string()) == 0){
             //Remove from vector.
             files.erase(files.begin() + i);
