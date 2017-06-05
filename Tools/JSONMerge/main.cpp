@@ -2,23 +2,48 @@
 #include <fstream>
 #include <sstream>
 #include <boost/filesystem.hpp>
+#include "json/json.h"
 
 using namespace std;
 using namespace boost::filesystem;
 
 const string DEFAULT_NAME = "compile_commands.json";
+const string COMMAND = "command";
+const string INCLUDE_DIR = "-I./include";
 
-vector<string> readFile(string fileName){
+string readFile(string fileName){
     //Creates an input filestream.
-    ifstream t(fileName);
+    std::ifstream t(fileName);
 
     string element;
-    vector<string> output;
+    string final = "";
     while (getline(t, element)){
-        output.push_back(element);
+        final += element + "\n";
     }
 
-    return output;
+    return final;
+}
+
+vector<string> tokenizeBySpace(string toTokenize){
+    istringstream stream(toTokenize);
+    return {istream_iterator<string>{stream}, istream_iterator<string>{}};
+}
+
+string inject(vector<string> tokens, string toInject, int pos){
+    string result = "";
+
+    //Iterate through the tokens.
+    for (int i = 0; i < tokens.size(); i++){
+        //Checks if we add the string to inject.
+        if (i == pos) result += toInject + " ";
+
+        result += tokens.at(i);
+
+        //Adds a space if necessary.
+        if (i < tokens.size() - 1) result += " ";
+    }
+
+    return result;
 }
 
 vector<string> findJSON(path curDirectory){
@@ -50,25 +75,59 @@ vector<string> findJSON(path curDirectory){
 }
 
 string mergeJSON(vector<string> jsonFiles){
-    string output = "[\n";
+    Json::Value finalVal;
+    int num = 0;
 
-    //Iterates through all the files.
-    for (string currentFile : jsonFiles){
-        //Reads in the current file.
-        vector<string> contents = readFile(currentFile);
+    //Iterates through the file.
+    for (string file : jsonFiles){
+        cout << "Parsing: " << file << "..." <<  endl;
 
-        //Iterates through and positions.
-        for (int i = 1; i < contents.size() - 1; i++){
-            output += contents.at(i) + ((i == contents.size() - 2) ? ",\n" : "\n");
+        //First, gets the file contents.
+        string contents = readFile(file);
+
+        //Gets the JSON objects.
+        Json::Value root;
+        Json::Reader reader;
+        bool succ = reader.parse(contents, root);
+
+        //Next, checks whether parsing is successful.
+        if (!succ){
+            cout << "Error" << endl;
+            cout << reader.getFormattedErrorMessages() << endl;
+            continue;
+        }
+
+        //Prepares the merge.
+        int i = 0;
+        bool loop = true;
+        while (loop){
+            Json::Value curr = root[i];
+            if (curr.isNull()){
+                loop = false;
+                continue;
+            }
+
+            //We want to inject the build command for Rex.
+            string command = curr[COMMAND].asString();
+
+            //Tokenizes the string by spaces and inserts the plus.
+            vector<string> tokens = tokenizeBySpace(command);
+            command = inject(tokens, INCLUDE_DIR, 1);
+
+            curr[COMMAND] = command;
+
+            finalVal[num++] = curr;
+            i++;
         }
     }
 
-    output += "]";
+    Json::StyledWriter writer;
+    string output = writer.write(finalVal);
     return output;
 }
 
 bool saveOutput(string outputName, string outputContents){
-    ofstream outfile(outputName);
+    std::ofstream outfile(outputName);
     if(!outfile.is_open()) {
         return false;
     }
