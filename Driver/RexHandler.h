@@ -58,6 +58,7 @@ public:
     /** Add and Remove Functions */
     int addByPath(path curPath);
     int removeByPath(path curPath);
+    int removeByRegex(std::string regex);
 
 private:
     /** Default Arguments */

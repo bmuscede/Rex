@@ -161,8 +161,8 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     //Generate the help for add.
     (*helpMap)[ADD_ARG] = RexHelp(ADD_ARG, po::options_description("Options"));
     helpMap->at(ADD_ARG).desc->add_options()
-            ("help, h", "Print help message for add.")
-            ("source, s", po::value<std::vector<std::string>>(), "A file or directory to add to the current graph.");
+            ("help,h", "Print help message for add.")
+            ("source,s", po::value<std::vector<std::string>>(), "A file or directory to add to the current graph.");
     ss.str(string());
     ss << *helpMap->at(ADD_ARG).desc;
     (*helpString)[ADD_ARG] = string("Add Help\nUsage: " + ADD_ARG + " source\nAdds files or directories to process."
@@ -172,8 +172,9 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     //Generate the help for remove.
     (*helpMap)[REMOVE_ARG] = RexHelp(REMOVE_ARG, po::options_description("Options"));
     helpMap->at(REMOVE_ARG).desc->add_options()
-            ("help, h", "Print help message for add.")
-            ("source, s", po::value<std::vector<std::string>>(), "A file or directory to remove from the current graph.");
+            ("help,h", "Print help message for add.")
+            ("regex,r", po::value<string>(), "Regular expression to process.")
+            ("source,s", po::value<std::vector<std::string>>(), "A file or directory to remove from the current graph.");
     ss.str(string());
     ss << *helpMap->at(REMOVE_ARG).desc;
     (*helpString)[REMOVE_ARG] = string("Remove Help\nUsage: " + REMOVE_ARG + " source\nRemoves files or directories "
@@ -428,28 +429,69 @@ void addFiles(string line){
  * Driver method for the REMOVE command.
  * Allows users to specify files and folders to remove.
  * @param line The line with all the command line arguments.
+ * @param desc The program options for the remove list.
  */
-void removeFiles(string line){
+void removeFiles(string line, po::options_description desc){
     //Tokenize by space.
     vector<string> tokens = tokenizeBySpace(line);
 
-    //Next, we check for errors.
-    if (tokens.size() == 1) {
-        cerr << "Error: You must include at least one file or directory to remove from." << endl;
+    //Generates the arguments.
+    char** argv = createArgv(tokens);
+    int argc = (int) tokens.size();
+
+    //Processes the command line args.
+    po::positional_options_description positionalOptions;
+    positionalOptions.add("source", -1);
+
+    po::variables_map vm;
+    bool regex = false;
+    try {
+        po::store(po::parse_command_line(argc, (const char *const *) argv, desc), vm);
+
+        if (vm.count("regex")){
+            regex = true;
+        }
+
+        //Check for processing errors.
+        if (vm.count("source") && vm.count("regex")){
+            throw po::error("The --source and --regex options cannot be used together!");
+        }
+        if (!vm.count("source") && !regex) {
+            throw po::error("You must include at least one file or directory to remove from.");
+        }
+    } catch(po::error& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << desc;
         return;
     }
 
-    //Next, we loop through to remove files.
-    for (int i = 1; i < tokens.size(); i++){
-        path curPath = tokens.at((unsigned int) i);
 
-        int numRemoved = masterHandle->removeByPath(curPath);
-        if (!is_directory(curPath) && numRemoved == 0){
-            cerr << "The file " << curPath.filename() << " is not in the list." << endl;
-        } else if (is_directory(curPath)){
-            cout << numRemoved << " files have been removed for directory " << curPath.filename() << "!" << endl;
+    //Checks what operation to perform.
+    if (!regex){
+        vector<string> removeFiles = vm["source"].as<vector<string>>();
+
+        //Next, we loop through to remove files.
+        for (int i = 1; i < removeFiles.size(); i++){
+            path curPath = removeFiles.at((unsigned int) i);
+
+            int numRemoved = masterHandle->removeByPath(curPath);
+            if (!is_directory(curPath) && numRemoved == 0){
+                cerr << "The file " << curPath.filename() << " is not in the list." << endl;
+            } else if (is_directory(curPath)){
+                cout << numRemoved << " files have been removed for directory " << curPath.filename() << "!" << endl;
+            } else {
+                cout << "The file " << curPath.filename() << " has been removed!" << endl;
+            }
+        }
+    } else {
+        string regexString = vm["regex"].as<string>();
+
+        //Simply remove by regex.
+        int numRemoved = masterHandle->removeByRegex(regexString);
+        if (!numRemoved){
+            cerr << "The regular expression " << regexString << " did not match any files." << endl;
         } else {
-            cout << "The file " << curPath.filename() << " has been removed!" << endl;
+            cout << "The regular expression " << regexString << " removed " << numRemoved << " file(s)." << endl;
         }
     }
 }
@@ -625,7 +667,7 @@ void parseCommands() {
         } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {
             addFiles(line);
         } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG)) {
-            removeFiles(line);
+            removeFiles(line, *(helpInfo.at(REMOVE_ARG).desc.get()));
         } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG)) {
             listState(line, *(helpInfo.at(LIST_ARG).desc.get()));
         } else {

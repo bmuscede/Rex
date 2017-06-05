@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include "RexHandler.h"
 #include "../Walker/ROSWalker.h"
 
@@ -216,6 +217,31 @@ int RexHandler::removeByPath(path curPath){
     return num;
 }
 
+/**
+ * Removes files and directories from the queue by regular expression.
+ * @param regex The regular expression string to apply.
+ * @return The number of files removed.
+ */
+int RexHandler::removeByRegex(string regex) {
+    int num = 0;
+    std::regex rregex(regex);
+
+    //Iterates through the file.
+    vector<path>::iterator it;
+    for (it = files.begin(); it != files.end();){
+        string path = it->string();
+
+        //Checks the regex.
+        if (regex_match(path, rregex)){
+            it = files.erase(it);
+            num++;
+        } else {
+            it++;
+        }
+    }
+
+    return num;
+}
 /**
  * Generates arguments with the include directory.
  * @param argc The argc to update.
