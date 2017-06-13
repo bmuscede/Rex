@@ -283,24 +283,27 @@ const char** RexHandler::prepareUpdatedArgs(int *argc, const char** argv){
  * @return The new argv command.
  */
 char** RexHandler::prepareArgs(int *argc){
+    int size = BASE_LEN + (int) files.size();
+
     //Sets argc.
-    *argc = BASE_LEN + (int) files.size();
+    *argc = size;
 
     //Next, argv.
-    char** argv = new char*[*argc];
+    char** argv = new char*[size];
 
     //Copies the base start.
-    argv[0] = new char[DEFAULT_START.size()];
-    argv[1] = new char[INCLUDE_DIR_LOC.size()];
+    argv[0] = new char[DEFAULT_START.size() + 1];
+    argv[1] = new char[INCLUDE_DIR_LOC.size() + 1];
 
     //Next, moves them over.
     strcpy(argv[0], DEFAULT_START.c_str());
     strcpy(argv[1], INCLUDE_DIR_LOC.c_str());
 
     //Next, loops through the files and copies.
-    for (int i = 0; i < files.size(); i++){
-        argv[i + BASE_LEN] = new char[files.at(i).string().size()];
-        strcpy(argv[i + BASE_LEN], files.at(i).c_str());
+    for (int i = BASE_LEN; i < files.size(); i++){
+        string current = files.at(i - BASE_LEN).string();
+        argv[i] = new char[current.size() + 1];
+        strcpy(argv[i], current.c_str());
     }
 
     return argv;

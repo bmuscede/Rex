@@ -87,12 +87,10 @@ vector<string> tokenizeBySpace(string line){
  * @return A char** array that mimics an argv array.
  */
 char** createArgv(vector<string> tokens){
-    char** tokenC;
-
     //First, create the array.
-    tokenC = new char*[(int) tokens.size()];
+    char** tokenC = new char*[(int) tokens.size()];
     for (int i = 0; i < tokens.size(); i++){
-        tokenC[i] = new char[(int) tokens.at(i).size()];
+        tokenC[i] = new char[(int) tokens.at(i).size() + 1];
         strcpy(tokenC[i], tokens.at(i).c_str());
     }
 
