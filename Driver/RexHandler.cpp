@@ -290,8 +290,8 @@ char** RexHandler::prepareArgs(int *argc){
     char** argv = new char*[*argc];
 
     //Copies the base start.
-    argv[0] = new char[DEFAULT_START.size()];
-    argv[1] = new char[INCLUDE_DIR_LOC.size()];
+    argv[0] = new char[DEFAULT_START.size() + 1];
+    argv[1] = new char[INCLUDE_DIR_LOC.size() + 1];
 
     //Next, moves them over.
     strcpy(argv[0], DEFAULT_START.c_str());
@@ -299,7 +299,7 @@ char** RexHandler::prepareArgs(int *argc){
 
     //Next, loops through the files and copies.
     for (int i = 0; i < files.size(); i++){
-        argv[i + BASE_LEN] = new char[files.at(i).string().size()];
+        argv[i + BASE_LEN] = new char[files.at(i).string().size() + 1];
         strcpy(argv[i + BASE_LEN], files.at(i).c_str());
     }
 
