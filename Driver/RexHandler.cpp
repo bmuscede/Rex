@@ -283,11 +283,13 @@ const char** RexHandler::prepareUpdatedArgs(int *argc, const char** argv){
  * @return The new argv command.
  */
 char** RexHandler::prepareArgs(int *argc){
+    int size = BASE_LEN + (int) files.size();
+
     //Sets argc.
-    *argc = BASE_LEN + (int) files.size();
+    *argc = size;
 
     //Next, argv.
-    char** argv = new char*[*argc];
+    char** argv = new char*[size];
 
     //Copies the base start.
     argv[0] = new char[DEFAULT_START.size() + 1];
