@@ -243,6 +243,11 @@ void ROSWalker::recordVarUsage(const DeclRefExpr* expr){
     string callerID = generateID(parDecl);
     RexNode* callerNode = graph->findNode(callerID);
 
+    //Checks whether we can resolve.
+    if (callerNode == nullptr){
+        return;
+    }
+
     //Adds the edge.
     if (graph->doesEdgeExist(callerID, subVarID, RexEdge::REFERENCES)) return;
     RexEdge* edge = (subVarNode == nullptr) ?
@@ -288,6 +293,9 @@ bool ROSWalker::isFunction(const CallExpr *expr, string functionName){
 
 bool ROSWalker::isClass(const CXXConstructExpr* ctor, string className){
     //Get the underlying class.
+    QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
+    if (type->isArrayType()) return false; //TODO: Bandaid fix! Not sure why this works.
+
     auto record = ctor->getBestDynamicClassType();
     if (record == nullptr) return false;
 
@@ -558,7 +566,6 @@ bool ROSWalker::isInSystemHeader(const SourceManager& manager, SourceLocation lo
     if (expansionLoc.isInvalid()) {
         return false;
     }
-
     //Get if we have a system header.
     return manager.isInSystemHeader(loc);
 }

@@ -9,7 +9,9 @@ using namespace boost::filesystem;
 
 const string DEFAULT_NAME = "compile_commands.json";
 const string COMMAND = "command";
-const string INCLUDE_DIR = "-I./include";
+const string INCLUDE_DIR = "-I";
+
+const int INJECT_POS = 5;
 
 string readFile(string fileName){
     //Creates an input filestream.
@@ -74,7 +76,7 @@ vector<string> findJSON(path curDirectory){
     return jsonFiles;
 }
 
-string mergeJSON(vector<string> jsonFiles){
+string mergeJSON(vector<string> jsonFiles, path includeDir){
     Json::Value finalVal;
     int num = 0;
 
@@ -112,7 +114,7 @@ string mergeJSON(vector<string> jsonFiles){
 
             //Tokenizes the string by spaces and inserts the plus.
             vector<string> tokens = tokenizeBySpace(command);
-            command = inject(tokens, INCLUDE_DIR, 1);
+            command = inject(tokens, INCLUDE_DIR + includeDir.string(), INJECT_POS);
 
             curr[COMMAND] = command;
 
@@ -142,23 +144,29 @@ bool saveOutput(string outputName, string outputContents){
 
 int main(int argc, char** argv) {
     //Starts by checking the command line arguments.
-    if (argc != 3 && argc != 2){
-        cerr << "Usage: " << argv[0] << "[input dir] [output filename]" << endl;
-        cerr << endl << "[input dir]        : Name of input directory with compile_commands.json files." << endl;
+    if (argc != 4 && argc != 3){
+        cerr << "Usage: " << argv[0] << " [input dir] [include dir] [output filename]" << endl;
+        cerr << endl << "[input dir]        : Name of input directory with compile_commands.json files.";
+	cerr << endl << "[include dir]      : Directory where include libraries are located.";
         cerr << endl << "[output filename]  : Output filename (OPTIONAL)." << endl;
         return 1;
     }
 
     //Next, gets the two files.
     path inputDir = path(argv[1]);
+    path includeDir = path(argv[2]);
     string outputFile;
-    if (argc == 3) outputFile = argv[2];
+    if (argc == 4) outputFile = argv[3];
     else outputFile = DEFAULT_NAME;
 
     //Performs validity checking.
     if (!is_directory(inputDir)){
         cerr << "Directory " << inputDir << " is not a directory!" << endl;
         return 2;
+    }
+    if (!is_directory(includeDir)){
+	cerr << "Directory " << includeDir << " is not a directory!" << endl;
+	return 2;
     }
     if (is_regular_file(outputFile)){
         cerr << "File " << outputFile << " already exists!" << endl;
@@ -169,7 +177,7 @@ int main(int argc, char** argv) {
     vector<string> jsonFiles = findJSON(inputDir);
 
     //From that, reads them in one by one and generates an output file.
-    string output = mergeJSON(jsonFiles);
+    string output = mergeJSON(jsonFiles, includeDir);
     bool succ = saveOutput(outputFile, output);
 
     if (succ){
