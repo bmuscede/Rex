@@ -293,7 +293,7 @@ bool ROSWalker::isFunction(const CallExpr *expr, string functionName){
 
 bool ROSWalker::isClass(const CXXConstructExpr* ctor, string className){
     //Get the underlying class.
-    QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
+    QualType type = ctor->getType(); //Different clang version QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
     if (type->isArrayType()) return false; //TODO: Bandaid fix! Not sure why this works.
 
     auto record = ctor->getBestDynamicClassType();
@@ -723,7 +723,20 @@ string ROSWalker::generateID(const FunctionDecl* decl){
 }
 
 string ROSWalker::generateID(const NamedDecl* decl){
-    string name = decl->getNameAsString();
+    string name = "";
+
+    //Generates a special name for function overloading.
+    if (isa<FunctionDecl>(decl) || isa<CXXMethodDecl>(decl)){
+        const FunctionDecl* cur = decl->getAsFunction();
+        name = cur->getReturnType().getAsString() + "-" + decl->getNameAsString();
+        for (int i = 0; i < cur->getNumParams(); i++){
+            name += "-" + cur->parameters().data()[i]->getNameAsString();
+        }
+    } else {
+        name = decl->getNameAsString();
+    }
+
+
     bool getParent = true;
     bool recurse = false;
     const NamedDecl* originalDecl = decl;
