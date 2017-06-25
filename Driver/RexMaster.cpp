@@ -48,6 +48,7 @@ const static string OUT_ARG = "output";
 const static string ADD_ARG = "add";
 const static string REMOVE_ARG = "remove";
 const static string LIST_ARG = "list";
+const static string SCRIPT_ARG = "script";
 
 /** Rex Command Handler */
 static RexHandler* masterHandle;
@@ -63,6 +64,13 @@ struct RexHelp {
 private:
     std::string name;
 };
+
+/** Forward Declarations */
+bool processCommand(string line);
+
+/** Static Variables */
+static map<string, RexHelp> helpInfo;
+static map<string ,string> helpStrings;
 
 /**
  * Takes in a line and tokenizes it to
@@ -191,6 +199,17 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     (*helpString)[LIST_ARG] = string("List Help\nUsage: " + LIST_ARG + " [options]\nLists information about the "
             "current state of Rex. This includes the number\nof graphs currently generated and all the files\nbeing"
             " processed for the next graph.\nOnly files that are in the queue are listed.\n\n" + ss.str());
+
+    //Generates the help for script.
+    (*helpMap)[SCRIPT_ARG] = RexHelp(SCRIPT_ARG, po::options_description("Options"));
+    helpMap->at(SCRIPT_ARG).desc->add_options()
+            ("help,h", "Print help message for list.")
+            ("script,s", po::value<std::string>(), "The script file to run.");
+    ss.str(string());
+    ss << *helpMap->at(SCRIPT_ARG).desc;
+    (*helpString)[SCRIPT_ARG] = string("Script Help\nUsage: " + SCRIPT_ARG + " script\nRuns a script that can "
+            "handle any of the commands in this program automatically.\nThe script will terminate when it reaches"
+            " the end of the script or hits quit.\n\n" + ss.str());
 }
 
 /**
@@ -208,7 +227,8 @@ void handleHelp(string line, map<string, string> messages) {
         "output         : Outputs a graph to tuple-attribute format.\n"
         "add            : Adds a file/directory to be processed.\n"
         "remove         : Removes a file/directory from the queue.\n"
-        "list           : Lists the current state of Rex\n\n"
+        "list           : Lists the current state of Rex.\n\n"
+        "script         : Runs a script that handles program commands.\n\n"
         "For more help type \"help [argument name]\" for more details.";
 
     auto tokens = tokenizeBySpace(line);
@@ -556,6 +576,60 @@ void listState(string line, po::options_description desc){
 }
 
 /**
+ * Runs a script from a file.
+ * @param line The line that has the script filename.
+ */
+void runScript(string line, po::options_description desc){
+    //First we tokenize.
+    vector<string> tokens = tokenizeBySpace(line);
+
+    //Generates the arguments.
+    char** argv = createArgv(tokens);
+    int argc = (int) tokens.size();
+
+    //Processes the command line args.
+    po::positional_options_description positionalOptions;
+    positionalOptions.add("script", 1);
+
+    po::variables_map vm;
+    string filename = "";
+    try {
+        po::store(po::command_line_parser(argc, (const char* const*) argv).options(desc)
+                          .positional(positionalOptions).run(), vm);
+        po::notify(vm);
+
+        if (vm.count("help")) {
+            cout << "Usage: script [script]" << endl << desc;
+            return;
+        }
+
+        if (!vm.count("script")) throw po::error("No script file was supplied!");
+        filename = vm["script"].as<string>();
+    } catch(po::error& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << desc;
+        return;
+    }
+
+    //Process the filename.
+    std::ifstream scriptFile;
+    scriptFile.open(filename);
+
+    //Loop until we hit eof.
+    string curLine;
+    bool continueLoop = true;
+    while(!scriptFile.eof() && continueLoop) {
+        getline(scriptFile, curLine);
+        continueLoop = !processCommand(curLine);
+    }
+
+    scriptFile.close();
+    if (!continueLoop){
+        _exit(1);
+    }
+}
+
+/**
  * Simple method that prints the header for Rex
  * to display to users what program they're running.
  */
@@ -612,6 +686,34 @@ void parseSimpleMode(int argc, const char** argv) {
     }
 }
 
+bool processCommand(string line){
+    if (line.compare("") == 0) return false;
+
+    //Checks which option is used.
+    if (!line.compare(0, HELP_ARG.size(), HELP_ARG)) {
+        handleHelp(line, helpStrings);
+    } else if (!line.compare(0, ABOUT_ARG.size(), ABOUT_ARG)){
+        handleAbout();
+    } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG)) {
+        if (line.at(line.size() - 1) == '!') return true;
+        return !handleExit();
+    } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG)) {
+        generateGraph();
+    } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG)) {
+        outputGraphs(line, *(helpInfo.at(OUT_ARG).desc.get()));
+    } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {
+        addFiles(line);
+    } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG)) {
+        removeFiles(line, *(helpInfo.at(REMOVE_ARG).desc.get()));
+    } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG)) {
+        listState(line, *(helpInfo.at(LIST_ARG).desc.get()));
+    } else if (!line.compare(0, SCRIPT_ARG.size(), SCRIPT_ARG)) {
+        runScript(line, *(helpInfo.at(SCRIPT_ARG).desc.get()));
+    } else {
+        cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
+    }
+}
+
 /**
  * Parses the command line arguments in non-simple mode.
  * Loops until the user chooses to exit.
@@ -634,8 +736,6 @@ void parseCommands() {
     }
 
     //Generates the descriptions for the help system.
-    map<string, RexHelp> helpInfo;
-    map<string ,string> helpStrings;
     generateHelp(&helpInfo, &helpStrings);
 
     //Prints a help message.
@@ -648,29 +748,7 @@ void parseCommands() {
         cout << username << " > ";
         getline(cin, line);
 
-        if (line.compare("") == 0) continue;
-
-        //Checks which option is used.
-        if (!line.compare(0, HELP_ARG.size(), HELP_ARG)) {
-            handleHelp(line, helpStrings);
-        } else if (!line.compare(0, ABOUT_ARG.size(), ABOUT_ARG)){
-            handleAbout();
-        } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG)) {
-            if (line.at(line.size() - 1) == '!') break;
-            contLoop = !handleExit();
-        } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG)) {
-            generateGraph();
-        } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG)) {
-            outputGraphs(line, *(helpInfo.at(OUT_ARG).desc.get()));
-        } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {
-            addFiles(line);
-        } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG)) {
-            removeFiles(line, *(helpInfo.at(REMOVE_ARG).desc.get()));
-        } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG)) {
-            listState(line, *(helpInfo.at(LIST_ARG).desc.get()));
-        } else {
-            cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
-        }
+        contLoop = processCommand(line);
     }
 }
 
