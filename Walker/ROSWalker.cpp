@@ -2,6 +2,9 @@
 #include <iostream>
 #include "clang/AST/Mangle.h"
 #include "ROSWalker.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem.hpp>
 #include "../Graph/RexNode.h"
 
 using namespace std;
@@ -566,8 +569,19 @@ bool ROSWalker::isInSystemHeader(const SourceManager& manager, SourceLocation lo
     if (expansionLoc.isInvalid()) {
         return false;
     }
+
     //Get if we have a system header.
-    return manager.isInSystemHeader(loc);
+    bool sysHeader = manager.isInSystemHeader(loc);
+    if (sysHeader) return sysHeader;
+
+    //Now, check to see if we have a ROS library.
+    string libLoc = expansionLoc.printToString(manager);
+    libLoc = libLoc.substr(0, libLoc.find(":"));
+    if (boost::algorithm::ends_with(libLoc, ".h") || boost::algorithm::ends_with(libLoc, ".hpp")){
+        boost::filesystem::path loc = boost::filesystem::canonical(boost::filesystem::path(libLoc));
+        if (loc.string().find("/ros/") != string::npos) return true;
+    }
+    return false;
 }
 
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
@@ -681,48 +695,9 @@ const NamedDecl* ROSWalker::getParentAssign(const CXXConstructExpr* expr){
     return nullptr;
 }
 
-string ROSWalker::generateID(const FunctionDecl* decl){
-    auto mangleContext = Context->createMangleContext();
-
-    //Check whether we need to mangle.
-    if (!mangleContext->shouldMangleDeclName(decl)) {
-        if (decl->getDefinition() != nullptr)
-            decl = decl->getDefinition();
-
-        //Gets the return type and then the qualified name.
-        string qualName = decl->getReturnType().getAsString() + "--";
-        qualName += decl->getQualifiedNameAsString();
-
-        //Gets the return types.
-        int numParam = decl->getNumParams();
-        for (int i = 0; i < numParam; i++){
-            const ParmVarDecl* parm = decl->getParamDecl(i);
-            qualName += "--" + parm->getType().getAsString();
-        }
-
-        return qualName;
-    }
-
-    //Mangle the name
-    string mangledName;
-    raw_string_ostream stream(mangledName);
-
-    //Check the type.
-    if (isa<CXXDestructorDecl>(decl)){
-        auto dtorDecl = dyn_cast<CXXDestructorDecl>(decl);
-        mangleContext->mangleCXXDtor(dtorDecl, CXXDtorType::Dtor_Complete, stream);
-    } else if (isa<CXXConstructorDecl>(decl)){
-        auto ctorDecl = dyn_cast<CXXConstructorDecl>(decl);
-        mangleContext->mangleCXXCtor(ctorDecl, CXXCtorType::Ctor_Complete, stream);
-    } else {
-        mangleContext->mangleCXXName(decl,stream);
-    }
-
-    stream.flush();
-    return mangledName;
-}
-
 string ROSWalker::generateID(const NamedDecl* decl){
+    //Gets the canonical decl.
+    decl = dyn_cast<NamedDecl>(decl->getCanonicalDecl());
     string name = "";
 
     //Generates a special name for function overloading.
@@ -730,7 +705,7 @@ string ROSWalker::generateID(const NamedDecl* decl){
         const FunctionDecl* cur = decl->getAsFunction();
         name = cur->getReturnType().getAsString() + "-" + decl->getNameAsString();
         for (int i = 0; i < cur->getNumParams(); i++){
-            name += "-" + cur->parameters().data()[i]->getNameAsString();
+            name += "-" + cur->parameters().data()[i]->getType().getAsString();
         }
     } else {
         name = decl->getNameAsString();
@@ -765,9 +740,7 @@ string ROSWalker::generateID(const NamedDecl* decl){
     //Sees if no true qualified name was used.
     Decl::Kind kind = originalDecl->getKind();
     if (!recurse) {
-        if (kind == Decl::Function || kind == Decl::CXXMethod){
-            name = originalDecl->getQualifiedNameAsString();
-        } else {
+        if (kind != Decl::Function && kind == Decl::CXXMethod){
             //We need to get the parent function.
             const DeclContext *parentContext = originalDecl->getParentFunctionOrMethod();
 
@@ -779,8 +752,6 @@ string ROSWalker::generateID(const NamedDecl* decl){
         }
     }
 
-    int lineNum = Context->getSourceManager().getSpellingLineNumber(originalDecl->getSourceRange().getBegin());
-    name = name + "--" + std::to_string(lineNum);
     return name;
 }
 

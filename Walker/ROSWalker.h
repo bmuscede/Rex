@@ -117,7 +117,6 @@ private:
     const NamedDecl* getParentAssign(const CXXConstructExpr* expr);
 
     //Name Helper Functions
-    std::string generateID(const FunctionDecl* decl);
     std::string generateID(const NamedDecl* decl);
     std::string generateName(const NamedDecl* decl);
     std::string validateStringArg(std::string name);
