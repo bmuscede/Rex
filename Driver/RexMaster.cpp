@@ -148,9 +148,15 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
             "Typing " + EXIT_ARG + "! will quit the program automatically without any warning.\n");
 
     //Generate the help for generate.
+    (*helpMap)[GEN_ARG] = RexHelp(GEN_ARG, po::options_description("Options"));
+    helpMap->at(GEN_ARG).desc->add_options()
+            ("help,h", "Print help message for generate.")
+            ("minimal,m", "Runs a minimal analysis of the ROS files. Looks for ROS information.");
+    stringstream ss;
+    ss << *helpMap->at(GEN_ARG).desc;
     (*helpString)[GEN_ARG] = string("Generate Help\nUsage: " + GEN_ARG + "\nGenerates a graph based on the supplied"
             " C/C++ source files.\nYou must have at least 1 source file in the queue for the graph to be generated.\n"
-            "Additionally, in the root directory, there must a \"compile_commands.json\" file.");
+            "Additionally, in the root directory, there must a \"compile_commands.json\" file.\n\n" + ss.str());
 
     //Generate the help for output.
     (*helpMap)[OUT_ARG] = RexHelp(OUT_ARG, po::options_description("Options"));
@@ -158,7 +164,7 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
             ("help,h", "Print help message for output.")
             ("select,s", po::value<string>(), "Outputs graphs by graph number. Can separate values by comma.")
             ("outputFile", po::value<std::vector<std::string>>(), "The base file name to save.");
-    stringstream ss;
+    ss.str(string());
     ss << *helpMap->at(OUT_ARG).desc;
     (*helpString)[OUT_ARG] = string("Output Help\nUsage: " + OUT_ARG + " [options] OutputName\nOutputs the generated"
             " graphs to a tuple-attribute (TA) file based on a specific\nRex schema. These models can then be used"
@@ -227,7 +233,7 @@ void handleHelp(string line, map<string, string> messages) {
         "output         : Outputs a graph to tuple-attribute format.\n"
         "add            : Adds a file/directory to be processed.\n"
         "remove         : Removes a file/directory from the queue.\n"
-        "list           : Lists the current state of Rex.\n\n"
+        "list           : Lists the current state of Rex.\n"
         "script         : Runs a script that handles program commands.\n\n"
         "For more help type \"help [argument name]\" for more details.";
 
@@ -290,9 +296,38 @@ bool handleExit() {
 
 /**
  * Command to generate the current graph.
- * No arguments to process makes this command have no input variables.
+ * Allows users to specify the mode of processing. This can be minimal or regular.
+ * @param line The line to perform command line argument parsing.
+ * @param desc The program options information for this command.
  */
-void generateGraph() {
+void generateGraph(string line, po::options_description desc) {
+    //Generates the arguments.
+    vector<string> tokens = tokenizeBySpace(line);
+    char** argv = createArgv(tokens);
+    int argc = (int) tokens.size();
+
+    bool minMode = false;
+    po::variables_map vm;
+    try {
+        po::store(po::parse_command_line(argc, (const char *const *) argv, desc), vm);
+
+        //Checks if help was enabled.
+        if (vm.count("help")) {
+            cout << "Usage: generate [options]" << endl << desc;
+            return;
+        }
+
+        //Sets up what's getting listed.
+        if (vm.count("minimal")){
+            minMode = true;
+        }
+
+    } catch(po::error& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << desc;
+        return;
+    }
+
     //Checks whether we can generate.
     int numFiles = masterHandle->getNumFiles();
     if (numFiles == 0) {
@@ -302,7 +337,7 @@ void generateGraph() {
 
     //Next, tells Rex to generate them.
     cout << "Processing " << numFiles << " file(s)..." << endl << "This may take some time!" << endl << endl;
-    bool success = masterHandle->processAllFiles();
+    bool success = masterHandle->processAllFiles(minMode);
 
     //Checks the success of the operation.
     if (success) cout << "ROS contribution graph was created successfully!" << endl
@@ -314,6 +349,7 @@ void generateGraph() {
  * Allows users to specify what graphs to output.
  * Also performs basic sanity checking.
  * @param line The line to perform command line argument parsing.
+ * @param desc The program options information for this command.
  */
 void outputGraphs(string line, po::options_description desc){
     //Generates the arguments.
@@ -698,7 +734,7 @@ bool processCommand(string line){
         if (line.at(line.size() - 1) == '!') return true;
         return !handleExit();
     } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG)) {
-        generateGraph();
+        generateGraph(line, *(helpInfo.at(GEN_ARG).desc.get()));
     } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG)) {
         outputGraphs(line, *(helpInfo.at(OUT_ARG).desc.get()));
     } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {

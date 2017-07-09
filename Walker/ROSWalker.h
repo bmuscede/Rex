@@ -13,24 +13,16 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "llvm/Support/CommandLine.h"
 #include "../Graph/TAGraph.h"
+#include "ParentWalker.h"
 
 using namespace llvm;
 using namespace clang;
 using namespace clang::tooling;
 
-class ROSWalker : public RecursiveASTVisitor<ROSWalker> {
+class ROSWalker : public RecursiveASTVisitor<ROSWalker>, public ParentWalker {
 public:
     explicit ROSWalker(ASTContext *Context);
     ~ROSWalker();
-
-    //TA Generator
-    static void deleteTAGraphs();
-    static void deleteTAGraph(int num);
-    static int getNumGraphs();
-    static int endCurrentGraph();
-    static int generateCurrentTAModel(std::string fileName);
-    static int generateTAModel(int num, std::string fileName);
-    static int generateAllTAModels(std::vector<std::string> fileName);
 
     //ASTWalker Functions
     bool VisitStmt(Stmt* statement);
@@ -39,14 +31,7 @@ public:
     bool VisitVarDecl(VarDecl* decl);
     bool VisitFieldDecl(FieldDecl* decl);
 
-protected:
-    static int generateTAModel(TAGraph* graph, std::string fileName);
-
 private:
-    ASTContext *Context;
-    static TAGraph* graph;
-    static std::vector<TAGraph*> graphList;
-
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisher = nullptr;
 
@@ -105,11 +90,6 @@ private:
     std::vector<std::string> getArgs(const CallExpr* expr);
     std::string getPublisherType(const CallExpr* expr);
 
-    //Helper Functions
-    bool isInSystemHeader(const Stmt* statement);
-    bool isInSystemHeader(const Decl* decl);
-    bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
-
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
     const FunctionDecl* getParentFunction(const Expr* callExpr);
@@ -120,20 +100,6 @@ private:
     std::string generateID(const NamedDecl* decl);
     std::string generateName(const NamedDecl* decl);
     std::string validateStringArg(std::string name);
-};
-
-class ROSConsumer : public ASTConsumer {
-public:
-    explicit ROSConsumer(ASTContext *Context);
-    virtual void HandleTranslationUnit(ASTContext &Context);
-
-private:
-    ROSWalker Visitor;
-};
-
-class ROSAction : public ASTFrontendAction {
-public:
-    virtual std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile);
 };
 
 #endif //REX_ROSWALKER_H

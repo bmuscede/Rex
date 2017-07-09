@@ -12,32 +12,25 @@
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "llvm/Support/CommandLine.h"
+#include <string>
+#include "ParentWalker.h"
 
 using namespace llvm;
 using namespace clang;
 using namespace clang::tooling;
 
-class MinimalROSWalker : public RecursiveASTVisitor<MinimalROSWalker>{
+class MinimalROSWalker : public RecursiveASTVisitor<MinimalROSWalker>, public ParentWalker {
 public:
     explicit MinimalROSWalker(ASTContext *Context);
     ~MinimalROSWalker();
 
-private:
-    ASTContext *Context;
-};
-
-class MinimalROSConsumer : public ASTConsumer {
-public:
-    explicit MinimalROSConsumer(ASTContext *Context);
-    virtual void HandleTranslationUnit(ASTContext &Context);
+    bool VisitStmt(Stmt *statement);
+    bool VisitFunctionDecl(FunctionDecl* decl);
 
 private:
-    MinimalROSWalker Visitor;
-};
+    void recordFileLoc(SourceLocation loc);
 
-class MinimalROSAction : public ASTFrontendAction {
-public:
-    virtual std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile);
+    std::string getFileName(SourceLocation loc);
 };
 
 #endif //REX_MINIMALROSWALKER_H

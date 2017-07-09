@@ -28,7 +28,7 @@
 #include <boost/filesystem.hpp>
 #include <regex>
 #include "RexHandler.h"
-#include "../Walker/ROSWalker.h"
+#include "../Walker/ROSConsumer.h"
 
 using namespace std;
 using namespace clang::tooling;
@@ -45,7 +45,7 @@ RexHandler::RexHandler(){
 
 /** Deletes all the TA graphs */
 RexHandler::~RexHandler(){
-    ROSWalker::deleteTAGraphs();
+    ParentWalker::deleteTAGraphs();
 }
 
 /**
@@ -53,7 +53,7 @@ RexHandler::~RexHandler(){
  * @return Number of generated graphs.
  */
 int RexHandler::getNumGraphs(){
-    return ROSWalker::getNumGraphs();
+    return ParentWalker::getNumGraphs();
 }
 
 /**
@@ -101,7 +101,7 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
     }
 
     //Shifts the graphs.
-    ROSWalker::endCurrentGraph();
+    ParentWalker::endCurrentGraph();
 
     //Returns the success code.
     return success;
@@ -109,9 +109,10 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
 
 /**
  * Runs through all files in the queue and generates a graph.
+ * @param minimalWalk Boolean that indicates what ROSWalker to use.
  * @return Boolean indicating success.
  */
-bool RexHandler::processAllFiles(){
+bool RexHandler::processAllFiles(bool minimalWalk){
     bool success = true;
     llvm::cl::OptionCategory RexCategory("Rex Options");
 
@@ -119,10 +120,18 @@ bool RexHandler::processAllFiles(){
     int argc = 0;
     char** argv = prepareArgs(&argc);
 
-    //Runs the processor.
+    //Sets up the processor.
     CommonOptionsParser OptionsParser(argc, (const char**) argv, RexCategory);
     ClangTool Tool(OptionsParser.getCompilations(),
                    OptionsParser.getSourcePathList());
+
+    //Runs the processor.
+    if (minimalWalk){
+        ROSConsumer::setMode(ROSConsumer::MINIMAL);
+    } else {
+        ROSConsumer::setMode(ROSConsumer::FULL);
+    }
+
     int code = Tool.run(newFrontendActionFactory<ROSAction>().get());
 
     //Gets the code and checks for warnings.
@@ -132,7 +141,7 @@ bool RexHandler::processAllFiles(){
     }
 
     //Shifts the graphs.
-    ROSWalker::endCurrentGraph();
+    ParentWalker::endCurrentGraph();
 
     //Clears the graph.
     files.clear();
@@ -153,14 +162,14 @@ bool RexHandler::outputIndividualModel(int modelNum, std::string fileName){
     //First, check if the number if valid.
     if (modelNum < 0 || modelNum > getNumGraphs() - 1) return false;
 
-    int succ = ROSWalker::generateTAModel(modelNum, fileName + DEFAULT_EXT);
+    int succ = ParentWalker::generateTAModel(modelNum, fileName + DEFAULT_EXT);
     if (succ == 0) {
         cerr << "Error writing to " << fileName << "!" << endl
                                                              << "Check the file and retry!" << endl;
         return false;
     }
 
-    ROSWalker::deleteTAGraph(modelNum);
+    ParentWalker::deleteTAGraph(modelNum);
     return true;
 }
 

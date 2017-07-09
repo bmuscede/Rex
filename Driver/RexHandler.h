@@ -49,7 +49,7 @@ public:
 
     /** Processing Systems */
     bool processClangToolCode(int argc, const char** argv);
-    bool processAllFiles();
+    bool processAllFiles(bool minimalWalk = false);
 
     /** Output Helpers */
     bool outputIndividualModel(int modelNum, std::string fileName = std::string());

@@ -2,19 +2,58 @@
 // Created by bmuscede on 06/07/17.
 //
 
+#include <iostream>
 #include "MinimalROSWalker.h"
 
-MinimalROSWalker::MinimalROSWalker(ASTContext *Context) : Context(Context) { }
+using namespace std;
+
+MinimalROSWalker::MinimalROSWalker(ASTContext *Context) : ParentWalker(Context) { }
 
 MinimalROSWalker::~MinimalROSWalker(){ }
 
+bool MinimalROSWalker::VisitStmt(Stmt *statement) {
+    if (isInSystemHeader(statement)) return true;
 
-MinimalROSConsumer::MinimalROSConsumer(ASTContext *Context) : Visitor(Context) {}
+    //Adds the file to the TA graph.
+    recordFileLoc(statement->getLocStart());
 
-void MinimalROSConsumer::HandleTranslationUnit(ASTContext &Context) {
-    Visitor.TraverseDecl(Context.getTranslationUnitDecl());
+    //Starts by checking if there is a ROS component.
+    //TODO
+
+    return true;
 }
 
-std::unique_ptr<ASTConsumer> MinimalROSAction::CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile) {
-    return std::unique_ptr<ASTConsumer>(new MinimalROSConsumer(&Compiler.getASTContext()));
+bool MinimalROSWalker::VisitFunctionDecl(FunctionDecl* decl) {
+    if (isInSystemHeader(decl)) return true;
+
+    //Adds the file to the TA graph.
+    recordFileLoc(decl->getLocation());
+
+    return true;
+}
+
+void MinimalROSWalker::recordFileLoc(SourceLocation loc){
+    //First, get the filename.
+    string fileName = getFileName(loc);
+    if (fileName.compare("") == 0) return;
+
+    //Check if the node exists.
+    if (graph->doesNodeExist(fileName)) return;
+
+    //Next, creates the node.
+    RexNode* node = new RexNode(fileName, fileName, RexNode::FILE);
+    graph->addNode(node);
+}
+
+string MinimalROSWalker::getFileName(SourceLocation loc){
+    //Generates the filename.
+    SourceManager& SrcMgr = Context->getSourceManager();
+    const FileEntry* Entry = SrcMgr.getFileEntryForID(SrcMgr.getFileID(loc));
+
+    //Returns the entry.
+    if (!Entry) return "";
+    auto name = Entry->tryGetRealPathName();
+    string nEnt = name.str();
+    if (nEnt.compare("") == 0) return Entry->getName();
+    return nEnt;
 }
