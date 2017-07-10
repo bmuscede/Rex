@@ -26,6 +26,7 @@ public:
     explicit ParentWalker(ASTContext *Context);
     virtual ~ParentWalker();
 
+    //Graph Operations
     static void deleteTAGraphs();
     static void deleteTAGraph(int num);
     static int getNumGraphs();
@@ -39,14 +40,74 @@ protected:
     static std::vector<TAGraph*> graphList;
     ASTContext *Context;
 
-    //Helper Functions
+    RexNode* currentSubscriber = nullptr;
+    RexNode* currentPublisher = nullptr;
+
+    //ROS Handlers
+    bool isNodeHandlerObj(const CXXConstructExpr* ctor);
+    bool isSubscriberObj(const CXXConstructExpr* ctor);
+    bool isPublisherObj(const CXXConstructExpr* ctor);
+    bool isPublish(const CallExpr* expr);
+    bool isSubscribe(const CallExpr* expr);
+    bool isAdvertise(const CallExpr* expr);
+
+    //System Headers
     bool isInSystemHeader(const Stmt* statement);
     bool isInSystemHeader(const Decl* decl);
 
+    //ROS Recorders
+    void recordParentSubscribe(const CXXConstructExpr* expr);
+    void recordParentPublish(const CXXConstructExpr* expr);
+    void recordParentGeneric(std::string parentID, std::string parentName, RexNode::NodeType type);
+    void recordParentNodeHandle(const CXXConstructExpr* expr);
+    void recordNodeHandle(const CXXConstructExpr* expr);
+    void recordSubscribe(const CallExpr* expr);
+    void recordPublish(const CallExpr* expr);
+    void recordAdvertise(const CallExpr* expr);
+    void recordTopic(std::string name);
+
+    //Name Helper Functions
+    std::string generateID(const NamedDecl* decl);
+    std::string generateName(const NamedDecl* decl);
+    std::string validateStringArg(std::string name);
+
 private:
+    //ROS Topic Name
+    const std::string TOPIC_PREFIX = "ros--topic--";
+
+    //ROS Names
+    const std::string PUBLISHER_CLASS = "ros::Publisher";
+    const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
+    const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+    const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
+    const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
+    const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
+
+    //ROS Attributes
+    const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
+    const std::string ROS_PUB_VAR_FLAG = "isPublisher";
+    const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
+    const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
+    const std::string ROS_CALLBACK = "callbackFunc";
+    const std::string ROS_PUB_TYPE = "publisherType";
+    const std::string ROS_NUMBER = "rosNumber";
+    const std::string ROS_PUB_DATA = "pubData";
+    const int PUB_MAX = 30;
+
+    //Graph Operations - Helpers
     static int generateTAModel(TAGraph* graph, std::string fileName);
 
+    //System Headers - Helpers
     bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
+
+    //ROSHandlers - Helpers
+    bool isClass(const CXXConstructExpr* ctor, std::string className);
+    bool isFunction(const CallExpr* expr, std::string functionName);
+    const NamedDecl* getParentAssign(const CXXConstructExpr* expr);
+    RexNode* findCallbackFunction(std::string callbackQualified);
+    std::vector<std::string> getArgs(const CallExpr* expr);
+    std::string getPublisherType(const CallExpr* expr);
+    std::string getParentVariable(const Expr* callExpr);
 };
 
 

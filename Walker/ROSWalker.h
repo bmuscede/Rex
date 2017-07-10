@@ -32,29 +32,6 @@ public:
     bool VisitFieldDecl(FieldDecl* decl);
 
 private:
-    RexNode* currentSubscriber = nullptr;
-    RexNode* currentPublisher = nullptr;
-
-    const std::string TOPIC_PREFIX = "ros--topic--";
-
-    const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
-    const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
-    const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
-    const std::string PUBLISHER_CLASS = "ros::Publisher";
-    const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
-    const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
-
-    //ROS Attribute Names.
-    const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
-    const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
-    const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
-    const std::string ROS_PUB_VAR_FLAG = "isPublisher";
-    const std::string ROS_CALLBACK = "callbackFunc";
-    const std::string ROS_PUB_TYPE = "publisherType";
-    const std::string ROS_NUMBER = "rosNumber";
-    const std::string ROS_PUB_DATA = "pubData";
-    const int PUB_MAX = 30;
-
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
     void recordClassDecl(const CXXRecordDecl* decl);
@@ -65,41 +42,9 @@ private:
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const DeclRefExpr* expr);
 
-    //ROS Detectors
-    bool isNodeHandlerObj(const CXXConstructExpr* ctor);
-    bool isSubscriberObj(const CXXConstructExpr* ctor);
-    bool isPublisherObj(const CXXConstructExpr* ctor);
-    bool isPublish(const CallExpr* expr);
-    bool isSubscribe(const CallExpr* expr);
-    bool isAdvertise(const CallExpr* expr);
-    bool isFunction(const CallExpr* expr, std::string functionName);
-    bool isClass(const CXXConstructExpr* ctor, std::string className);
-
-    //ROS Recorders
-    void recordParentSubscribe(const CXXConstructExpr* expr);
-    void recordParentPublish(const CXXConstructExpr* expr);
-    void recordParentNodeHandle(const CXXConstructExpr* expr);
-    void recordTopic(std::string name);
-    void recordNodeHandle(const CXXConstructExpr* expr);
-    void recordSubscribe(const CallExpr* expr);
-    void recordPublish(const CallExpr* expr);
-    void recordAdvertise(const CallExpr* expr);
-
-    //Helpers for ROS
-    RexNode* findCallbackFunction(std::string callbackQualified);
-    std::vector<std::string> getArgs(const CallExpr* expr);
-    std::string getPublisherType(const CallExpr* expr);
-
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
     const FunctionDecl* getParentFunction(const Expr* callExpr);
-    std::string getParentVariable(const Expr* callExpr);
-    const NamedDecl* getParentAssign(const CXXConstructExpr* expr);
-
-    //Name Helper Functions
-    std::string generateID(const NamedDecl* decl);
-    std::string generateName(const NamedDecl* decl);
-    std::string validateStringArg(std::string name);
 };
 
 #endif //REX_ROSWALKER_H

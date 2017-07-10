@@ -15,10 +15,31 @@ bool MinimalROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
     //Adds the file to the TA graph.
-    recordFileLoc(statement->getLocStart());
+    string fileName = recordFileLoc(statement->getLocStart());
 
     //Starts by checking if there is a ROS component.
-    //TODO
+    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
+        //Generate the printing policy.
+        clang::LangOptions LangOpts;
+        clang::PrintingPolicy Policy(LangOpts);
+
+        if (isNodeHandlerObj(cxxExpr)) {
+            recordNodeHandle(cxxExpr);
+            recordParentNodeHandle(cxxExpr);
+        } else if (isSubscriberObj(cxxExpr)) {
+            recordParentSubscribe(cxxExpr, fileName);
+        } else if (isPublisherObj(cxxExpr)) {
+            recordParentPublish(cxxExpr, fileName);
+        }
+    }
+
+    //Handle ROS statements.
+    if (CallExpr* callExpr = dyn_cast<CallExpr>(statement)){
+        //Deal with the expression.
+        if (isPublish(callExpr)) recordPublish(callExpr);
+        else if (isSubscribe(callExpr)) recordSubscribe(callExpr);
+        else if (isAdvertise(callExpr)) recordAdvertise(callExpr);
+    }
 
     return true;
 }
@@ -32,17 +53,29 @@ bool MinimalROSWalker::VisitFunctionDecl(FunctionDecl* decl) {
     return true;
 }
 
-void MinimalROSWalker::recordFileLoc(SourceLocation loc){
+void MinimalROSWalker::recordParentSubscribe(const CXXConstructExpr* expr, string fileName){
+    if (fileName.compare("") == 0) return;
+    recordParentGeneric(fileName, fileName, RexNode::SUBSCRIBER);
+}
+
+void MinimalROSWalker::recordParentPublish(const CXXConstructExpr* expr, string fileName){
+    if (fileName.compare("") == 0) return;
+    recordParentGeneric(fileName, fileName, RexNode::PUBLISHER);
+}
+
+string MinimalROSWalker::recordFileLoc(SourceLocation loc){
     //First, get the filename.
     string fileName = getFileName(loc);
-    if (fileName.compare("") == 0) return;
+    if (fileName.compare("") == 0) return "";
 
     //Check if the node exists.
-    if (graph->doesNodeExist(fileName)) return;
+    if (graph->doesNodeExist(fileName)) return fileName;
 
     //Next, creates the node.
     RexNode* node = new RexNode(fileName, fileName, RexNode::FILE);
     graph->addNode(node);
+
+    return fileName;
 }
 
 string MinimalROSWalker::getFileName(SourceLocation loc){

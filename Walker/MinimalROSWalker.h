@@ -28,8 +28,10 @@ public:
     bool VisitFunctionDecl(FunctionDecl* decl);
 
 private:
-    void recordFileLoc(SourceLocation loc);
+    void recordParentSubscribe(const CXXConstructExpr* expr, std::string fileName);
+    void recordParentPublish(const CXXConstructExpr* expr, std::string fileName);
 
+    std::string recordFileLoc(SourceLocation loc);
     std::string getFileName(SourceLocation loc);
 };
 
