@@ -11,7 +11,7 @@
 
 class RexNode {
 public:
-    enum NodeType {FUNCTION, VARIABLE, CLASS, TOPIC, PUBLISHER, SUBSCRIBER, FILE};
+    enum NodeType {FUNCTION, VARIABLE, CLASS, TOPIC, PUBLISHER, SUBSCRIBER, NODE_HANDLE, FILE};
     static std::string typeToString(NodeType type);
 
     RexNode(std::string ID, NodeType type);

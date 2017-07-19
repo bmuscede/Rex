@@ -6,29 +6,19 @@ SCHEME TUPLE :
 $INHERIT	cArchitecturalNds	cRoot
 $INHERIT	cAsgNds				cRoot
 $INHERIT	rosMsg				cRoot
-$INHERIT	cSubSystem			cArchitecturalNds
-$INHERIT	cFile					cArchitecturalNds
 $INHERIT	cClass					cAsgNds
-$INHERIT	cFunction				cAsgNds
-$INHERIT	cVariable				cAsgNds
-$INHERIT	cLang					cAsgNds
 $INHERIT	rosTopic				rosMsg
 $INHERIT	rosPublisher			rosMsg
 $INHERIT	rosSubscriber			rosMsg
-$INHERIT	cEnum					cLang
-$INHERIT	cEnumConst			cLang
-$INHERIT	cStruct				cLang
-$INHERIT	cUnion				cLang
+$INHERIT	rosNodeHandle		rosMsg
 
 //Relationships
-contain		cRoot			cRoot
-publish		cFunction		rosTopic
-subscribe		cFunction		rosTopic
-call				cFunction		cFunction
-reference		cAsgNds		cAsgNds
-inherits		cClass			cClass
-advertise		cRoot			cRoot
-subscribe		cRoot			cRoot
+contain		cRoot				cRoot
+publish		rosPublisher		rosTopic
+subscribe		rosSubscriber		rosTopic
+reference		rosNodeHandle	rosMsg
+advertise		rosPublisher		rosTopic
+subscribe		rosSubscriber		rosTopic
 
 SCHEME ATTRIBUTE :
 $ENTITY {
@@ -62,7 +52,7 @@ cArchitecturalNds {
 	color = (0.0 0.0 0.0)
 }
 
-cSubSystem {
+rosMsg {
 	class_style = 4
 	color = (0.0 0.0 1.0)
 }
@@ -121,13 +111,5 @@ rosSubscriber {
 rosPublisher {
 	numAttributes
 	rosNumber
-}
-
-rosTopic {
-	
-}
-
-(reference) {
-	access
 }
 
