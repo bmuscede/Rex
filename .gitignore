@@ -8,4 +8,4 @@ install_manifest.txt
 CTestTestfile.cmake
 .idea
 compile_commands.json
-include
+include/

@@ -92,20 +92,22 @@ bool MinimalROSWalker::VisitFieldDecl(FieldDecl* decl) {
     return true;
 }
 
-void MinimalROSWalker::recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, string type){
+void MinimalROSWalker::recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, string type) {
     //Get the assignee with the name.
     string assigneeID = generateID(assignee);
-    RexNode* assigneeNode = graph->findNode(assigneeID);
+    RexNode *assigneeNode = graph->findNode(assigneeID);
 
     //Get the NH object.
-    MemberExpr* base = dyn_cast<MemberExpr>(assign->getBase());
-    NamedDecl* assigner = dyn_cast<NamedDecl>(base->getReferencedDeclOfCallee());
-    string assignerID = generateID(assigner);
-    RexNode* assignerNode = graph->findNode(assignerID);
+    MemberExpr *base = dyn_cast<MemberExpr>(assign->getBase());
+    if (base != nullptr) {
+        NamedDecl *assigner = dyn_cast<NamedDecl>(base->getReferencedDeclOfCallee());
+        string assignerID = generateID(assigner);
+        RexNode *assignerNode = graph->findNode(assignerID);
 
-    //Now, creates an edge
-    RexEdge* edge = new RexEdge(assignerNode, assigneeNode, RexEdge::EdgeType::REFERENCES);
-    graph->addEdge(edge);
+        //Now, creates an edge
+        RexEdge *edge = new RexEdge(assignerNode, assigneeNode, RexEdge::EdgeType::REFERENCES);
+        graph->addEdge(edge);
+    }
 
     //Sets the type.
     if (type.compare("class " + PUBLISHER_CLASS) == 0){
@@ -159,8 +161,10 @@ void MinimalROSWalker::recordROSActionMinimal(const NamedDecl* decl, string type
     RexNode* rexVarNode = new RexNode(varNodeID, varNodeName, nType);
     graph->addNode(rexVarNode);
 
-    RexEdge* edge = new RexEdge(classNode, rexVarNode, RexEdge::EdgeType::CONTAINS);
-    graph->addEdge(edge);
+    if (classNode) {
+        RexEdge *edge = new RexEdge(classNode, rexVarNode, RexEdge::EdgeType::CONTAINS);
+        graph->addEdge(edge);
+    }
 }
 
 const NamedDecl* MinimalROSWalker::getAssignee(const CXXOperatorCallExpr* parent){
