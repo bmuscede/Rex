@@ -23,6 +23,14 @@ bool MinimalROSWalker::VisitStmt(Stmt *statement) {
         clang::LangOptions LangOpts;
         clang::PrintingPolicy Policy(LangOpts);
 
+        string stmt;
+        raw_string_ostream stream(stmt);
+        cxxExpr->printPretty(stream, NULL, PrintingPolicy(LangOptions()));
+
+        //Flush ostream buffer.
+        stream.flush();
+        cout << stmt << endl;
+
         if (isNodeHandlerObj(cxxExpr)) {
             recordNodeHandle(cxxExpr);
             recordParentNodeHandle(cxxExpr);
