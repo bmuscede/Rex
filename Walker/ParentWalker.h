@@ -43,6 +43,11 @@ protected:
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisher = nullptr;
 
+    //ROS Names
+    const std::string PUBLISHER_CLASS = "ros::Publisher";
+    const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
+    const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+
     //ROS Handlers
     bool isNodeHandlerObj(const CXXConstructExpr* ctor);
     bool isSubscriberObj(const CXXConstructExpr* ctor);
@@ -76,9 +81,6 @@ private:
     const std::string TOPIC_PREFIX = "ros--topic--";
 
     //ROS Names
-    const std::string PUBLISHER_CLASS = "ros::Publisher";
-    const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
-    const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
     const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
     const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
@@ -107,7 +109,7 @@ private:
     RexNode* findCallbackFunction(std::string callbackQualified);
     std::vector<std::string> getArgs(const CallExpr* expr);
     std::string getPublisherType(const CallExpr* expr);
-    std::string getParentVariable(const Expr* callExpr);
+    NamedDecl* getParentVariable(const Expr* callExpr);
 };
 
 

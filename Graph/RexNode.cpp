@@ -28,6 +28,9 @@ string RexNode::typeToString(RexNode::NodeType type){
         case SUBSCRIBER:
             return "rosSubscriber";
 
+        case NODE_HANDLE:
+            return "rosNodeHandle";
+
         case FILE:
             return "cFile";
     }

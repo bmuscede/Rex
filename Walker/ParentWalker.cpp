@@ -195,20 +195,22 @@ string ParentWalker::getPublisherType(const CallExpr* expr) {
     return type;
 }
 
-string ParentWalker::getParentVariable(const Expr *callExpr) {
+NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     //Get the CXX Member Call.
     auto call = dyn_cast<CXXMemberCallExpr>(callExpr);
-    if (call == nullptr) return string();
+    if (call == nullptr) return nullptr;
 
     //Next, get the implicit object.
     auto parentVar = call->getImplicitObjectArgument();
-    if (parentVar == nullptr) return string();
+    if (parentVar == nullptr) return nullptr;
+
+    return dyn_cast<NamedDecl>(parentVar->getReferencedDeclOfCallee());
 
     //Finally, works on a print pretty system.
-    string sBuffer = "";
-    llvm::raw_string_ostream strStream(sBuffer);
-    parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
-    return strStream.str();
+    //string sBuffer = "";
+    //llvm::raw_string_ostream strStream(sBuffer);
+    //parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
+    //return strStream.str();
 }
 
 bool ParentWalker::isInSystemHeader(const Stmt *statement) {
@@ -331,35 +333,15 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     currentSubscriber = nullptr;
 }
 
-//TODO: This won't work since the qualified name isn't right.
 void ParentWalker::recordPublish(const CallExpr* expr){
     //Get the publisher object.
     auto parent = getParentVariable(expr);
-    if (parent.compare(string()) == 0) return;
-    RexNode* parentVar = graph->findNodeByName(parent);
+    if (!parent) return;
+    RexNode* parentVar = graph->findNodeByName(generateID(parent));
     if (!parentVar) return;
 
-    //Next, gets the publisher that it's pointing to.
-    auto destinations = graph->findEdgesBySrc(parentVar->getID(), false);
-    RexNode* pubItem = nullptr;
-    for (int i = 0; i < destinations.size(); i++){
-        auto item = destinations.at(i);
-
-        //Narrows down the item.
-        if (item->getType() != RexEdge::SUBSCRIBE) continue;
-        auto dest = item->getDestination();
-        if (dest->getType() != RexNode::PUBLISHER) continue;
-
-        if (pubItem == nullptr){
-            pubItem = dest;
-        } else if (atoi(pubItem->getSingleAttribute(ROS_NUMBER).c_str()) < atoi(item->getSingleAttribute(ROS_NUMBER).c_str())){
-            pubItem = dest;
-        }
-    }
-    if (!pubItem) return;
-
     //Next, gets the topic it publishes to.
-    destinations = graph->findEdgesBySrc(pubItem->getID(), false);
+    vector<RexEdge*> destinations = graph->findEdgesBySrc(parentVar->getID(), false);
     RexNode* topic = nullptr;
     for (int i = 0; i < destinations.size(); i++){
         auto item = destinations.at(i);
