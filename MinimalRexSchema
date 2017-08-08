@@ -6,19 +6,19 @@ SCHEME TUPLE :
 $INHERIT	cArchitecturalNds	cRoot
 $INHERIT	cAsgNds				cRoot
 $INHERIT	rosMsg				cRoot
-$INHERIT	cClass					cAsgNds
-$INHERIT	rosTopic				rosMsg
-$INHERIT	rosPublisher			rosMsg
-$INHERIT	rosSubscriber			rosMsg
+$INHERIT	cClass				cAsgNds
+$INHERIT	rosTopic			rosMsg
+$INHERIT	rosPublisher		rosMsg
+$INHERIT	rosSubscriber		rosMsg
 $INHERIT	rosNodeHandle		rosMsg
 
 //Relationships
 contain		cRoot				cRoot
 publish		rosPublisher		rosTopic
-subscribe		rosSubscriber		rosTopic
-reference		rosNodeHandle	rosMsg
-advertise		rosPublisher		rosTopic
-subscribe		rosSubscriber		rosTopic
+subscribe	rosTopic            rosSubscriber
+reference	rosNodeHandle	    rosMsg
+advertise	rosPublisher	    rosTopic
+subscribe	rosSubscriber	    rosTopic
 
 SCHEME ATTRIBUTE :
 $ENTITY {
@@ -112,4 +112,3 @@ rosPublisher {
 	numAttributes
 	rosNumber
 }
-
