@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/JUNG/collections-generic-4.01.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/colt-1.2.0.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/concurrent-1.3.4.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/j3d-core-1.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-3d-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-3d-demos-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-algorithms-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-api-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-graph-impl-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-io-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-jai-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-jai-samples-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-samples-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/jung-visualization-2.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/stax-api-1.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/vecmath-1.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/JUNG/wstx-asl-3.2.6.jar"/>
+	<classpathentry kind="lib" path="lib/Antlr.jar"/>
+	<classpathentry kind="lib" path="lib/POI/ooxml-lib/xmlbeans-2.6.0.jar"/>
+	<classpathentry kind="lib" path="lib/POI/lib/commons-codec-1.10.jar"/>
+	<classpathentry kind="lib" path="lib/POI/lib/commons-collections4-4.1.jar"/>
+	<classpathentry kind="lib" path="lib/POI/lib/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/POI/lib/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="lib/POI/lib/log4j-1.2.17.jar"/>
+	<classpathentry kind="lib" path="lib/POI/ooxml-lib/curvesapi-1.04.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-3.16.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-examples-3.16.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-excelant-3.16.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-ooxml-3.16.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-ooxml-schemas-3.16.jar"/>
+	<classpathentry kind="lib" path="lib/POI/poi-scratchpad-3.16.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

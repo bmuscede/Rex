@@ -35,6 +35,25 @@ bool MinimalROSWalker::VisitStmt(Stmt *statement) {
     //Also looks for advertise and subscribe.
     //TODO: There are some cases where this is used as opposed to the block above. Figure this out.
     if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
+/*
+        //Generate the printing policy.
+        clang::LangOptions LangOpts;
+        clang::PrintingPolicy Policy(LangOpts);
+
+        string stmt;
+        raw_string_ostream stream(stmt);
+        cxxExpr->printPretty(stream, NULL, PrintingPolicy(LangOptions()));
+
+        //Flush ostream buffer.
+        stream.flush();
+        cout << stmt << endl;
+
+        if (isNodeHandlerObj(cxxExpr)) {
+            recordNodeHandle(cxxExpr);
+            recordParentNodeHandle(cxxExpr);
+        } else if (isSubscriberObj(cxxExpr)) {
+            recordParentSubscribe(cxxExpr, fileName);
+*/
         if (isSubscriberObj(cxxExpr)) {
            // recordParentSubscribe(cxxExpr, fileName);
         } else if (isPublisherObj(cxxExpr)) {

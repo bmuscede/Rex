@@ -310,7 +310,7 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     string topicName = validateStringArg(subscriberArgs[0]);
     recordTopic(topicName);
     RexNode* topic = graph->findNode(TOPIC_PREFIX + topicName);
-    RexEdge* topEdge = new RexEdge(currentSubscriber, topic, RexEdge::SUBSCRIBE);
+    RexEdge* topEdge = new RexEdge(topic, currentSubscriber, RexEdge::SUBSCRIBE);
     graph->addEdge(topEdge);
 
     //Record attributes.
