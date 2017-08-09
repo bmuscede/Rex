@@ -5,9 +5,9 @@ import java.util.Vector;
 
 public class Node {
 	public enum Type {
-		CLASS("cClass"), TOPIC("rosTopic"), PUBLISHER("rosPublisher"), 
-		SUBSCRIBER("rosSubscriber"), NODE_HANDLE("rosNodeHandle"), FILE("cFile"),
-		FUNCTION("cFunction"), VARIABLE("cVariable");
+		CCLASS("cClass"), ROSTOPIC("rosTopic"), ROSPUBLISHER("rosPublisher"), 
+		ROSSUBSCRIBER("rosSubscriber"), ROSNODEHANDLE("rosNodeHandle"), CFILE("cFile"),
+		CFUNCTION("cFunction"), CVARIABLE("cVariable");
 		
 		private String name;
 		

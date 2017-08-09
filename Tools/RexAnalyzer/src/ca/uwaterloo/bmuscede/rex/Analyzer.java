@@ -117,14 +117,14 @@ public class Analyzer {
 			//Next, gets the child publishers.
 			Vector<Node> pubs = new Vector<Node>();
 			for (Edge contEdges : graph.getOutEdges(fClass)){
-				if (contEdges.getEdgeType() == Edge.Type.CONTAINS && contEdges.getDst().getNodeType() == Node.Type.PUBLISHER){
+				if (contEdges.getEdgeType() == Edge.Type.CONTAIN && contEdges.getDst().getNodeType() == Node.Type.ROSPUBLISHER){
 					pubs.add(contEdges.getDst());
 				}
 			}
 			
 			//For each publisher, follows the path.
 			for (Node pub : pubs){
-				paths.addAll(getReachability(graph, fClass, pub, 0));
+				paths.addAll(getReachability(graph, fClass, pub, 0, new Vector<Node>()));
 			}
 			
 			//Now, we traverse through the classes.
@@ -155,41 +155,47 @@ public class Analyzer {
 	}
 
 	//TODO: This doesn't deal with loops.
-	private static Vector<PathData> getReachability(Graph<Node, Edge> graph, Node original, Node cur, int hops) {
+	private static Vector<PathData> getReachability(Graph<Node, Edge> graph, Node original, Node cur, int hops, 
+			Vector<Node> path) {
 		Vector<PathData> data = new  Vector<PathData>();
-		 
+		path.add(cur);
+		
 		//Checks the node type.
-		if (cur.getNodeType() == Node.Type.PUBLISHER) {
+		if (cur.getNodeType() == Node.Type.ROSPUBLISHER) {
 			//Get the topic it points to.
 			Collection<Edge> edges = graph.getOutEdges(cur);
-			if (edges.size() > 0) data.addAll(getReachability(graph, original, edges.iterator().next().getDst(), hops));
-		} else if (cur.getNodeType() == Node.Type.TOPIC) {
+			if (edges.size() > 0) data.addAll(getReachability(graph, original, edges.iterator().next().getDst(), hops, path));
+		} else if (cur.getNodeType() == Node.Type.ROSTOPIC) {
 			//Get the topic it points to.
 			for (Edge topEdge : graph.getOutEdges(cur)){
 				if (topEdge.getEdgeType() == Edge.Type.SUBSCRIBE){
-					data.addAll(getReachability(graph, original, topEdge.getDst(), hops));
+					data.addAll(getReachability(graph, original, topEdge.getDst(), hops, path));
 				}
 			}
-		} else if (cur.getNodeType() == Node.Type.SUBSCRIBER){
+		} else if (cur.getNodeType() == Node.Type.ROSSUBSCRIBER){
 			Node parent = null;
-			
+
 			//Get the parent class.
 			for (Edge curEdge : graph.getInEdges(cur)){
-				if (curEdge.getEdgeType() == Edge.Type.CONTAINS){
+				if (curEdge.getEdgeType() == Edge.Type.CONTAIN){
 					parent = curEdge.getSrc();
+					break;
 				}
 			}
+			path.add(parent);
 			
 			//Record the data.
-			PathData path = new PathData(original, parent, (hops == 0) ? PathType.DIRECT : PathType.INDIRECT);
-			//FIXME : add paths
-			data.add(path);
+			PathData pathItem = new PathData(original, parent, (hops == 0) ? PathType.DIRECT : PathType.INDIRECT);
+			pathItem.addPath(path);
+			data.add(pathItem);
 			hops++;
 			
 			//Next, continue.
 			for (Edge contEdges : graph.getOutEdges(parent)){
-				if (contEdges.getEdgeType() == Edge.Type.CONTAINS && contEdges.getDst().getNodeType() == Node.Type.PUBLISHER){
-					data.addAll(getReachability(graph, original, contEdges.getDst(), hops));
+				if (contEdges.getEdgeType() == Edge.Type.CONTAIN && contEdges.getDst().getNodeType() == Node.Type.ROSPUBLISHER){
+					if (path.contains(contEdges.getDst())) continue;
+					
+					data.addAll(getReachability(graph, original, contEdges.getDst(), hops, path));
 				}
 			}
 		}
@@ -202,7 +208,7 @@ public class Analyzer {
 		
 		//Go through all the nodes.
 		for (Node curNode : graph.getVertices()){
-			if (curNode.getNodeType() == Node.Type.CLASS){
+			if (curNode.getNodeType() == Node.Type.CCLASS){
 				classes.add(curNode);
 			}
 		}

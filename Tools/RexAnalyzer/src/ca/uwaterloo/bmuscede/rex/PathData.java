@@ -34,7 +34,15 @@ public class PathData {
 	
 	public void addPath(Vector<Node> path){
 		if (type != PathType.INDIRECT) return;
-		this.path = path;
+		if (path.contains(srcPath)) path.remove(srcPath);
+		if (path.contains(dstPath)) path.remove(dstPath);
+		
+		Vector<Node> finalPath = new Vector<Node>();
+		for (Node curNode : path) {
+			if (curNode.getNodeType() == Node.Type.CCLASS) finalPath.add(curNode);
+		}
+		
+		this.path = finalPath;
 	}
 
 	public Vector<Node> getPath(){

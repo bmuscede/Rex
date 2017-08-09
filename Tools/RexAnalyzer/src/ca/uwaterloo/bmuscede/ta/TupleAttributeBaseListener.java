@@ -1,6 +1,5 @@
 package ca.uwaterloo.bmuscede.ta;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -109,7 +108,7 @@ public class TupleAttributeBaseListener implements TupleAttributeListener {
 		
 		//Creates the edge.
 		Edge current = new Edge(src, dst, edgeType);
-		graph.addEdge(current, src, dst);
+		graph.addEdge(current, src, dst, EdgeType.DIRECTED);
 	}
 
 	@Override 
@@ -119,18 +118,11 @@ public class TupleAttributeBaseListener implements TupleAttributeListener {
 		//Get the node and add the attributes.
 		String name = nodeQueue.poll();
 		Node current = findNode(name);
-		Collection<Edge> inEdges = graph.getInEdges(current);
-		Collection<Edge> outEdges = graph.getOutEdges(current);
-		graph.removeVertex(current);
 
 		//Next, adds all the attributes.
 		for (Map.Entry<String, String> cur : attrMap.entrySet()){
 			current.addAttribute(cur.getKey(), cur.getValue());
 		}
-		
-		graph.addVertex(current);
-		for (Edge cur : inEdges) graph.addEdge(cur, cur.getSrc(), cur.getDst(), EdgeType.DIRECTED);
-		for (Edge cur : outEdges) graph.addEdge(cur, cur.getSrc(), cur.getDst(), EdgeType.DIRECTED);
 	}
 	
 	@Override 
@@ -147,14 +139,12 @@ public class TupleAttributeBaseListener implements TupleAttributeListener {
 		
 		//Gets the edge.
 		Edge current = findEdge(src, dst, edgeType);
-		graph.removeEdge(current);
-		
+
 		//Next, adds all the attributes.
 		for (Map.Entry<String, String> cur : attrMap.entrySet()){
 			current.addAttribute(cur.getKey(), cur.getValue());
 		}
-		
-		graph.addEdge(current, current.getSrc(), current.getDst(), EdgeType.DIRECTED);
+
 		relAttr = false;
 	}
 	

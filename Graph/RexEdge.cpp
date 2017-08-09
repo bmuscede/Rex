@@ -151,7 +151,7 @@ string RexEdge::generateTAEdge(){
 }
 
 string RexEdge::generateTAAttribute(){
-    string attributes = "(" + generateTAEdge() + ") {";
+    string attributes = "(" + generateTAEdge() + ") { ";
 
     //Starts by generating all the single attributes.
     for (auto &entry : singleAttributes){

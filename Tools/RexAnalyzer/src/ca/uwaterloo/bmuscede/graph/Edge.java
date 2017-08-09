@@ -5,7 +5,7 @@ import java.util.Vector;
 
 public class Edge {
 	public enum Type {
-		CONTAINS("contains"), REFERENCES("references"), CALLS("call"), ADVERTISE("advertise"), SUBSCRIBE("subscribe"), 
+		CONTAIN("contain"), REFERENCE("references"), CALL("call"), ADVERTISE("advertise"), SUBSCRIBE("subscribe"), 
 		PUBLISH("publish");
 		
 		private String name;
