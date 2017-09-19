@@ -33,7 +33,8 @@ set(SOURCE_FILES
         Walker/ParentWalker.h
         Walker/ROSWalker.cpp
         Walker/ROSWalker.h
-        Walker/ROSConsumer.cpp Walker/ROSConsumer.h)
+        Walker/ROSConsumer.cpp
+        Walker/ROSConsumer.h)
 
 add_executable(Rex ${SOURCE_FILES})
 
@@ -56,12 +57,13 @@ target_link_libraries(Rex
         LLVMLTO
         LLVMPasses
         LLVMObjCARCOpts
+        LLVMMIRParser
         LLVMSymbolize
         LLVMDebugInfoPDB
         LLVMDebugInfoDWARF
-        LLVMMIRParser
         LLVMCoverage
         LLVMTableGen
+        LLVMDlltoolDriver
         LLVMOrcJIT
         LLVMXCoreDisassembler
         LLVMXCoreCodeGen
@@ -104,12 +106,14 @@ target_link_libraries(Rex
         LLVMLanaiCodeGen
         LLVMLanaiAsmParser
         LLVMLanaiDesc
+        LLVMLanaiAsmPrinter
         LLVMLanaiInfo
         LLVMHexagonDisassembler
         LLVMHexagonCodeGen
         LLVMHexagonAsmParser
         LLVMHexagonDesc
         LLVMHexagonInfo
+        LLVMBPFDisassembler
         LLVMBPFCodeGen
         LLVMBPFDesc
         LLVMBPFInfo
@@ -120,6 +124,7 @@ target_link_libraries(Rex
         LLVMARMDesc
         LLVMARMInfo
         LLVMARMAsmPrinter
+        LLVMARMUtils
         LLVMAMDGPUDisassembler
         LLVMAMDGPUCodeGen
         LLVMAMDGPUAsmParser
@@ -129,7 +134,6 @@ target_link_libraries(Rex
         LLVMAMDGPUUtils
         LLVMAArch64Disassembler
         LLVMAArch64CodeGen
-        LLVMGlobalISel
         LLVMAArch64AsmParser
         LLVMAArch64Desc
         LLVMAArch64Info
@@ -138,9 +142,12 @@ target_link_libraries(Rex
         LLVMObjectYAML
         LLVMLibDriver
         LLVMOption
+        LLVMWindowsManifest
+        LLVMFuzzMutate
         LLVMX86Disassembler
         LLVMX86AsmParser
         LLVMX86CodeGen
+        LLVMGlobalISel
         LLVMSelectionDAG
         LLVMAsmPrinter
         LLVMDebugInfoCodeView
@@ -157,24 +164,25 @@ target_link_libraries(Rex
         LLVMRuntimeDyld
         LLVMCodeGen
         LLVMTarget
-        LLVMBitWriter
         LLVMCoroutines
         LLVMipo
         LLVMInstrumentation
         LLVMVectorize
         LLVMScalarOpts
-        LLVMObject
-        LLVMMCParser
-        LLVMMC
         LLVMLinker
         LLVMIRReader
-        LLVMBitReader
         LLVMAsmParser
         LLVMInstCombine
         LLVMTransformUtils
+        LLVMBitWriter
         LLVMAnalysis
         LLVMProfileData
+        LLVMObject
+        LLVMMCParser
+        LLVMMC
+        LLVMBitReader
         LLVMCore
+        LLVMBinaryFormat
         LLVMSupport
         LLVMDemangle
         )

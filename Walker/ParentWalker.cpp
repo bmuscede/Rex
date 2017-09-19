@@ -3,6 +3,7 @@
 //
 
 #include <fstream>
+#include <iostream>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -60,6 +61,98 @@ int ParentWalker::generateAllTAModels(vector<string> fileNames){
     }
 
     return 1;
+}
+
+map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
+    map<string, ParentWalker::AccessMethod> usageMap;
+
+    //Checks the lefthand side.
+    Expr* lhs = op->getLHS();
+    if (isa<DeclRefExpr>(lhs)){
+        usageMap[generateID(dyn_cast<DeclRefExpr>(lhs)->getDecl())] = determineAccess(true, op->getOpcode());
+    } else  {
+        //Get the opcode.
+        ParentWalker::AccessMethod method = determineAccess(true, op->getOpcode());
+
+        //Get the usage map.
+        usageMap = buildAccessMap(method, lhs);
+
+        //Iterates through the map and combines.
+        map<string, ParentWalker::AccessMethod>::iterator it;
+        for (it = usageMap.begin(); it != usageMap.end(); it++){
+            if ((usageMap[it->first] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
+                 usageMap[it->first] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ)){
+                usageMap[it->first] = ParentWalker::BOTH;
+            }
+        }
+    }
+
+    //Checks the righthand side.
+    Expr* rhs = op->getRHS();
+    if (isa<DeclRefExpr>(rhs)){
+        string addID = generateID(dyn_cast<DeclRefExpr>(rhs)->getDecl());
+        ParentWalker::AccessMethod method = determineAccess(false, op->getOpcode());
+
+        //Checks what we do.
+        if (usageMap.find(addID) != usageMap.end() &&
+                (usageMap[addID] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
+                        usageMap[addID] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ)){
+            usageMap[addID] = ParentWalker::AccessMethod::BOTH;
+        } else {
+            usageMap[addID] = method;
+        }
+    } else {
+        //Get the opcode.
+        ParentWalker::AccessMethod method = determineAccess(false, op->getOpcode());
+
+        //First, merge into map.
+        map<string, ParentWalker::AccessMethod> otherMap = buildAccessMap(method, rhs);
+        map<string, ParentWalker::AccessMethod>::iterator it;
+        for (it = otherMap.begin(); it != otherMap.end(); it++){
+            //Checks what we do.
+            if (usageMap.find(it->first) != usageMap.end() &&
+                (usageMap[it->first] == ParentWalker::AccessMethod::READ && it->second == ParentWalker::AccessMethod::WRITE ||
+                 usageMap[it->first] == ParentWalker::AccessMethod::WRITE && it->second == ParentWalker::AccessMethod::READ)){
+                usageMap[it->first] = ParentWalker::AccessMethod::BOTH;
+            } else {
+                usageMap[it->first] = it->second;
+            }
+
+            //Now, checks to see what the method is.
+            if (usageMap[it->first] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
+                usageMap[it->first] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ){
+                usageMap[it->first] = ParentWalker::AccessMethod::BOTH;
+            }
+        }
+
+    }
+
+    return usageMap;
+}
+
+map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryOperator* op){
+    map<string, ParentWalker::AccessMethod> usageMap;
+
+    //First, determine the inner expr. We want to be sure we have the correct ID.
+    Expr* inner = op->getSubExpr();
+
+    //Checks if we're dealing with a singular item.
+    if (isa<DeclRefExpr>(inner)){
+        //Get the opcode.
+        ParentWalker::AccessMethod method = determineAccess(op->getOpcode());
+        if (method != ParentWalker::AccessMethod::NONE) {
+            usageMap[generateID(dyn_cast<DeclRefExpr>(inner)->getDecl())] = method;
+        }
+    } else {
+        //Get the opcode.
+        ParentWalker::AccessMethod method = determineAccess(op->getOpcode());
+
+        //We just return the base usage map.
+        usageMap = buildAccessMap(method, inner);
+
+    }
+
+    return usageMap;
 }
 
 bool ParentWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
@@ -211,6 +304,87 @@ NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     //llvm::raw_string_ostream strStream(sBuffer);
     //parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
     //return strStream.str();
+}
+
+ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperator::Opcode opcode){
+    if (!lhs) return ParentWalker::AccessMethod::READ;
+
+    switch(opcode){
+        case BinaryOperator::Opcode::BO_Assign:
+        case BinaryOperator::Opcode::BO_AddAssign:
+        case BinaryOperator::Opcode::BO_DivAssign:
+        case BinaryOperator::Opcode::BO_AndAssign:
+        case BinaryOperator::Opcode::BO_MulAssign:
+        case BinaryOperator::Opcode::BO_OrAssign:
+        case BinaryOperator::Opcode::BO_RemAssign:
+        case BinaryOperator::Opcode::BO_ShlAssign:
+        case BinaryOperator::Opcode::BO_ShrAssign:
+        case BinaryOperator::Opcode::BO_SubAssign:
+        case BinaryOperator::Opcode::BO_XorAssign:
+            return ParentWalker::AccessMethod::WRITE;
+        case BinaryOperator::Opcode::BO_PtrMemD:
+        case BinaryOperator::Opcode::BO_PtrMemI:
+            return ParentWalker::AccessMethod::NONE;
+        default:
+            return ParentWalker::AccessMethod::READ;
+    }
+}
+
+ParentWalker::AccessMethod ParentWalker::determineAccess(UnaryOperator::Opcode opcode){
+    switch(opcode){
+        case UnaryOperator::Opcode::UO_PostDec:
+        case UnaryOperator::Opcode::UO_PostInc:
+        case UnaryOperator::Opcode::UO_PreDec:
+        case UnaryOperator::Opcode::UO_PreInc:
+            //Add write.
+            return ParentWalker::AccessMethod::WRITE;
+        case UnaryOperator::Opcode::UO_Plus:
+        case UnaryOperator::Opcode::UO_Minus:
+            //Add read.
+            return ParentWalker::AccessMethod::READ;
+        default:
+            return ParentWalker::AccessMethod::NONE;
+    }
+}
+
+map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalker::AccessMethod prevAccess,
+                                                                     const Expr* curExpr){
+    const Expr* prevExpr;
+
+    //Rip out any unneeded items.
+    do {
+        prevExpr = curExpr;
+        curExpr = curExpr->IgnoreParenCasts();
+        curExpr = curExpr->IgnoreImpCasts();
+        curExpr = curExpr->IgnoreImplicit();
+        curExpr = curExpr->IgnoreCasts();
+        curExpr = curExpr->IgnoreParens();
+        curExpr = curExpr->IgnoreConversionOperator();
+        curExpr = curExpr->IgnoreParenImpCasts();
+        curExpr = curExpr->IgnoreParenLValueCasts();
+    } while (prevExpr != curExpr);
+
+    //Next, we determine the type of expression.
+    if (isa<BinaryOperator>(curExpr)){
+        return getAccessType(dyn_cast<BinaryOperator>(curExpr));
+    } else if (isa<UnaryOperator>(curExpr))  {
+        return getAccessType(dyn_cast<UnaryOperator>(curExpr));
+    } else if (isa<DeclRefExpr>(curExpr)){
+        map<string, ParentWalker::AccessMethod> singleMap;
+        singleMap[generateID(dyn_cast<DeclRefExpr>(curExpr)->getDecl())] = prevAccess;
+        return singleMap;
+    }
+
+    //Check if we're dealing with literals.
+    //TODO: String literals aren't covered.
+    if (isa<IntegerLiteral>(curExpr) || isa<CharacterLiteral>(curExpr) || isa<FloatingLiteral>(curExpr)
+        || isa<ImaginaryLiteral>(curExpr) || isa<UserDefinedLiteral>(curExpr)){
+        return map<string, ParentWalker::AccessMethod>();
+    }
+
+    //TODO: Experimental! Fix later.
+    cerr << "Error: Expression cannot be detected!" << endl;
+    return map<string, ParentWalker::AccessMethod>();
 }
 
 bool ParentWalker::isInSystemHeader(const Stmt *statement) {

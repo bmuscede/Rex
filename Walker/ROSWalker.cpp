@@ -43,9 +43,28 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
         recordCallExpr(callExpr);
     }
 
+    //Looks for variable usages.
     if (DeclRefExpr* usageExpr = dyn_cast<DeclRefExpr>(statement)){
         //Deal with the expression.
         recordVarUsage(usageExpr);
+    }
+
+    //Looks for variable reads and writes.
+    if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
+        map<string, ParentWalker::AccessMethod> access = getAccessType(binOp);
+
+        map<string, ParentWalker::AccessMethod>::iterator it;
+        for (it = access.begin(); it != access.end(); it++){
+            cout << it->first << " -> " << it->second << endl;
+        }
+    }
+    if (UnaryOperator* unOp = dyn_cast<UnaryOperator>(statement)){
+        map<string, ParentWalker::AccessMethod> access = getAccessType(unOp);
+
+        map<string, ParentWalker::AccessMethod>::iterator it;
+        for (it = access.begin(); it != access.end(); it++){
+            cout << it->first << " -> " << it->second << endl;
+        }
     }
 
     return true;

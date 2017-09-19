@@ -277,8 +277,6 @@ void handleAbout() {
          << "other Clang-based arguments on the command line. Otherwise, Rex can just" << endl
          << "be started with no command line arguments." << endl << endl
          << "For more information on available commands, type \'help\'." << endl;
-
-    return;
 }
 
 /**

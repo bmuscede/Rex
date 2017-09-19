@@ -251,6 +251,7 @@ int RexHandler::removeByRegex(string regex) {
 
     return num;
 }
+
 /**
  * Generates arguments with the include directory.
  * @param argc The argc to update.

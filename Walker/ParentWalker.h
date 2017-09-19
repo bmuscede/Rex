@@ -5,6 +5,7 @@
 #ifndef REX_PARENTWALKER_H
 #define REX_PARENTWALKER_H
 
+#include <map>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -42,6 +43,10 @@ protected:
 
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisher = nullptr;
+
+    enum AccessMethod {NONE, BOTH, READ, WRITE};
+    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const BinaryOperator* op);
+    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const UnaryOperator* op);
 
     //ROS Names
     const std::string PUBLISHER_CLASS = "ros::Publisher";
@@ -110,6 +115,12 @@ private:
     std::vector<std::string> getArgs(const CallExpr* expr);
     std::string getPublisherType(const CallExpr* expr);
     NamedDecl* getParentVariable(const Expr* callExpr);
+
+    //Helper Methods for Access.
+    ParentWalker::AccessMethod determineAccess(bool lhs, BinaryOperator::Opcode opcode);
+    ParentWalker::AccessMethod determineAccess(UnaryOperator::Opcode opcode);
+    std::map<std::string, ParentWalker::AccessMethod> buildAccessMap(ParentWalker::AccessMethod prevAccess,
+                                                                     const Expr* curExpr);
 };
 
 
