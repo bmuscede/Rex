@@ -16,6 +16,8 @@ public:
     TAGraph();
     ~TAGraph();
 
+    void setMinMode(bool minMode);
+
     void addNode(RexNode* node);
     void addEdge(RexEdge* edge);
 
@@ -43,32 +45,46 @@ private:
     std::unordered_map<std::string, RexNode*> idList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeSrcList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeDstList;
+    bool minMode;
 
     //ROS Functionality
     std::string const PUB_NAME = "Publisher";
     std::string const SUB_NAME = "Subscriber";
     std::string const ROS_NUM = "rosNumber";
 
-    std::string const TA_SCHEMA = "//Rex Extraction\n//Author: Jingwei Wu & Bryan J Muscedere\n\nSCHEME TUPLE :\n//Node"
-            "s\n$INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$INHERIT"
-            "\tcSubSystem\t\tcArchitecturalNds\n$INHERIT\tcFile\t\t\tcArchitecturalNds\n$INHERIT\tcClass\t\t\tcAsgNds\n"
-            "$INHERIT\tcFunction\t\tcAsgNds\n$INHERIT\tcVariable\t\tcAsgNds\n$INHERIT\tcLang\t\t\tcAsgNds\n$INHERIT\tro"
-            "sTopic\t\trosMsg\n$INHERIT\trosPublisher\t\trosMsg\n$INHERIT\trosSubscriber\t\trosMsg\n$INHERIT\tcEnum\t\t"
-            "\tcLang\n$INHERIT\tcEnumConst\t\tcLang\n$INHERIT\tcStruct\t\t\tcLang\n$INHERIT\tcUnion\t\t\tcLang\n\n//Rel"
-            "ationships\ncontain\t\tcRoot\t\tcRoot\npublish\t\tcFunction\trosTopic\nsubscribe\tcFunction\trosTopic\ncal"
-            "l\t\tcFunction\tcFunction\nreference\tcAsgNds\t\tcAsgNds\ninherits\tcClass\t\tcClass\nadvertise\tcRoot\t\t"
-            "cRoot\nsubscribe\tcRoot\t\tcRoot\n\nSCHEME ATTRIBUTE :\n$ENTITY {\n\tx\n\ty\n\twidth\n\theight\n\tlabel\n}"
-            "\n\ncRoot {\n\telision = contain\n\tcolor = (0.0 0.0 0.0)\n\tfile\n\tline\n\tname\n}\n\ncAsgNds {\n\tbeg\n"
-            "\tend\n\tfile\n\tline\n\tvalue\n\tcolor = (0.0 0.0 0.0)\n}\n\ncArchitecturalNds {\n\tclass_style = 4\n\tco"
-            "lor = (0.0 0.0 1.0)\n\tcolor = (0.0 0.0 0.0)\n}\n\ncSubSystem {\n\tclass_style = 4\n\tcolor = (0.0 0.0 1.0"
-            ")\n}\n\ncFile {\n\tclass_style = 2\n\tcolor = (0.9 0.9 0.9)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\ncFunction "
-            "{\n\tfilename\n\tisStatic\n\tisConst\n\tisVolatile\n\tisVariadic\n\tvisibility\n\tcolor = (1.0 0.0 0.0)\n"
-            "\tlabelcolor = (0.0 0.0 0.0)\n}\n\ncVariable {\n\tfilename\n\tscopeType\n\tisStatic\n\tisPublisher = 0\n\t"
-            "isSubscriber = 0\n}\n\ncClass {\n\tfilename\n\tbaseNum\n\tcolor = (0.2 0.4 0.1)\n\tlabelcolor = (0.0 0.0 0"
-            ".0)\n}\n\ncEnum {\n\tfilename\n\tcolor = (0.9 0.2 0.5)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\ncEnumConst {\n"
-            "\tfilename\n\tcolor = (0.9 0.2 0.5)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\nrosSubscriber {\n\tbufferSize\n\tn"
-            "umAttributes\n\trosNumber\t\n\tcallbackFunc\n}\n\nrosPublisher {\n\tnumAttributes\n\trosNumber\n}\n\nrosTo"
-            "pic {\n\t\n}\n\n(reference) {\n\taccess\n}\n\n";
+    std::string const FULL_TA_SCHEMA ="//Full Rex Extraction\n//Author: Bryan J Muscedere\n\nSCHEME TUPLE :\n//Nodes\n$"
+            "INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$INHERIT\tcCl"
+            "ass\t\t\tcAsgNds\n$INHERIT\tcFunction\t\tcAsgNds\n$INHERIT\tcVariable\t\tcAsgNds\n$INHERIT\trosTopic\t\tr"
+            "osMsg\n$INHERIT\trosPublisher\t\trosMsg\n$INHERIT\trosSubscriber\t\trosMsg\n$INHERIT\trosNodeHandle\t\tros"
+            "Msg\n\n//Relationships\ncontain\t\tcRoot\t\tcRoot\npublish\t\trosPublisher\trosTopic\nsubscribe\trosTopic\t"
+            "rosSubscriber\nreference\trosNodeHandle\trosMsg\nadvertise\trosPublisher\trosTopic\nsubscribe\trosSubscribe"
+            "r\trosTopic\ncall\t\tcAsgNds\t\tcAsgNds\nwrite\t\tcFunction\tcVariable\nread\t\tcVariable\tcFunction\t\t\n"
+            "\nSCHEME ATTRIBUTE :\n$ENTITY {\n\tx\n\ty\n\twidth\n\theight\n\tlabel\n}\n\ncRoot {\n\telision = contain\n"
+            "\tcolor = (0.0 0.0 0.0)\n\tfile\n\tline\n\tname\n}\n\ncAsgNds {\n\tbeg\n\tend\n\tfile\n\tline\n\tvalue\n\tc"
+            "olor = (0.0 0.0 0.0)\n}\n\ncArchitecturalNds {\n\tclass_style = 4\n\tcolor = (0.0 0.0 1.0)\n\tcolor = (0.0 "
+            "0.0 0.0)\n}\n\nrosMsg {\n\tclass_style = 4\n\tcolor = (0.0 0.0 1.0)\n}\n\ncFunction {\n\tfilename\n\tisSta"
+            "tic\n\tisConst\n\tisVolatile\n\tisVariadic\n\tvisibility\n\tcolor = (1.0 0.0 0.0)\n\tlabelcolor = (0.0 0.0"
+            " 0.0)\n}\n\ncVariable {\n\tfilename\n\tscopeType\n\tisStatic\n\tisPublisher = 0\n\tisSubscriber = 0\n}\n\nc"
+            "Class {\n\tfilename\n\tbaseNum\n\tcolor = (0.2 0.4 0.1)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\nrosSubscriber "
+            "{\n\tbufferSize\n\tnumAttributes\n\trosNumber\t\n\tcallbackFunc\n}\n\nrosPublisher {\n\tnumAttributes\n\tr"
+            "osNumber\n}\n";
+            std::string const MINI_TA_SCHEMA ="//Minimal Rex Extraction\n//Author: Bryan J Muscedere\n\nSCHEME TUPLE :\n//Nodes"
+            "\n$INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$INHERIT"
+            "\tcClass\t\t\tcAsgNds\n$INHERIT\trosTopic\t\trosMsg\n$INHERIT\trosPublisher\t\trosMsg\n$INHERIT\trosSubscr"
+            "iber\t\trosMsg\n$INHERIT\trosNodeHandle\t\trosMsg\n\n//Relationships\ncontain\t\tcRoot\t\tcRoot\npublish\t"
+            "\trosPublisher\trosTopic\nsubscribe\trosTopic\trosSubscriber\nreference\trosNodeHandle\trosMsg\nadvertise"
+            "\trosPublisher\trosTopic\nsubscribe\trosSubscriber\trosTopic\n\nSCHEME ATTRIBUTE :\n$ENTITY {\n\tx\n\ty\n"
+            "\twidth\n\theight\n\tlabel\n}\n\ncRoot {\n\telision = contain\n\tcolor = (0.0 0.0 0.0)\n\tfile\n\tline\n\t"
+            "name\n}\n\ncAsgNds {\n\tbeg\n\tend\n\tfile\n\tline\n\tvalue\n\tcolor = (0.0 0.0 0.0)\n}\n\ncArchitecturalN"
+            "ds {\n\tclass_style = 4\n\tcolor = (0.0 0.0 1.0)\n\tcolor = (0.0 0.0 0.0)\n}\n\nrosMsg {\n\tclass_style = "
+            "4\n\tcolor = (0.0 0.0 1.0)\n}\n\ncFile {\n\tclass_style = 2\n\tcolor = (0.9 0.9 0.9)\n\tlabelcolor = (0.0 "
+            "0.0 0.0)\n}\n\ncFunction {\n\tfilename\n\tisStatic\n\tisConst\n\tisVolatile\n\tisVariadic\n\tvisibility\n"
+            "\tcolor = (1.0 0.0 0.0)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\ncVariable {\n\tfilename\n\tscopeType\n\tisStat"
+            "ic\n\tisPublisher = 0\n\tisSubscriber = 0\n}\n\ncClass {\n\tfilename\n\tbaseNum\n\tcolor = (0.2 0.4 0.1)\n"
+            "\tlabelcolor = (0.0 0.0 0.0)\n}\n\ncEnum {\n\tfilename\n\tcolor = (0.9 0.2 0.5)\n\tlabelcolor = (0.0 0.0 0"
+            ".0)\n}\n\ncEnumConst {\n\tfilename\n\tcolor = (0.9 0.2 0.5)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\nrosSubscri"
+            "ber {\n\tbufferSize\n\tnumAttributes\n\trosNumber\t\n\tcallbackFunc\n}\n\nrosPublisher {\n\tnumAttributes"
+            "\n\trosNumber\n}\n\n";
     int const MD5_LENGTH = 33;
 
     std::string getMD5(std::string ID);

@@ -19,6 +19,12 @@ void ROSConsumer::HandleTranslationUnit(ASTContext &Context) {
 
 void ROSConsumer::setMode(Mode curMode){
     currentMode = curMode;
+
+    if (curMode == Mode::MINIMAL){
+        ParentWalker::setCurrentGraphMinMode(true);
+    } else {
+        ParentWalker::setCurrentGraphMinMode(false);
+    }
 }
 
 std::unique_ptr<ASTConsumer> ROSAction::CreateASTConsumer(CompilerInstance &Compiler, StringRef InFile) {

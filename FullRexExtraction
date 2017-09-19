@@ -1,4 +1,4 @@
-//Minimal Rex Extraction
+//Full Rex Extraction
 //Author: Bryan J Muscedere
 
 SCHEME TUPLE :
@@ -7,6 +7,8 @@ $INHERIT	cArchitecturalNds	cRoot
 $INHERIT	cAsgNds			cRoot
 $INHERIT	rosMsg			cRoot
 $INHERIT	cClass			cAsgNds
+$INHERIT	cFunction		cAsgNds
+$INHERIT	cVariable		cAsgNds
 $INHERIT	rosTopic		rosMsg
 $INHERIT	rosPublisher		rosMsg
 $INHERIT	rosSubscriber		rosMsg
@@ -19,6 +21,9 @@ subscribe	rosTopic	rosSubscriber
 reference	rosNodeHandle	rosMsg
 advertise	rosPublisher	rosTopic
 subscribe	rosSubscriber	rosTopic
+call		cAsgNds		cAsgNds
+write		cFunction	cVariable
+read		cVariable	cFunction		
 
 SCHEME ATTRIBUTE :
 $ENTITY {
@@ -57,12 +62,6 @@ rosMsg {
 	color = (0.0 0.0 1.0)
 }
 
-cFile {
-	class_style = 2
-	color = (0.9 0.9 0.9)
-	labelcolor = (0.0 0.0 0.0)
-}
-
 cFunction {
 	filename
 	isStatic
@@ -89,18 +88,6 @@ cClass {
 	labelcolor = (0.0 0.0 0.0)
 }
 
-cEnum {
-	filename
-	color = (0.9 0.2 0.5)
-	labelcolor = (0.0 0.0 0.0)
-}
-
-cEnumConst {
-	filename
-	color = (0.9 0.2 0.5)
-	labelcolor = (0.0 0.0 0.0)
-}
-
 rosSubscriber {
 	bufferSize
 	numAttributes
@@ -112,4 +99,3 @@ rosPublisher {
 	numAttributes
 	rosNumber
 }
-

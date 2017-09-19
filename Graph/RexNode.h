@@ -25,8 +25,6 @@ public:
     std::vector<std::string> getMultiAttribute(std::string key);
     int getNumAttributes();
 
-    bool isHashed();
-
     void setID(std::string newID);
     void setName(std::string newName);
     void setType(NodeType newType);

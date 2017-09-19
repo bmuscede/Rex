@@ -35,6 +35,7 @@ public:
     static int generateCurrentTAModel(std::string fileName);
     static int generateTAModel(int num, std::string fileName);
     static int generateAllTAModels(std::vector<std::string> fileName);
+    static void setCurrentGraphMinMode(bool minMode);
 
 protected:
     static TAGraph* graph;

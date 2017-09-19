@@ -19,11 +19,14 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
     //First, handle and ROS messages.
     handleMinimalStmt(statement);
 
-    //Deal with meatier expressions.
+    //Deal with call expressions.
     if (CallExpr* callExpr = dyn_cast<CallExpr>(statement)){
         //Deal with function calls.
         recordCallExpr(callExpr);
-    } else if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
+    }
+
+    //Deal with variable usages.
+    if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
         //Get all variable usages.
         auto accesses = getAccessType(binOp);
         recordVarUsage(getParentFunction(binOp), accesses);

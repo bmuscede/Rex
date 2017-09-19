@@ -22,8 +22,8 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
             return "read";
 
         case WRITES:
-            return "writes";
-        
+            return "write";
+
         case ADVERTISE:
             return "advertise";
 

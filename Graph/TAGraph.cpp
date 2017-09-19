@@ -27,6 +27,10 @@ TAGraph::~TAGraph(){
     }
 }
 
+void TAGraph::setMinMode(bool minMode){
+    this->minMode = minMode;
+}
+
 void TAGraph::addNode(RexNode* node){
     //Convert the node to a hash version.
     string newID = getMD5(node->getID());
@@ -195,7 +199,7 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
 }
 
 string TAGraph::getTAModel(){
-    string model = TA_SCHEMA;
+    string model = (minMode) ? MINI_TA_SCHEMA : FULL_TA_SCHEMA;
 
     //Writes the nodes.
     model += "FACT TUPLE :\n";

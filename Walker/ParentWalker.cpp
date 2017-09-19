@@ -14,7 +14,8 @@ using namespace std;
 TAGraph* ParentWalker::graph = new TAGraph();
 vector<TAGraph*> ParentWalker::graphList = vector<TAGraph*>();
 
-ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {}
+ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) { }
+
 ParentWalker::~ParentWalker() {}
 
 void ParentWalker::deleteTAGraphs(){
@@ -63,6 +64,10 @@ int ParentWalker::generateAllTAModels(vector<string> fileNames){
     return 1;
 }
 
+void ParentWalker::setCurrentGraphMinMode(bool minMode){
+    graph->setMinMode(minMode);
+}
+
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
     map<string, ParentWalker::AccessMethod> usageMap;
 
@@ -70,6 +75,8 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
     Expr* lhs = op->getLHS();
     if (isa<DeclRefExpr>(lhs)){
         usageMap[generateID(dyn_cast<DeclRefExpr>(lhs)->getDecl())] = determineAccess(true, op->getOpcode());
+    } else if (isa<MemberExpr>(lhs)) {
+        usageMap[generateID(dyn_cast<MemberExpr>(lhs)->getMemberDecl())] = determineAccess(true, op->getOpcode());
     } else  {
         //Get the opcode.
         ParentWalker::AccessMethod method = determineAccess(true, op->getOpcode());
@@ -89,8 +96,9 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
 
     //Checks the righthand side.
     Expr* rhs = op->getRHS();
-    if (isa<DeclRefExpr>(rhs)){
-        string addID = generateID(dyn_cast<DeclRefExpr>(rhs)->getDecl());
+    if (isa<DeclRefExpr>(rhs) || isa<MemberExpr>(rhs)){
+        string addID = (isa<DeclRefExpr>(rhs) ? generateID(dyn_cast<DeclRefExpr>(rhs)->getDecl()) :
+                        generateID(dyn_cast<MemberExpr>(rhs)->getMemberDecl()));
         ParentWalker::AccessMethod method = determineAccess(false, op->getOpcode());
 
         //Checks what we do.
@@ -143,13 +151,18 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryO
         if (method != ParentWalker::AccessMethod::NONE) {
             usageMap[generateID(dyn_cast<DeclRefExpr>(inner)->getDecl())] = method;
         }
+    } else if (isa<MemberExpr>(inner)) {
+        //Get the opcode.
+        ParentWalker::AccessMethod method = determineAccess(op->getOpcode());
+        if (method != ParentWalker::AccessMethod::NONE) {
+            usageMap[generateID(dyn_cast<MemberExpr>(inner)->getMemberDecl())] = method;
+        }
     } else {
         //Get the opcode.
         ParentWalker::AccessMethod method = determineAccess(op->getOpcode());
 
         //We just return the base usage map.
         usageMap = buildAccessMap(method, inner);
-
     }
 
     return usageMap;
@@ -554,17 +567,25 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
         map<string, ParentWalker::AccessMethod> singleMap;
         singleMap[generateID(dyn_cast<DeclRefExpr>(curExpr)->getDecl())] = prevAccess;
         return singleMap;
+    } else if (isa<MemberExpr>(curExpr)){
+        map<string, ParentWalker::AccessMethod> singleMap;
+        singleMap[generateID(dyn_cast<MemberExpr>(curExpr)->getMemberDecl())] = prevAccess;
+        return singleMap;
     }
 
-    //Check if we're dealing with literals.
-    //TODO: String literals aren't covered.
+    //Check if we're dealing with other, unimportant expressions.
     if (isa<IntegerLiteral>(curExpr) || isa<CharacterLiteral>(curExpr) || isa<FloatingLiteral>(curExpr)
-        || isa<ImaginaryLiteral>(curExpr) || isa<UserDefinedLiteral>(curExpr)){
+        || isa<ImaginaryLiteral>(curExpr) || isa<UserDefinedLiteral>(curExpr) || isa<GNUNullExpr>(curExpr)){
         return map<string, ParentWalker::AccessMethod>();
     }
 
+#ifdef EXPR_DEBUG
     //TODO: Experimental! Fix later.
     cerr << "Error: Expression cannot be detected!" << endl;
+    cerr << "Expression on line " << Context->getSourceManager().getSpellingLineNumber(curExpr->getLocStart())
+         << " in file " << Context->getSourceManager().getFilename(curExpr->getLocStart()).str() << endl;
+    curExpr->dump();
+#endif
     return map<string, ParentWalker::AccessMethod>();
 }
 
