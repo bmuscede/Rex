@@ -26,10 +26,10 @@ public:
 
     //ASTWalker Functions
     bool VisitStmt(Stmt* statement);
-    bool VisitFunctionDecl(FunctionDecl* decl);
-    bool VisitCXXRecordDecl(CXXRecordDecl* decl);
     bool VisitVarDecl(VarDecl* decl);
     bool VisitFieldDecl(FieldDecl* decl);
+    bool VisitFunctionDecl(FunctionDecl* decl);
+    bool VisitCXXRecordDecl(CXXRecordDecl* decl);
 
 private:
     //C++ Detectors
@@ -40,7 +40,7 @@ private:
 
     //Expr Recorders
     void recordCallExpr(const CallExpr* expr);
-    void recordVarUsage(const DeclRefExpr* expr);
+    void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
 
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);

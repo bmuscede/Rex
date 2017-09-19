@@ -16,56 +16,45 @@ ROSWalker::~ROSWalker(){ }
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
-    //Handle ROS Publisher and Subscriber object creations.
-    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
-        //Generate the printing policy.
-        clang::LangOptions LangOpts;
-        clang::PrintingPolicy Policy(LangOpts);
+    //First, handle and ROS messages.
+    handleMinimalStmt(statement);
 
-        if (isNodeHandlerObj(cxxExpr)) {
-            recordNodeHandle(cxxExpr);
-            recordParentNodeHandle(cxxExpr);
-        } else if (isSubscriberObj(cxxExpr)) {
-            recordParentSubscribe(cxxExpr);
-        } else if (isPublisherObj(cxxExpr)) {
-            recordParentPublish(cxxExpr);
-        }
-    }
-
-    //Handle ROS statements.
+    //Deal with meatier expressions.
     if (CallExpr* callExpr = dyn_cast<CallExpr>(statement)){
-        //Deal with the expression.
-        if (isPublish(callExpr)) recordPublish(callExpr);
-        else if (isSubscribe(callExpr)) recordSubscribe(callExpr);
-        else if (isAdvertise(callExpr)) recordAdvertise(callExpr);
-
-        //Next, deal with call expressions.
+        //Deal with function calls.
         recordCallExpr(callExpr);
+    } else if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
+        //Get all variable usages.
+        auto accesses = getAccessType(binOp);
+        recordVarUsage(getParentFunction(binOp), accesses);
+    } else if (UnaryOperator* unaryOp = dyn_cast<UnaryOperator>(statement)){
+        auto accesses = getAccessType(unaryOp);
+        recordVarUsage(getParentFunction(unaryOp), accesses);
     }
 
-    //Looks for variable usages.
-    if (DeclRefExpr* usageExpr = dyn_cast<DeclRefExpr>(statement)){
-        //Deal with the expression.
-        recordVarUsage(usageExpr);
-    }
+    return true;
+}
 
-    //Looks for variable reads and writes.
-    if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
-        map<string, ParentWalker::AccessMethod> access = getAccessType(binOp);
+bool ROSWalker::VisitVarDecl(VarDecl* decl){
+    if (isInSystemHeader(decl)) return true;
 
-        map<string, ParentWalker::AccessMethod>::iterator it;
-        for (it = access.begin(); it != access.end(); it++){
-            cout << it->first << " -> " << it->second << endl;
-        }
-    }
-    if (UnaryOperator* unOp = dyn_cast<UnaryOperator>(statement)){
-        map<string, ParentWalker::AccessMethod> access = getAccessType(unOp);
+    //Handle ROS messages.
+    handleMinimalVarDecl(decl);
 
-        map<string, ParentWalker::AccessMethod>::iterator it;
-        for (it = access.begin(); it != access.end(); it++){
-            cout << it->first << " -> " << it->second << endl;
-        }
-    }
+    //Record the function declaration.
+    recordVarDecl(decl);
+
+    return true;
+}
+
+bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
+    if (isInSystemHeader(decl)) return true;
+
+    //Handle ROS messages.
+    handleMinimalFieldDecl(decl);
+
+    //Record the function declaration.
+    recordFieldDecl(decl);
 
     return true;
 }
@@ -75,6 +64,7 @@ bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
 
     //Record the function declaration.
     recordFunctionDecl(decl);
+
     return true;
 }
 
@@ -85,27 +75,12 @@ bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
     if (decl->isClass()){
         recordClassDecl(decl);
     }
-    return true;
-}
 
-bool ROSWalker::VisitVarDecl(VarDecl* decl){
-    if (isInSystemHeader(decl)) return true;
-
-    //Record the function declaration.
-    recordVarDecl(decl);
-    return true;
-}
-
-bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
-    if (isInSystemHeader(decl)) return true;
-
-    //Record the function declaration.
-    recordFieldDecl(decl);
     return true;
 }
 
 void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
-    //Generates some fields.
+    //Generates the fields.
     string ID = generateID(decl);
     string name = generateName(decl);
 
@@ -183,32 +158,46 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
     graph->addEdge(edge);
 }
 
-//TODO: This doesn't work quite well yet. Fields and ParmDecls aren't captured.
-void ROSWalker::recordVarUsage(const DeclRefExpr* expr){
-    //Get the sub-variable.
-    auto subVar = expr->getFoundDecl();
-    string subVarID = generateID(subVar);
-    RexNode* subVarNode = graph->findNode(subVarID);
+void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalker::AccessMethod> accesses){
+    if (decl == nullptr) return;
 
-    //Get the parent expression.
-    auto parDecl = getParentFunction(expr);
-    if (parDecl == nullptr) return;
+    //Iterate through the map.
+    map<string, ParentWalker::AccessMethod>::iterator it;
+    for (it = accesses.begin(); it != accesses.end(); it++){
+        //Gets the ID for the function.
+        string functionID = generateID(decl);
+        RexNode* functionNode = graph->findNode(functionID);
 
-    //Get the ID for the parent.
-    string callerID = generateID(parDecl);
-    RexNode* callerNode = graph->findNode(callerID);
+        //Gets the ID for the variable.
+        string varID = it->first;
+        RexNode* varNode = graph->findNode(varID);
 
-    //Checks whether we can resolve.
-    if (callerNode == nullptr){
-        return;
+        //Adds the edge.
+
+        switch(it->second){
+            case ParentWalker::AccessMethod::BOTH:
+            case ParentWalker::AccessMethod::WRITE:
+                if (!graph->doesEdgeExist(functionID, varID, RexEdge::WRITES)){
+                    RexEdge* edge = (varNode == nullptr) ?
+                                    new RexEdge(functionNode, varID, RexEdge::WRITES) :
+                                    new RexEdge(functionNode, varNode, RexEdge::WRITES);
+                    graph->addEdge(edge);
+                }
+
+                if (it->second == ParentWalker::AccessMethod::WRITE) break;
+            case ParentWalker::AccessMethod::READ:
+                if (!graph->doesEdgeExist(functionID, varID, RexEdge::READS)){
+                    RexEdge* edge = (varNode == nullptr) ?
+                                    new RexEdge(varID, functionNode, RexEdge::READS) :
+                                    new RexEdge(varNode, functionNode, RexEdge::READS);
+                    graph->addEdge(edge);
+                }
+
+                break;
+            case ParentWalker::AccessMethod::NONE:
+                continue;
+        }
     }
-
-    //Adds the edge.
-    if (graph->doesEdgeExist(callerID, subVarID, RexEdge::REFERENCES)) return;
-    RexEdge* edge = (subVarNode == nullptr) ?
-                    new RexEdge(callerNode, subVarID, RexEdge::REFERENCES) :
-                    new RexEdge(callerNode, subVarNode, RexEdge::REFERENCES);
-    graph->addEdge(edge);
 }
 
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){

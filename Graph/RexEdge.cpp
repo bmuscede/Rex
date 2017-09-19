@@ -18,6 +18,12 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
         case CALLS:
             return "call";
 
+        case READS:
+            return "read";
+
+        case WRITES:
+            return "writes";
+        
         case ADVERTISE:
             return "advertise";
 

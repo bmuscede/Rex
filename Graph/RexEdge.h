@@ -9,7 +9,7 @@
 
 class RexEdge {
 public:
-    enum EdgeType {CONTAINS, REFERENCES, CALLS, ADVERTISE, SUBSCRIBE, PUBLISH};
+    enum EdgeType {CONTAINS, REFERENCES, CALLS, READS, WRITES, ADVERTISE, SUBSCRIBE, PUBLISH};
     static std::string typeToString(EdgeType type);
 
     RexEdge(RexNode* src, RexNode* dst, EdgeType type);

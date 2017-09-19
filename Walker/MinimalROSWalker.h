@@ -29,17 +29,8 @@ public:
     bool VisitFieldDecl(FieldDecl* decl);
 
 private:
-    void recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, std::string type);
     void recordParentSubscribe(const CXXConstructExpr* expr, std::string fileName);
     void recordParentPublish(const CXXConstructExpr* expr, std::string fileName);
-
-    void recordROSActionMinimal(const NamedDecl* decl, std::string type);
-
-    const NamedDecl* getAssignee(const CXXOperatorCallExpr* parent);
-    const MemberExpr* getAssignStmt(const CXXOperatorCallExpr* parent);
-
-    std::string recordFileLoc(SourceLocation loc);
-    std::string getFileName(SourceLocation loc);
 };
 
 #endif //REX_MINIMALROSWALKER_H

@@ -44,14 +44,15 @@ protected:
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisher = nullptr;
 
-    enum AccessMethod {NONE, BOTH, READ, WRITE};
-    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const BinaryOperator* op);
-    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const UnaryOperator* op);
-
     //ROS Names
     const std::string PUBLISHER_CLASS = "ros::Publisher";
     const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
     const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+
+    //Minimal Handlers
+    void handleMinimalStmt(Stmt* statement);
+    void handleMinimalVarDecl(VarDecl* decl);
+    void handleMinimalFieldDecl(FieldDecl* decl);
 
     //ROS Handlers
     bool isNodeHandlerObj(const CXXConstructExpr* ctor);
@@ -81,6 +82,11 @@ protected:
     std::string generateName(const NamedDecl* decl);
     std::string validateStringArg(std::string name);
 
+    //Variable Access Methods
+    enum AccessMethod {NONE, BOTH, READ, WRITE};
+    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const BinaryOperator* op);
+    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const UnaryOperator* op);
+
 private:
     //ROS Topic Name
     const std::string TOPIC_PREFIX = "ros--topic--";
@@ -107,6 +113,12 @@ private:
     //System Headers - Helpers
     bool isInSystemHeader(const SourceManager& manager, SourceLocation loc);
 
+    //Minimal Variables - Helpers
+    void recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, std::string type);
+    void recordROSActionMinimal(const NamedDecl* decl, std::string type);
+    const NamedDecl* getAssignee(const CXXOperatorCallExpr* parent);
+    const MemberExpr* getAssignStmt(const CXXOperatorCallExpr* parent);
+
     //ROSHandlers - Helpers
     bool isClass(const CXXConstructExpr* ctor, std::string className);
     bool isFunction(const CallExpr* expr, std::string functionName);
@@ -116,7 +128,7 @@ private:
     std::string getPublisherType(const CallExpr* expr);
     NamedDecl* getParentVariable(const Expr* callExpr);
 
-    //Helper Methods for Access.
+    //Variable Access - Helpers
     ParentWalker::AccessMethod determineAccess(bool lhs, BinaryOperator::Opcode opcode);
     ParentWalker::AccessMethod determineAccess(UnaryOperator::Opcode opcode);
     std::map<std::string, ParentWalker::AccessMethod> buildAccessMap(ParentWalker::AccessMethod prevAccess,
