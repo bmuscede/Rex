@@ -10,7 +10,8 @@
 
 using namespace std;
 
-TAGraph::TAGraph(){
+TAGraph::TAGraph(RexEdge::EdgeType edgeType){
+    forestEdgeType = edgeType;
     idList = std::unordered_map<std::string, RexNode*>();
     edgeSrcList = std::unordered_map<std::string, std::vector<RexEdge*>>();
     edgeDstList = std::unordered_map<std::string, std::vector<RexEdge*>>();
@@ -46,6 +47,14 @@ void TAGraph::addEdge(RexEdge* edge){
     //Convert the edge to a hash version.
     edge->setSourceID(getMD5(edge->getSourceID()));
     edge->setDestinationID(getMD5(edge->getDestinationID()));
+
+    //First, check if the edge matches the forest edge type.
+    if (edge->getType() == forestEdgeType){
+        //Now, check if that edge type already exists for the destination.
+        if (doesForestEdgeExist(edge)){
+            return;
+        }
+    }
 
     edgeSrcList[edge->getSourceID()].push_back(edge);
     edgeDstList[edge->getDestinationID()].push_back(edge);
@@ -326,4 +335,21 @@ int TAGraph::getLastROSNumber(std::string rosID){
     }
 
     return curNum;
+}
+
+bool TAGraph::doesForestEdgeExist(RexEdge* edge){
+    string destID = edge->getDestinationID();
+
+    //Gets the destination edges.
+    vector<RexEdge*> dstEdges = edgeDstList[destID];
+    for (RexEdge* curEdge : dstEdges){
+        if (curEdge->getType() == forestEdgeType) {
+            cerr << "Error! Forest edge already exists." << endl;
+            cerr << "Adding " << edge->getSourceID() << " -> " << edge->getDestinationID() << endl;
+            cerr << "Found " << curEdge->getSourceID() << " -> " << curEdge->getDestinationID() << endl;
+            return true;
+        }
+    }
+
+    return false;
 }

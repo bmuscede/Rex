@@ -13,7 +13,7 @@
 
 class TAGraph {
 public:
-    TAGraph();
+    TAGraph(RexEdge::EdgeType edgeType = RexEdge::EdgeType::CONTAINS);
     ~TAGraph();
 
     void setMinMode(bool minMode);
@@ -46,6 +46,7 @@ private:
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeSrcList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeDstList;
     bool minMode;
+    RexEdge::EdgeType forestEdgeType;
 
     //ROS Functionality
     std::string const PUB_NAME = "Publisher";
@@ -68,9 +69,10 @@ private:
             "Class {\n\tfilename\n\tbaseNum\n\tcolor = (0.2 0.4 0.1)\n\tlabelcolor = (0.0 0.0 0.0)\n}\n\nrosSubscriber "
             "{\n\tbufferSize\n\tnumAttributes\n\trosNumber\t\n\tcallbackFunc\n}\n\nrosPublisher {\n\tnumAttributes\n\tr"
             "osNumber\n}\n";
-            std::string const MINI_TA_SCHEMA ="//Minimal Rex Extraction\n//Author: Bryan J Muscedere\n\nSCHEME TUPLE :\n//Nodes"
-            "\n$INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$INHERIT"
-            "\tcClass\t\t\tcAsgNds\n$INHERIT\trosTopic\t\trosMsg\n$INHERIT\trosPublisher\t\trosMsg\n$INHERIT\trosSubscr"
+            std::string const MINI_TA_SCHEMA ="//Minimal Rex Extraction\n//Author: Bryan J Muscedere\n\nSCHEME TUPLE :\n"
+            "//Nodes\n$INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$IN"
+            "HERIT\tcClass\t\t\tcAsgNds\n$INHERIT\trosTopic\t\trosMsg\n$INHERIT\trosPublisher\t\trosMsg\n$INHERI"
+            "T\trosSubscr"
             "iber\t\trosMsg\n$INHERIT\trosNodeHandle\t\trosMsg\n\n//Relationships\ncontain\t\tcRoot\t\tcRoot\npublish\t"
             "\trosPublisher\trosTopic\nsubscribe\trosTopic\trosSubscriber\nreference\trosNodeHandle\trosMsg\nadvertise"
             "\trosPublisher\trosTopic\nsubscribe\trosSubscriber\trosTopic\n\nSCHEME ATTRIBUTE :\n$ENTITY {\n\tx\n\ty\n"
@@ -93,6 +95,8 @@ private:
 
     RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
     int getLastROSNumber(std::string rosID);
+
+    bool doesForestEdgeExist(RexEdge* edge);
 };
 
 
