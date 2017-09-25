@@ -447,7 +447,7 @@ vector<string> RexHandler::loadLibraries(string libs){
     vector<string> output;
     string line;
 
-    ifstream inputFile(libs);
+    std::ifstream inputFile(libs);
     while(getline(inputFile, line)){
         boost::trim(line);
         if (line[0] == '#' || line.length() == 0) continue;

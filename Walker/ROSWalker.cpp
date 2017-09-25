@@ -222,24 +222,23 @@ void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
             //Get the parent as a NamedDecl.
             string parentID = "";
 
-            if (isa<clang::FunctionDecl>(currentDecl)){
-                const FunctionDecl* funcDec = static_cast<const FunctionDecl*>(currentDecl);
-                parentID = generateID(funcDec);
-            } else {
+            //Now, check to see what our current ID is.
+            if (isa<FunctionDecl>(currentDecl) || isa<CXXRecordDecl>(currentDecl) ||
+                    isa<CXXMethodDecl>(currentDecl) || isa<VarDecl>(currentDecl) || isa<FieldDecl>(currentDecl)){
                 parentID = generateID(currentDecl);
-            }
 
-            //Get the IDs.
-            RexNode* dst = graph->findNode(baseID);
-            RexNode* src = graph->findNode(parentID);
-            if (graph->doesEdgeExist(parentID, baseID, RexEdge::CONTAINS)){
+                //Get the IDs.
+                RexNode* dst = graph->findNode(baseID);
+                RexNode* src = graph->findNode(parentID);
+                if (graph->doesEdgeExist(parentID, baseID, RexEdge::CONTAINS)){
+                    return;
+                }
+
+                RexEdge* edge = (!src) ? new RexEdge(parentID, dst, RexEdge::CONTAINS) :
+                                new RexEdge(src, dst, RexEdge::CONTAINS);
+                graph->addEdge(edge);
                 return;
             }
-
-            RexEdge* edge = (!src) ? new RexEdge(parentID, dst, RexEdge::CONTAINS) :
-                                     new RexEdge(src, dst, RexEdge::CONTAINS);
-            graph->addEdge(edge);
-            return;
         }
 
         parent = Context->getParents(parent[0]);
