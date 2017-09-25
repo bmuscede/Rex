@@ -33,6 +33,7 @@ public:
     bool doesNodeExist(std::string nodeID);
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
+    void checkCorrectness();
     void resolveUnestablishedEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
 
@@ -95,8 +96,6 @@ private:
 
     RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
     int getLastROSNumber(std::string rosID);
-
-    bool doesForestEdgeExist(RexEdge* edge);
 };
 
 

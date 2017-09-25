@@ -48,14 +48,6 @@ void TAGraph::addEdge(RexEdge* edge){
     edge->setSourceID(getMD5(edge->getSourceID()));
     edge->setDestinationID(getMD5(edge->getDestinationID()));
 
-    //First, check if the edge matches the forest edge type.
-    if (edge->getType() == forestEdgeType){
-        //Now, check if that edge type already exists for the destination.
-        if (doesForestEdgeExist(edge)){
-            return;
-        }
-    }
-
     edgeSrcList[edge->getSourceID()].push_back(edge);
     edgeDstList[edge->getDestinationID()].push_back(edge);
 }
@@ -169,6 +161,30 @@ bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeT
     }
 
     return false;
+}
+
+void TAGraph::checkCorrectness(){
+    //Go through the destination edges.
+    for(auto it = edgeDstList.begin(); it != edgeDstList.end(); it++) {
+        vector<RexEdge*> edges = it->second;
+        bool forestEncountered = false;
+        RexEdge* prevForest = nullptr;
+
+        //Go through the edges.
+        for (int i = 0; i < edges.size(); i++){
+            RexEdge* curEdge = edges.at(i);
+
+            if (curEdge->getType() == forestEdgeType){
+                if (forestEncountered){
+                    cerr << "Error! Trying to add edge " << curEdge->getSource()->getName() << " -> " << curEdge->getDestination()->getName() << "!" << endl;
+                    cerr << "Edge " << prevForest->getSource()->getName() << " -> " << prevForest->getDestination()->getName() << " already exists!" << endl;
+                } else {
+                    forestEncountered = true;
+                    prevForest = curEdge;
+                }
+            }
+        }
+    }
 }
 
 void TAGraph::resolveUnestablishedEdges(){
@@ -335,21 +351,4 @@ int TAGraph::getLastROSNumber(std::string rosID){
     }
 
     return curNum;
-}
-
-bool TAGraph::doesForestEdgeExist(RexEdge* edge){
-    string destID = edge->getDestinationID();
-
-    //Gets the destination edges.
-    vector<RexEdge*> dstEdges = edgeDstList[destID];
-    for (RexEdge* curEdge : dstEdges){
-        if (curEdge->getType() == forestEdgeType) {
-            cerr << "Error! Forest edge already exists." << endl;
-            cerr << "Adding " << edge->getSourceID() << " -> " << edge->getDestinationID() << endl;
-            cerr << "Found " << curEdge->getSourceID() << " -> " << curEdge->getDestinationID() << endl;
-            return true;
-        }
-    }
-
-    return false;
 }

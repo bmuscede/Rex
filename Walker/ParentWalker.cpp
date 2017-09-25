@@ -852,6 +852,7 @@ string ParentWalker::validateStringArg(string name){
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
+    graph->checkCorrectness();
 
     //Gets the string for the model.
     string model = graph->getTAModel();
