@@ -37,6 +37,9 @@ public:
     static int generateAllTAModels(std::vector<std::string> fileName);
     static void setCurrentGraphMinMode(bool minMode);
 
+    //Processing Operations
+    void addLibrariesToIgnore(std::vector<std::string> libraries);
+
 protected:
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;
@@ -52,8 +55,8 @@ protected:
 
     //Minimal Handlers
     void handleMinimalStmt(Stmt* statement);
-    void handleMinimalVarDecl(VarDecl* decl);
-    void handleMinimalFieldDecl(FieldDecl* decl);
+    void handleMinimalVarDecl(VarDecl* decl, bool pubEdge = true);
+    void handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
 
     //ROS Handlers
     bool isNodeHandlerObj(const CXXConstructExpr* ctor);
@@ -108,6 +111,10 @@ private:
     const std::string ROS_PUB_DATA = "pubData";
     const int PUB_MAX = 30;
 
+    //Header Libraries
+    const std::string STANDARD_IGNORE = "/ros/";
+    std::vector<std::string> ignoreLibraries;
+
     //Graph Operations - Helpers
     static int generateTAModel(TAGraph* graph, std::string fileName);
 
@@ -116,7 +123,7 @@ private:
 
     //Minimal Variables - Helpers
     void recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, std::string type);
-    void recordROSActionMinimal(const NamedDecl* decl, std::string type);
+    void recordROSActionMinimal(const NamedDecl* decl, std::string type, bool pubEdge = true);
     const NamedDecl* getAssignee(const CXXOperatorCallExpr* parent);
     const MemberExpr* getAssignStmt(const CXXOperatorCallExpr* parent);
 

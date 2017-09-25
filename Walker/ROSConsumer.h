@@ -5,6 +5,8 @@
 #ifndef REX_ROSCONSUMER_H
 #define REX_ROSCONSUMER_H
 
+#include <string>
+#include <vector>
 #include "ROSWalker.h"
 #include "MinimalROSWalker.h"
 
@@ -16,11 +18,15 @@ public:
     enum Mode {FULL, MINIMAL};
     static void setMode(Mode curMode);
 
+    static void setLibrariesToIgnore(std::vector<std::string> libraries);
+
 private:
     ROSWalker ROSVisitor;
     MinimalROSWalker MROSVisitor;
 
     static Mode currentMode;
+    static std::vector<std::string> libraries;
+
 };
 
 class ROSAction : public ASTFrontendAction {

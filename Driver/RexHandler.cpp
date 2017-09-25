@@ -26,12 +26,16 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 #include <regex>
+#include <fstream>
 #include "RexHandler.h"
 #include "../Walker/ROSConsumer.h"
 
 using namespace std;
 using namespace clang::tooling;
+
+const string RexHandler::DEFAULT_LOAD = "REX_IGNORE.db";
 
 /**
  * Constructor that prepares the RexHandler.
@@ -110,9 +114,10 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
 /**
  * Runs through all files in the queue and generates a graph.
  * @param minimalWalk Boolean that indicates what ROSWalker to use.
+ * @param loadLoc The location to load the libraries to ignore (OPTIONAL).
  * @return Boolean indicating success.
  */
-bool RexHandler::processAllFiles(bool minimalWalk){
+bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
     bool success = true;
     llvm::cl::OptionCategory RexCategory("Rex Options");
 
@@ -130,6 +135,10 @@ bool RexHandler::processAllFiles(bool minimalWalk){
         ROSConsumer::setMode(ROSConsumer::MINIMAL);
     } else {
         ROSConsumer::setMode(ROSConsumer::FULL);
+
+        //Loads in the Rex libraries to ignore.
+        vector<string> rexLibraries = loadLibraries(loadLoc);
+        ROSConsumer::setLibrariesToIgnore(rexLibraries);
     }
 
     int code = Tool.run(newFrontendActionFactory<ROSAction>().get());
@@ -426,4 +435,25 @@ int RexHandler::removeDirectory(path directory){
     }
 
     return numRemoved;
+}
+
+/**
+ * Adds libraries from the current supplied file and tells
+ * the system to ignore them.
+ * @param libs The file of the ignore file.
+ * @return A vector of library paths to ignore.
+ */
+vector<string> RexHandler::loadLibraries(string libs){
+    vector<string> output;
+    string line;
+
+    ifstream inputFile(libs);
+    while(getline(inputFile, line)){
+        boost::trim(line);
+        if (line[0] == '#' || line.length() == 0) continue;
+
+        output.push_back(line);
+    }
+
+    return output;
 }

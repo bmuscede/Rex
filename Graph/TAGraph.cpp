@@ -163,7 +163,9 @@ bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeT
     return false;
 }
 
-void TAGraph::checkCorrectness(){
+string TAGraph::checkCorrectness(){
+    string correctnessMsg = "";
+
     //Go through the destination edges.
     for(auto it = edgeDstList.begin(); it != edgeDstList.end(); it++) {
         vector<RexEdge*> edges = it->second;
@@ -176,8 +178,10 @@ void TAGraph::checkCorrectness(){
 
             if (curEdge->getType() == forestEdgeType){
                 if (forestEncountered){
-                    cerr << "Error! Trying to add edge " << curEdge->getSource()->getName() << " -> " << curEdge->getDestination()->getName() << "!" << endl;
-                    cerr << "Edge " << prevForest->getSource()->getName() << " -> " << prevForest->getDestination()->getName() << " already exists!" << endl;
+                    correctnessMsg += "Error! Trying to add edge " + curEdge->getSource()->getName() + " -> " +
+                            curEdge->getDestination()->getName() + "!\n";
+                    correctnessMsg += "\tEdge " + prevForest->getSource()->getName() + " -> " +
+                            prevForest->getDestination()->getName() + " already exists!\n";
                 } else {
                     forestEncountered = true;
                     prevForest = curEdge;
@@ -185,6 +189,12 @@ void TAGraph::checkCorrectness(){
             }
         }
     }
+
+    if (correctnessMsg.compare("") != 0){
+        correctnessMsg = "MODEL ERRORS:\n-------------------------------------------------------\n" + correctnessMsg;
+    }
+
+    return correctnessMsg;
 }
 
 void TAGraph::resolveUnestablishedEdges(){

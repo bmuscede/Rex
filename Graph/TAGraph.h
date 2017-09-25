@@ -33,7 +33,7 @@ public:
     bool doesNodeExist(std::string nodeID);
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
-    void checkCorrectness();
+    std::string checkCorrectness();
     void resolveUnestablishedEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
 

@@ -14,7 +14,9 @@ using namespace std;
 TAGraph* ParentWalker::graph = new TAGraph();
 vector<TAGraph*> ParentWalker::graphList = vector<TAGraph*>();
 
-ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) { }
+ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {
+    ignoreLibraries.push_back(STANDARD_IGNORE);
+}
 
 ParentWalker::~ParentWalker() {}
 
@@ -66,6 +68,10 @@ int ParentWalker::generateAllTAModels(vector<string> fileNames){
 
 void ParentWalker::setCurrentGraphMinMode(bool minMode){
     graph->setMinMode(minMode);
+}
+
+void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
+    ignoreLibraries = libraries;
 }
 
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
@@ -229,7 +235,7 @@ void ParentWalker::handleMinimalStmt(Stmt *statement) {
     }
 }
 
-void ParentWalker::handleMinimalVarDecl(VarDecl *decl) {
+void ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
     if (!parent) return;
@@ -239,11 +245,11 @@ void ParentWalker::handleMinimalVarDecl(VarDecl *decl) {
     if (parentName.compare(PUBLISHER_CLASS) == 0 ||
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
         parentName.compare(NODE_HANDLE_CLASS) == 0){
-        recordROSActionMinimal(decl, parentName);
+        recordROSActionMinimal(decl, parentName, pubEdge);
     }
 }
 
-void ParentWalker::handleMinimalFieldDecl(FieldDecl *decl) {
+void ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
     if (!parent) return;
@@ -252,7 +258,7 @@ void ParentWalker::handleMinimalFieldDecl(FieldDecl *decl) {
     string parentName = parent->getQualifiedNameAsString();
     if (parentName.compare(PUBLISHER_CLASS) == 0 || parentName.compare(SUBSCRIBER_CLASS) == 0 ||
         parentName.compare(NODE_HANDLE_CLASS) == 0){
-        recordROSActionMinimal(decl, parentName);
+        recordROSActionMinimal(decl, parentName, pubEdge);
     }
 }
 
@@ -305,7 +311,7 @@ void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExp
     }
 }
 
-void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type){
+void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bool pubEdge){
     //First, get the parent class.
     auto parent = Context->getParents(*decl);
     const CXXRecordDecl* parentFinal = nullptr;
@@ -339,7 +345,7 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type){
     RexNode* rexVarNode = new RexNode(varNodeID, varNodeName, nType);
     graph->addNode(rexVarNode);
 
-    if (classNode) {
+    if (classNode && pubEdge) {
         RexEdge *edge = new RexEdge(classNode, rexVarNode, RexEdge::EdgeType::CONTAINS);
         graph->addEdge(edge);
     }
@@ -852,10 +858,16 @@ string ParentWalker::validateStringArg(string name){
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
-    graph->checkCorrectness();
+    string correctnessMsg = graph->checkCorrectness();
 
     //Gets the string for the model.
     string model = graph->getTAModel();
+
+    //Checks the correctness.
+    if (correctnessMsg.compare("") != 0){
+        cerr << "Warning: TA model has some inconsistencies. See the TA file for error information." << endl;
+        model = correctnessMsg + model;
+    }
 
     //Creates the file stream.
     ofstream file(fileName);
@@ -886,7 +898,10 @@ bool ParentWalker::isInSystemHeader(const SourceManager& manager, SourceLocation
     libLoc = libLoc.substr(0, libLoc.find(":"));
     if (boost::algorithm::ends_with(libLoc, ".h") || boost::algorithm::ends_with(libLoc, ".hpp")){
         boost::filesystem::path loc = boost::filesystem::canonical(boost::filesystem::path(libLoc));
-        if (loc.string().find("/ros/") != string::npos) return true;
+        for (string curLibrary : ignoreLibraries){
+            if (loc.string().find(curLibrary) != string::npos) return true;
+        }
     }
+
     return false;
 }

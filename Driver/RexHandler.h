@@ -28,6 +28,7 @@
 #define REX_REXHANDLER_H
 
 #include <string>
+#include <vector>
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CommonOptionsParser.h"
@@ -49,7 +50,7 @@ public:
 
     /** Processing Systems */
     bool processClangToolCode(int argc, const char** argv);
-    bool processAllFiles(bool minimalWalk = false);
+    bool processAllFiles(bool minimalWalk, std::string loadLoc = DEFAULT_LOAD);
 
     /** Output Helpers */
     bool outputIndividualModel(int modelNum, std::string fileName = std::string());
@@ -67,6 +68,7 @@ private:
     const std::string DEFAULT_START = "./Rex";
     const std::string INCLUDE_DIR = "./include";
     const std::string INCLUDE_DIR_LOC = "--extra-arg=-I" + INCLUDE_DIR;
+    static const std::string DEFAULT_LOAD;
     const int BASE_LEN = 2;
 
     /** C/C++ Extensions */
@@ -87,6 +89,9 @@ private:
     int addDirectory(path directory);
     int removeFile(path file);
     int removeDirectory(path directory);
+
+    /** Loading Helper Methods */
+    std::vector<std::string> loadLibraries(std::string libs);
 
 };
 
