@@ -193,32 +193,15 @@ void ParentWalker::handleMinimalStmt(Stmt *statement) {
         }
     }
 
-    //Also looks for advertise and subscribe.
-    //TODO: There are some cases where this is used as opposed to the block above. Figure this out.
+    //Looks for other cases.
     if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
-/*
-        //Generate the printing policy.
-        clang::LangOptions LangOpts;
-        clang::PrintingPolicy Policy(LangOpts);
-
-        string stmt;
-        raw_string_ostream stream(stmt);
-        cxxExpr->printPretty(stream, NULL, PrintingPolicy(LangOptions()));
-
-        //Flush ostream buffer.
-        stream.flush();
-        cout << stmt << endl;
-
         if (isNodeHandlerObj(cxxExpr)) {
             recordNodeHandle(cxxExpr);
             recordParentNodeHandle(cxxExpr);
         } else if (isSubscriberObj(cxxExpr)) {
-            recordParentSubscribe(cxxExpr, fileName);
-*/
-        if (isSubscriberObj(cxxExpr)) {
-            // recordParentSubscribe(cxxExpr, fileName);
+            recordParentSubscribe(cxxExpr);
         } else if (isPublisherObj(cxxExpr)) {
-            //  recordParentPublish(cxxExpr, fileName);
+            recordParentPublish(cxxExpr);
         }
     }
 
@@ -381,8 +364,8 @@ const MemberExpr* ParentWalker::getAssignStmt(const CXXOperatorCallExpr* parent)
 
 bool ParentWalker::isClass(const CXXConstructExpr* ctor, string className){
     //Get the underlying class.
-    QualType type = ctor->getType(); //Different clang version QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
-    if (type->isArrayType()) return false; //TODO: Bandaid fix! Not sure why this works.
+    QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
+    if (type->isArrayType()) return false;
 
     auto record = ctor->getBestDynamicClassType();
     if (record == nullptr) return false;
@@ -498,12 +481,6 @@ NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     if (parentVar == nullptr) return nullptr;
 
     return dyn_cast<NamedDecl>(parentVar->getReferencedDeclOfCallee());
-
-    //Finally, works on a print pretty system.
-    //string sBuffer = "";
-    //llvm::raw_string_ostream strStream(sBuffer);
-    //parentVar->printPretty(strStream, nullptr, Context->getPrintingPolicy());
-    //return strStream.str();
 }
 
 ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperator::Opcode opcode){

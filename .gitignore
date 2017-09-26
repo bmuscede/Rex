@@ -11,3 +11,4 @@ compile_commands.json
 ./include/*
 Rex
 *.ta
+Rex.cbp
