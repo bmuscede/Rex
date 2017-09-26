@@ -813,7 +813,7 @@ string ParentWalker::generateID(const NamedDecl* decl){
     }
 
     //Finally, check if we have a main method.
-    if (name.compare("main") == 0){
+    if (name.compare("int-main-int-char **") == 0 || name.compare("int-main") == 0){
         name = Context->getSourceManager().getFilename(originalDecl->getLocStart()).str() + "--" + name;
     }
 
