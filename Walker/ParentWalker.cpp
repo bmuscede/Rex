@@ -835,11 +835,22 @@ string ParentWalker::generateID(const NamedDecl* decl){
         }
     }
 
+    //Finally, check if we have a main method.
+    if (name.compare("main") == 0){
+        name = Context->getSourceManager().getFilename(originalDecl->getLocStart()).str() + "--" + name;
+    }
+
     return name;
 }
 
 string ParentWalker::generateName(const NamedDecl* decl){
-    return decl->getQualifiedNameAsString();
+    string name = decl->getQualifiedNameAsString();
+    //Finally, check if we have a main method.
+    if (name.compare("main") == 0){
+        name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
+    }
+
+    return name;
 }
 
 string ParentWalker::validateStringArg(string name){
