@@ -214,6 +214,23 @@ void TAGraph::resolveUnestablishedEdges(){
     }
 }
 
+void TAGraph::resolveUnestablishedCallbackEdges(){
+    //Go through the 'CALLS' edges.
+    for (auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++){
+        vector<RexEdge*> edges = it->second;
+
+        //Go through the list of subedges.
+        for (int i = 0; i < edges.size(); i++){
+            RexEdge* curEdge = edges.at(i);
+
+            //Check if the edge is established.
+            if (!curEdge->isEstablished() && curEdge->getType() == RexEdge::EdgeType::CALLS){
+                resolveEdgeByName(curEdge);
+            }
+        }
+    }
+}
+
 void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
     //We iterate through our edges.
     for(auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++) {
@@ -310,6 +327,30 @@ bool TAGraph::resolveEdge(RexEdge *edge) {
         //Resolves the source ID.
         string destID = edge->getDestinationID();
         RexNode* destNode = idList[destID];
+        if (destNode == nullptr) return false;
+
+        edge->setDestination(destNode);
+    }
+
+    return true;
+}
+
+bool TAGraph::resolveEdgeByName(RexEdge* edge){
+    if (edge->isEstablished()) return true;
+
+    //Look for the source and destination.
+    if (edge->getSource() == nullptr){
+        //Resolves the source ID.
+        string sourceName = edge->getSourceID();
+        RexNode* srcNode = findNodeByName(sourceName);
+        if (srcNode == nullptr) return false;
+
+        edge->setSource(srcNode);
+    }
+    if (edge->getDestination() == nullptr){
+        //Resolves the source ID.
+        string destName = edge->getDestinationID();
+        RexNode* destNode = findNodeByName(destName);
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);

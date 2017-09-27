@@ -35,6 +35,7 @@ public:
 
     std::string checkCorrectness();
     void resolveUnestablishedEdges();
+    void resolveUnestablishedCallbackEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
 
     std::string getTAModel();
@@ -93,6 +94,7 @@ private:
     std::string getMD5(std::string ID);
 
     bool resolveEdge(RexEdge* edge);
+    bool resolveEdgeByName(RexEdge* edge);
 
     RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
     int getLastROSNumber(std::string rosID);

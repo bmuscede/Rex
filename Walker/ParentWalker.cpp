@@ -569,6 +569,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
          << " in file " << Context->getSourceManager().getFilename(curExpr->getLocStart()).str() << endl;
     curExpr->dump();
 #endif
+
     return map<string, ParentWalker::AccessMethod>();
 }
 
@@ -685,7 +686,14 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     if (callback){
         callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     } else {
-        callbackEdge = new RexEdge(currentSubscriber, subscriberArgs[2], RexEdge::CALLS);
+        //Remove the & at the beginning.
+        string callback = subscriberArgs[2];
+        if (callback.at(0) == '&'){
+             callback = callback.erase(0, 1);
+        }
+
+
+        callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     }
     graph->addEdge(callbackEdge);
 
@@ -845,6 +853,7 @@ string ParentWalker::validateStringArg(string name){
 
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
+    graph->resolveUnestablishedCallbackEdges();
     graph->purgeUnestablishedEdges(true);
     string correctnessMsg = graph->checkCorrectness();
 
