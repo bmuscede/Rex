@@ -425,7 +425,7 @@ RexNode* ParentWalker::findCallbackFunction(std::string callbackQualified){
     }
 
     //Find a node by name.
-    return graph->findNodeByName(callbackQualified);
+    return graph->findNodeByEndName(callbackQualified);
 }
 
 vector<string> ParentWalker::getArgs(const CallExpr* expr){
@@ -573,6 +573,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
          << " in file " << Context->getSourceManager().getFilename(curExpr->getLocStart()).str() << endl;
     curExpr->dump();
 #endif
+
     return map<string, ParentWalker::AccessMethod>();
 }
 
@@ -689,9 +690,13 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     if (callback){
         callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     } else {
-        //TODO: Glitch!!!!
-        //Not sure what needs to be done here to be honest. How do we get the ID for this?
-        callbackEdge = new RexEdge(currentSubscriber, subscriberArgs[2], RexEdge::CALLS);
+        //Remove the & at the beginning.
+        string callback = subscriberArgs[2];
+        if (callback.at(0) == '&'){
+             callback = callback.erase(0, 1);
+        }
+
+        callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     }
     graph->addEdge(callbackEdge);
 
@@ -851,6 +856,7 @@ string ParentWalker::validateStringArg(string name){
 
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
+    graph->resolveUnestablishedCallbackEdges();
     graph->purgeUnestablishedEdges(true);
     string correctnessMsg = graph->checkCorrectness();
 

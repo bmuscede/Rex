@@ -69,6 +69,7 @@ bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
 
     //Record the function declaration.
     recordFunctionDecl(decl);
+    checkForCallbacks(decl);
 
     return true;
 }
@@ -161,6 +162,22 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
                     new RexEdge(callerNode, calleeID, RexEdge::CALLS) :
                     new RexEdge(callerNode, calleeNode, RexEdge::CALLS);
     graph->addEdge(edge);
+}
+
+void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
+    if (decl == nullptr) return;
+
+    //Gets the node.
+    RexNode* node = graph->findNode(generateID(decl));
+
+    string qualName = decl->getQualifiedNameAsString();
+    vector<RexEdge*> edges = graph->findEdgesByDst(qualName, true);
+
+    //Go through each.
+    for (RexEdge* cur : edges){
+        cur->setDestination(node);
+        cur->setDestinationID(node->getID());
+    }
 }
 
 void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalker::AccessMethod> accesses){

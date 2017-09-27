@@ -42,6 +42,9 @@ private:
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
 
+    //Callback Recorder
+    void checkForCallbacks(const FunctionDecl* decl);
+
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
     const FunctionDecl* getParentFunction(const Expr* callExpr);

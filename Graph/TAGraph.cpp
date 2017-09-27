@@ -113,11 +113,23 @@ RexNode* TAGraph::findNode(std::string nodeID){
     return idList[getMD5(nodeID)];
 }
 
-RexNode* TAGraph::findNodeByName(string nodeName) {
+RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
     //Loop through the map.
     for (auto entry : idList){
-        if (entry.second->getName().compare(nodeName) == 0)
+        string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
+        if (entryName.compare(nodeName) == 0)
             return entry.second;
+    }
+
+    return nullptr;
+}
+
+RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
+    for (auto entry: idList){
+        string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
+        if (hasEnding(entryName, endName)) {
+            return entry.second;
+        }
     }
 
     return nullptr;
@@ -210,6 +222,23 @@ void TAGraph::resolveUnestablishedEdges(){
             //Check if the edge is established.
             if (!curEdge->isEstablished()){
                 resolveEdge(curEdge);
+            }
+        }
+    }
+}
+
+void TAGraph::resolveUnestablishedCallbackEdges(){
+    //Go through the 'CALLS' edges.
+    for (auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++){
+        vector<RexEdge*> edges = it->second;
+
+        //Go through the list of subedges.
+        for (int i = 0; i < edges.size(); i++){
+            RexEdge* curEdge = edges.at(i);
+
+            //Check if the edge is established.
+            if (!curEdge->isEstablished() && curEdge->getType() == RexEdge::EdgeType::CALLS){
+                resolveEdgeByName(curEdge);
             }
         }
     }
@@ -311,6 +340,30 @@ bool TAGraph::resolveEdge(RexEdge *edge) {
         //Resolves the source ID.
         string destID = edge->getDestinationID();
         RexNode* destNode = idList[destID];
+        if (destNode == nullptr) return false;
+
+        edge->setDestination(destNode);
+    }
+
+    return true;
+}
+
+bool TAGraph::resolveEdgeByName(RexEdge* edge){
+    if (edge->isEstablished()) return true;
+
+    //Look for the source and destination.
+    if (edge->getSource() == nullptr){
+        //Resolves the source ID.
+        string sourceName = edge->getSourceID();
+        RexNode* srcNode = findNodeByName(sourceName, true);
+        if (srcNode == nullptr) return false;
+
+        edge->setSource(srcNode);
+    }
+    if (edge->getDestination() == nullptr){
+        //Resolves the source ID.
+        string destName = edge->getDestinationID();
+        RexNode* destNode = findNodeByName(destName, true);
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);

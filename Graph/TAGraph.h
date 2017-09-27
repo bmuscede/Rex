@@ -25,7 +25,8 @@ public:
     void removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type, bool hashed = false);
 
     RexNode* findNode(std::string nodeID);
-    RexNode* findNodeByName(std::string nodeName);
+    RexNode* findNodeByName(std::string nodeName, bool MD5Check = false);
+    RexNode* findNodeByEndName(std::string endName, bool MD5Check = false);
     RexEdge* findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type);
     std::vector<RexEdge*> findEdgesBySrc(std::string srcID, bool md5 = true);
     std::vector<RexEdge*> findEdgesByDst(std::string dstID, bool md5 = true);
@@ -35,6 +36,7 @@ public:
 
     std::string checkCorrectness();
     void resolveUnestablishedEdges();
+    void resolveUnestablishedCallbackEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
 
     std::string getTAModel();
@@ -93,9 +95,18 @@ private:
     std::string getMD5(std::string ID);
 
     bool resolveEdge(RexEdge* edge);
+    bool resolveEdgeByName(RexEdge* edge);
 
     RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
     int getLastROSNumber(std::string rosID);
+
+    bool hasEnding(std::string const &fullString, std::string const &ending){
+        if (fullString.length() >= ending.length()) {
+            return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+        } else {
+            return false;
+        }
+    }
 };
 
 
