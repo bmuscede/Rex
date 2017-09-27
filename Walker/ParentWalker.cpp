@@ -191,10 +191,7 @@ void ParentWalker::handleMinimalStmt(Stmt *statement) {
 
             recordAssociations(assignee, assignStmt, type);
         }
-    }
-
-    //Looks for other cases.
-    if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
+    } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
         if (isNodeHandlerObj(cxxExpr)) {
             recordNodeHandle(cxxExpr);
             recordParentNodeHandle(cxxExpr);
@@ -218,10 +215,10 @@ void ParentWalker::handleMinimalStmt(Stmt *statement) {
     }
 }
 
-void ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
+bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
-    if (!parent) return;
+    if (!parent) return false;
 
     //Checks if we have a publisher or such.
     string parentName = parent->getQualifiedNameAsString();
@@ -229,20 +226,27 @@ void ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
         parentName.compare(NODE_HANDLE_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
+        return true;
     }
+
+    return false;
 }
 
-void ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
+bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
-    if (!parent) return;
+    if (!parent) return false;
 
     //Checks if we have a publisher or such.
     string parentName = parent->getQualifiedNameAsString();
-    if (parentName.compare(PUBLISHER_CLASS) == 0 || parentName.compare(SUBSCRIBER_CLASS) == 0 ||
+    if (parentName.compare(PUBLISHER_CLASS) == 0 ||
+        parentName.compare(SUBSCRIBER_CLASS) == 0 ||
         parentName.compare(NODE_HANDLE_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
+        return true;
     }
+
+    return false;
 }
 
 bool ParentWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
@@ -685,6 +689,8 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     if (callback){
         callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     } else {
+        //TODO: Glitch!!!!
+        //Not sure what needs to be done here to be honest. How do we get the ID for this?
         callbackEdge = new RexEdge(currentSubscriber, subscriberArgs[2], RexEdge::CALLS);
     }
     graph->addEdge(callbackEdge);

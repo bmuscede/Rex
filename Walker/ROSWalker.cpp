@@ -42,7 +42,8 @@ bool ROSWalker::VisitVarDecl(VarDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
     //Handle ROS messages.
-    handleMinimalVarDecl(decl, false);
+    bool rosBased = handleMinimalVarDecl(decl);
+    if (rosBased) return true;
 
     //Record the variable declaration.
     recordVarDecl(decl);
@@ -54,7 +55,8 @@ bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
     //Handle ROS messages.
-    handleMinimalFieldDecl(decl, false);
+    bool rosBased = handleMinimalFieldDecl(decl);
+    if (rosBased) return true;
 
     //Record the function declaration.
     recordFieldDecl(decl);

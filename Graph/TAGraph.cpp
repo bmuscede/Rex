@@ -38,6 +38,7 @@ void TAGraph::addNode(RexNode* node){
     node->setID(newID);
 
     //Add the node.
+    //TODO: This doesn't work.
     if (idList.find(node->getID()) != idList.end())
         assert("Entry already exists.");
     idList[node->getID()] = node;

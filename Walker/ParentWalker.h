@@ -55,8 +55,8 @@ protected:
 
     //Minimal Handlers
     void handleMinimalStmt(Stmt* statement);
-    void handleMinimalVarDecl(VarDecl* decl, bool pubEdge = true);
-    void handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
+    bool handleMinimalVarDecl(VarDecl* decl, bool pubEdge = true);
+    bool handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
 
     //ROS Handlers
     bool isNodeHandlerObj(const CXXConstructExpr* ctor);

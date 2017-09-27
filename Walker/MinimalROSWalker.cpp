@@ -37,13 +37,3 @@ bool MinimalROSWalker::VisitFieldDecl(FieldDecl* decl) {
 
     return true;
 }
-
-void MinimalROSWalker::recordParentSubscribe(const CXXConstructExpr* expr, string className){
-    if (className.compare("") == 0) return;
-    recordParentGeneric(className, className, RexNode::SUBSCRIBER);
-}
-
-void MinimalROSWalker::recordParentPublish(const CXXConstructExpr* expr, string fileName) {
-    if (fileName.compare("") == 0) return;
-    recordParentGeneric(fileName, fileName, RexNode::PUBLISHER);
-}
