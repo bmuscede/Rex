@@ -23,7 +23,7 @@ Currently, Rex supports the following:
 ### Rex Metamodel
 The following diagram higlights the information Rex extracts from a target C/C++ program:
 
-![alt text](https://github.com/bmuscede/ClangEx/blob/master/ClangExMetamodel.png "ClangEx MetaModel")
+![alt text](https://github.com/bmuscede/Rex/blob/master/RexMetamodel.png "Rex Metamodel")
 
 This is the metamodel for full analysis mode.
 ## Installation Details
