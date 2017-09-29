@@ -85,6 +85,17 @@ bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
     return true;
 }
 
+bool ROSWalker::VisitDeclRefExpr(DeclRefExpr *declRef) {
+    if (isInSystemHeader(declRef)) return true;
+
+    //Check if we have an if-statement noted here.
+    if (usedInIfStatement(declRef) || usedInLoop(declRef)){
+        recordControlFlow(declRef);
+    }
+
+    return true;
+}
+
 void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
     //Generates the fields.
     string ID = generateID(decl);
@@ -118,6 +129,7 @@ void ROSWalker::recordVarDecl(const VarDecl* decl){
 
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::VARIABLE);
+    node->addSingleAttribute(CONTROL_FLAG, "0");
     graph->addNode(node);
 
     //Get the parent.
@@ -131,6 +143,7 @@ void ROSWalker::recordFieldDecl(const FieldDecl* decl){
 
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::VARIABLE);
+    node->addSingleAttribute(CONTROL_FLAG, "0");
     graph->addNode(node);
 
     //Get the parent.
@@ -180,6 +193,57 @@ void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
     }
 }
 
+bool ROSWalker::usedInIfStatement(const DeclRefExpr* declRef){
+    //Iterate through and find if we have an if statement parent.
+    bool getParent = true;
+    auto parent = Context->getParents(*declRef);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current parent as an if statement.
+        auto ifStmt = parent[0].get<clang::IfStmt>();
+        if (ifStmt) {
+            return true;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    return false;
+}
+
+bool ROSWalker::usedInLoop(const DeclRefExpr* declRef){
+    //Iterate through and find if we have an if statement parent.
+    bool getParent = true;
+    auto parent = Context->getParents(*declRef);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current parent as an if statement.
+        auto whileStmt = parent[0].get<clang::WhileStmt>();
+        if (whileStmt) {
+            return true;
+        }
+
+        auto forStmt = parent[0].get<clang::ForStmt>();
+        if (forStmt){
+            return true;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    return false;
+}
+
 void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalker::AccessMethod> accesses){
     if (decl == nullptr) return;
 
@@ -220,6 +284,19 @@ void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalke
                 continue;
         }
     }
+}
+
+void ROSWalker::recordControlFlow(const DeclRefExpr* expr){
+    //Get the decl responsible.
+    const ValueDecl* decl = expr->getDecl();
+
+    //Get the ID and find it.
+    string declID = generateID(decl);
+    RexNode* refNode = graph->findNode(declID);
+    if (!refNode) return;
+
+    //Adds 1 to the control flag attr.
+    refNode->addSingleAttribute(CONTROL_FLAG, "1");
 }
 
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){

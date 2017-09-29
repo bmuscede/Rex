@@ -7,7 +7,7 @@
 ## This file can be modified with new libraries.
 ####################################################################
 
-# ROS Library
+#ROS Library
 /opt/ros/
 
 #Other Libraries

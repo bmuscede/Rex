@@ -227,23 +227,6 @@ void TAGraph::resolveUnestablishedEdges(){
     }
 }
 
-void TAGraph::resolveUnestablishedCallbackEdges(){
-    //Go through the 'CALLS' edges.
-    for (auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++){
-        vector<RexEdge*> edges = it->second;
-
-        //Go through the list of subedges.
-        for (int i = 0; i < edges.size(); i++){
-            RexEdge* curEdge = edges.at(i);
-
-            //Check if the edge is established.
-            if (!curEdge->isEstablished() && curEdge->getType() == RexEdge::EdgeType::CALLS){
-                resolveEdgeByName(curEdge);
-            }
-        }
-    }
-}
-
 void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
     //We iterate through our edges.
     for(auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++) {

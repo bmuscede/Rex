@@ -30,8 +30,11 @@ public:
     bool VisitFieldDecl(FieldDecl* decl);
     bool VisitFunctionDecl(FunctionDecl* decl);
     bool VisitCXXRecordDecl(CXXRecordDecl* decl);
+    bool VisitDeclRefExpr(DeclRefExpr* declRef);
 
 private:
+    const std::string CONTROL_FLAG = "isControlFlow";
+
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
     void recordClassDecl(const CXXRecordDecl* decl);
@@ -41,9 +44,14 @@ private:
     //Expr Recorders
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
+    void recordControlFlow(const DeclRefExpr* expr);
 
     //Callback Recorder
     void checkForCallbacks(const FunctionDecl* decl);
+
+    //Control Flow Detectors
+    bool usedInIfStatement(const DeclRefExpr* declRef);
+    bool usedInLoop(const DeclRefExpr* declRef);
 
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);

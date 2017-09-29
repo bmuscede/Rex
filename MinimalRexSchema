@@ -57,51 +57,18 @@ rosMsg {
 	color = (0.0 0.0 1.0)
 }
 
-cFile {
-	class_style = 2
-	color = (0.9 0.9 0.9)
-	labelcolor = (0.0 0.0 0.0)
-}
-
-cFunction {
-	filename
-	isStatic
-	isConst
-	isVolatile
-	isVariadic
-	visibility
-	color = (1.0 0.0 0.0)
-	labelcolor = (0.0 0.0 0.0)
-}
-
-cVariable {
-	filename
-	scopeType
-	isStatic
-	isPublisher = 0
-	isSubscriber = 0
-}
-
 cClass {
 	filename
 	baseNum
 	color = (0.2 0.4 0.1)
 	labelcolor = (0.0 0.0 0.0)
-}
-
-cEnum {
-	filename
-	color = (0.9 0.2 0.5)
-	labelcolor = (0.0 0.0 0.0)
-}
-
-cEnumConst {
-	filename
-	color = (0.9 0.2 0.5)
-	labelcolor = (0.0 0.0 0.0)
+	class_style = 2
 }
 
 rosSubscriber {
+	color = (0.4 1.0 0.4)
+	labelcolor = (0.0 0.0 0.0)
+	class_style = 6
 	bufferSize
 	numAttributes
 	rosNumber	
@@ -109,7 +76,16 @@ rosSubscriber {
 }
 
 rosPublisher {
+	color = (1.0 0.0 0.8)
+	labelcolor = (1.0 1.0 1.0)
+	class_style = 6
 	numAttributes
 	rosNumber
+}
+
+rosTopic {
+	color = (1.0 1.0 0.6)
+	labelcolor = (0.0 0.0 0.0)
+	class_style = 5
 }
 

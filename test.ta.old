@@ -1,0 +1,236 @@
+// Landscape TA file
+
+SCHEME TUPLE :
+
+// The ERD
+
+$INHERIT cArchitecturalNds cRoot
+$INHERIT cAsgNds cRoot
+$INHERIT rosMsg cRoot
+$INHERIT cClass cAsgNds
+$INHERIT cFunction cAsgNds
+$INHERIT cVariable cAsgNds
+$INHERIT rosTopic rosMsg
+$INHERIT rosPublisher rosMsg
+$INHERIT rosSubscriber rosMsg
+$INHERIT rosNodeHandle rosMsg
+
+contain cRoot cRoot
+publish rosPublisher rosTopic
+subscribe rosTopic rosSubscriber
+subscribe rosSubscriber rosTopic
+reference rosNodeHandle rosMsg
+advertise rosPublisher rosTopic
+call cAsgNds cAsgNds
+write cFunction cVariable
+read cVariable cFunction
+
+
+SCHEME ATTRIBUTE :
+
+// EntityClass attributes
+
+rosTopic {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ class_style = 0
+}
+
+cFunction {
+ color = (1.0 0.0 0.0)
+ labelcolor = (0.0 0.0 0.0)
+ isVariadic
+ isVolatile
+ visibility
+ isStatic
+ filename
+ isConst
+ class_style = 0
+}
+
+cAsgNds {
+ color = (0.0 0.0 0.0)
+ labelcolor = (0.0 1.0 1.0)
+ beg
+ value
+ end
+ class_style = 0
+}
+
+rosMsg {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ class_style = 4
+}
+
+rosNodeHandle {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ class_style = 0
+}
+
+cVariable {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ isStatic
+ isSubscriber = 0
+ filename
+ scopeType
+ isPublisher = 0
+ class_style = 6
+}
+
+cRoot {
+ color = (0.0 0.0 0.0)
+ labelcolor = (0.0 1.0 1.0)
+ line
+ elision = contain
+ name
+ file
+ class_style = 0
+}
+
+rosSubscriber {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ callbackFunc
+ rosNumber
+ numAttributes
+ bufferSize
+ class_style = 0
+}
+
+$ENTITY {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ height
+ x
+ label
+ width
+ y
+ class_style = 0
+}
+
+rosPublisher {
+ color = (0.0 0.0 1.0)
+ labelcolor = (0.0 1.0 1.0)
+ rosNumber
+ numAttributes
+ class_style = 0
+}
+
+cClass {
+ color = (0.2 0.4 0.10196078431372549)
+ labelcolor = (0.0 0.0 0.0)
+ baseNum
+ filename
+ class_style = 0
+}
+
+cArchitecturalNds {
+ color = (0.0 0.0 0.0)
+ labelcolor = (0.0 1.0 1.0)
+ class_style = 4
+}
+
+(read) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(publish) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(advertise) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(subscribe) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(reference) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(call) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+(write) {
+ color = (0.0 0.0 0.0)
+ class_style = 0
+}
+
+
+
+FACT TUPLE :
+
+// Instances of entity classes
+
+$INSTANCE 1ea373df6f40994e132ba7a879bee0a8 cFunction
+$INSTANCE 3c2bda1c0f7a6bbc182678ddc030cf69 cVariable
+$INSTANCE 1694a3784a813b9f1d3dd93a266ea6a8 cVariable
+$INSTANCE 2d2e9c72132f21021f956e18accbeb19 cVariable
+contain 1ea373df6f40994e132ba7a879bee0a8 3c2bda1c0f7a6bbc182678ddc030cf69
+contain 1ea373df6f40994e132ba7a879bee0a8 1694a3784a813b9f1d3dd93a266ea6a8
+contain 1ea373df6f40994e132ba7a879bee0a8 2d2e9c72132f21021f956e18accbeb19
+
+
+FACT ATTRIBUTE :
+
+$ROOT {
+ label = $ROOT
+ color = (0.7490196078431373 0.7490196078431373 0.7490196078431373)
+ topclients = true
+ wantsuppliers = true
+ wantclients = true
+ wantcardinals = false
+ edgemode = 2
+}
+1ea373df6f40994e132ba7a879bee0a8 {
+ xrel      = 0.265625
+ yrel      = 0.265625
+ widthrel  = 0.46875
+ heightrel = 0.46875
+ label = "main.cpp's main"
+ description = ""
+ elision = (contain)
+ color = (0.2 1.0 0.2)
+}
+3c2bda1c0f7a6bbc182678ddc030cf69 {
+ xrel      = 0.6146112600536193
+ yrel      = 0.5208333333333334
+ widthrel  = 0.15616621983914208
+ heightrel = 0.1556372549019608
+ label = argc
+ elision = (contain)
+ color = (0.4 1.0 0.4)
+ labelcolor = (0.0 0.0 0.0)
+}
+1694a3784a813b9f1d3dd93a266ea6a8 {
+ xrel      = 0.5563002680965148
+ yrel      = 0.11397058823529412
+ widthrel  = 0.15616621983914208
+ heightrel = 0.1556372549019608
+ label = argv
+ elision = (contain)
+ color = (1.0 1.0 0.6)
+ labelcolor = (0.0 0.0 0.0)
+}
+2d2e9c72132f21021f956e18accbeb19 {
+ xrel      = 0.22855227882037535
+ yrel      = 0.12867647058823528
+ widthrel  = 0.15616621983914208
+ heightrel = 0.1556372549019608
+ label = hello
+ elision = (contain)
+ color = (1.0 0.0 0.8)
+ labelcolor = (1.0 1.0 1.0)
+}

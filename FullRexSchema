@@ -77,6 +77,7 @@ cVariable {
 	filename
 	scopeType
 	isStatic
+	isControlFlow = 0
 	isPublisher = 0
 	isSubscriber = 0
 }
@@ -86,9 +87,13 @@ cClass {
 	baseNum
 	color = (0.2 0.4 0.1)
 	labelcolor = (0.0 0.0 0.0)
+	class_style = 2
 }
 
 rosSubscriber {
+	color = (0.4 1.0 0.4)
+	labelcolor = (0.0 0.0 0.0)
+	class_style = 6
 	bufferSize
 	numAttributes
 	rosNumber	
@@ -96,6 +101,16 @@ rosSubscriber {
 }
 
 rosPublisher {
+	color = (1.0 0.0 0.8)
+	labelcolor = (1.0 1.0 1.0)
+	class_style = 6
 	numAttributes
 	rosNumber
 }
+
+rosTopic {
+	color = (1.0 1.0 0.6)
+	labelcolor = (0.0 0.0 0.0)
+	class_style = 5
+}
+
