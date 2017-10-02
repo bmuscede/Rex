@@ -6,6 +6,7 @@
 #include <openssl/md5.h>
 #include <cstring>
 #include <assert.h>
+#include "../Walker/ROSWalker.h"
 #include "TAGraph.h"
 
 using namespace std;
@@ -326,6 +327,12 @@ bool TAGraph::resolveEdge(RexEdge *edge) {
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);
+    }
+
+    //Checks for callback.
+    if (edge->getType() == RexEdge::CALLS && edge->getSource()->getType() == RexNode::SUBSCRIBER &&
+            edge->getDestination()->getType() == RexNode::FUNCTION){
+        edge->getDestination()->addSingleAttribute(ROSWalker::CALLBACK_FLAG, "1");
     }
 
     return true;

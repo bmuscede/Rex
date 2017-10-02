@@ -13,6 +13,7 @@ using namespace std;
 
 TAGraph* ParentWalker::graph = new TAGraph();
 vector<TAGraph*> ParentWalker::graphList = vector<TAGraph*>();
+std::string ParentWalker::CALLBACK_FLAG = "isCallbackFunc";
 
 ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {
     ignoreLibraries.push_back(STANDARD_IGNORE);
@@ -688,6 +689,7 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     //Finally, adds in the callback function.
     RexEdge* callbackEdge;
     if (callback){
+        callback->addSingleAttribute(CALLBACK_FLAG, "1");
         callbackEdge = new RexEdge(currentSubscriber, callback, RexEdge::CALLS);
     } else {
         //Remove the & at the beginning.

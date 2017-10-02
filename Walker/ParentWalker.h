@@ -40,6 +40,8 @@ public:
     //Processing Operations
     void addLibrariesToIgnore(std::vector<std::string> libraries);
 
+    static std::string CALLBACK_FLAG;
+
 protected:
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;

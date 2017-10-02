@@ -103,6 +103,7 @@ void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
 
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::FUNCTION);
+    node->addSingleAttribute(CALLBACK_FLAG, "0");
     graph->addNode(node);
 
     //Get the parent.
