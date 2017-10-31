@@ -6,12 +6,15 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.Vector;
 
+import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.PrintSetup;
 import org.apache.poi.ss.usermodel.Row;
@@ -161,9 +164,7 @@ public class InteractionCreator {
         cTitleCell.setCellValue("Variables that Callback Functions Write To:");
         sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + (rowStart + 1) + ":$J$" + (rowStart + 1)));
         cTitleCell.setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
-        for (int i = 1; i < 10; i++){
-        	cRow.createCell(i).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
-        }
+        for (int i = 1; i < 10; i++) cRow.createCell(i).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
         
         //Now, we iterate through and add the variables.
         int curRow = rowStart + 1;
@@ -184,10 +185,7 @@ public class InteractionCreator {
         	nData.setCellValue(entry.getValue().toString());
         	sheet.addMergedRegion(CellRangeAddress.valueOf("$C$" + (curRow + 1) + ":$J$" + (curRow + 1)));
 	        nData.setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
-	        for (int j = 3; j < 10; j++){
-	        	if (j + 1 == 10) cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.CF_END_LABEL_TITLE));
-	        	else cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
-	        }
+	        for (int j = 3; j < 10; j++) cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
 	        
         	curRow++;
         }
@@ -238,6 +236,7 @@ public class InteractionCreator {
         printSetup.setFitWidth((short)1);
         
         //Starts by creating the list of publishers.
+        Map<String, Integer> hyperlinkPos = new HashMap<String, Integer>();
         int curRow = outdegreeVals.keySet().size() + 2;
         for (Map.Entry<String, Vector<String>> entry : results.entrySet()){
         	Row mainRow = sheet.createRow(curRow);
@@ -245,9 +244,23 @@ public class InteractionCreator {
             sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + (curRow + 1) + ":$J$" + (curRow + 1)));
             Cell headerCell = mainRow.createCell(0);
             headerCell.setCellValue(entry.getKey() + " - ");
-            headerCell.setCellStyle(styles.get(MatrixComponent.LABEL_TITLE));
+            headerCell.setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
+            curRow++;
+            hyperlinkPos.put(entry.getKey(), curRow);
+            for (int j = 1; j < 10; j++) mainRow.createCell(j).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
             
-            //TODO: Process the cases.
+            //Now, process the actual cases.
+            for (String curPub : entry.getValue()){
+            	Row nextRow = sheet.createRow(curRow);
+            	nextRow.setHeightInPoints(ROW_HEIGHT);
+                sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + (curRow + 1) + ":$J$" + (curRow + 1)));
+                for (int j = 1; j < 10; j++) nextRow.createCell(j).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
+                
+                //Adds the data.
+                Cell mainCell = nextRow.createCell(0);
+                mainCell.setCellValue(curPub);
+                mainCell.setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
+            }
             
             curRow += 2;
         }
@@ -255,13 +268,15 @@ public class InteractionCreator {
         //Next, creates the lookup table.
 		Row titleRow = sheet.createRow(0);
 		titleRow.setHeightInPoints(ROW_HEIGHT);
-        sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + 1 + ":$J$" + 1));
+        sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + 1 + ":$M$" + 1));
+        for (int j = 1; j < 13; j++) titleRow.createCell(j).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
         Cell headerCell = titleRow.createCell(0);
         headerCell.setCellValue("Number of Publishers that Write to Callback Function in Component:");
-        headerCell.setCellStyle(styles.get(MatrixComponent.LABEL_TITLE));
+        headerCell.setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
         
         //Now, we iterate through and add the variables.
         curRow = 1;
+        CreationHelper createHelper = wb.getCreationHelper();
         for (Map.Entry<String, Integer> entry : outdegreeVals.entrySet()){
         	//Create the row.
         	Row cRow = sheet.createRow(curRow);
@@ -270,18 +285,25 @@ public class InteractionCreator {
         	//Adds the title.
         	Cell title = cRow.createCell(0);
         	title.setCellValue(entry.getKey());
-        	sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + (curRow + 1) + ":$B$" + (curRow + 1)));
+        	sheet.addMergedRegion(CellRangeAddress.valueOf("$A$" + (curRow + 1) + ":$J$" + (curRow + 1)));
 	        title.setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
 	        cRow.createCell(1).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
-        	//TODO: Add hyperlink.
+	        for (int j = 1; j < 10; j++){
+	        	cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
+	        }
+	        
+	        //Creates the hyperlink.
+	        Hyperlink link = createHelper.createHyperlink(HyperlinkType.DOCUMENT);
+			link.setAddress("\'" + sheetName + "\'" + "!A" + hyperlinkPos.get(entry.getKey()));
+    		title.setHyperlink(link);
 	        
         	//Adds the entry.
-        	Cell nData = cRow.createCell(2);
+        	Cell nData = cRow.createCell(10);
         	nData.setCellValue(entry.getValue().toString());
-        	sheet.addMergedRegion(CellRangeAddress.valueOf("$C$" + (curRow + 1) + ":$J$" + (curRow + 1)));
-	        nData.setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
-	        for (int j = 3; j < 10; j++){
-	        	cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.CF_LABEL_TITLE));
+        	sheet.addMergedRegion(CellRangeAddress.valueOf("$K$" + (curRow + 1) + ":$M$" + (curRow + 1)));
+	        nData.setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
+	        for (int j = 11; j < 13; j++){
+	        	cRow.createCell(j).setCellStyle(styles.get(MatrixComponent.C_LABEL_TITLE));
 	        }
 	        
         	curRow++;
@@ -347,18 +369,19 @@ public class InteractionCreator {
         ctitle.setAlignment(HorizontalAlignment.CENTER);
         ctitle.setVerticalAlignment(VerticalAlignment.CENTER);
         ctitle.setFont(titleFont);
-        title.setBorderLeft(BorderStyle.MEDIUM);
-        title.setBorderRight(BorderStyle.MEDIUM);
-        title.setBorderTop(BorderStyle.MEDIUM);
-        title.setBorderBottom(BorderStyle.MEDIUM);
-		styles.put(MatrixComponent.C_LABEL_TITLE, title);
+        ctitle.setBorderLeft(BorderStyle.MEDIUM);
+        ctitle.setBorderRight(BorderStyle.MEDIUM);
+        ctitle.setBorderTop(BorderStyle.MEDIUM);
+        ctitle.setBorderBottom(BorderStyle.MEDIUM);
+		styles.put(MatrixComponent.C_LABEL_TITLE, ctitle);
 
 		CellStyle cftitle = wb.createCellStyle();
-        ctitle.setAlignment(HorizontalAlignment.CENTER);
-        ctitle.setVerticalAlignment(VerticalAlignment.CENTER);
-        ctitle.setFont(titleFont);
-        title.setBorderTop(BorderStyle.MEDIUM);
-        title.setBorderBottom(BorderStyle.MEDIUM);
+        cftitle.setAlignment(HorizontalAlignment.CENTER);
+        cftitle.setVerticalAlignment(VerticalAlignment.CENTER);
+        cftitle.setBorderLeft(BorderStyle.MEDIUM);
+        cftitle.setBorderRight(BorderStyle.MEDIUM);
+        cftitle.setBorderTop(BorderStyle.MEDIUM);
+        cftitle.setBorderBottom(BorderStyle.MEDIUM);
 		styles.put(MatrixComponent.CF_LABEL_TITLE, cftitle);
 		
 		CellStyle cfendtitle = wb.createCellStyle();

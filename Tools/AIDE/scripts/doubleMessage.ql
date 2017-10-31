@@ -22,7 +22,7 @@ direct = inv @label o (contain o direct);
 
 //Gets the indegree
 inset = indegree(direct);
-inset = inset - (inset o {2});
+inset = inset - (inset o {1});
 
 //Prints the results.
 if (#inset == 0){

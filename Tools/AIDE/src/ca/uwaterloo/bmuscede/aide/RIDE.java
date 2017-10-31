@@ -33,7 +33,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import ca.uwaterloo.bmuscede.aide.AnalysisGenerator.AnalysisTypes;
 
-public class AIDE extends JFrame {
+public class RIDE extends JFrame {
 	static final long serialVersionUID = 395876470924468079L;
 	
 	private JPanel pnlContent;
@@ -53,7 +53,7 @@ public class AIDE extends JFrame {
 	
 	private final String DEFAULT_DESC = "<html><center>Information about each analysis "
 			+ "type will be shown here when selected...</center></html>";
-	private final String PROG_TITLE = "Autonomous Interaction Detector";
+	private final String PROG_TITLE = "ROS Interaction Detector (RIDE)";
 
 
 	
@@ -64,7 +64,7 @@ public class AIDE extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					AIDE frame = new AIDE();
+					RIDE frame = new RIDE();
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -81,8 +81,8 @@ public class AIDE extends JFrame {
 	 * @throws IllegalArgumentException 
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public AIDE() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {		
-		setIconImage(Toolkit.getDefaultToolkit().getImage(AIDE.class.getResource("/ca/uwaterloo/bmuscede/aide/aide.png")));
+	public RIDE() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {		
+		setIconImage(Toolkit.getDefaultToolkit().getImage(RIDE.class.getResource("/ca/uwaterloo/bmuscede/aide/aide.png")));
 		setResizable(false);
 		setTitle(PROG_TITLE);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
