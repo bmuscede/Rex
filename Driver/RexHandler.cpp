@@ -40,7 +40,7 @@ const string RexHandler::DEFAULT_LOAD = "REX_IGNORE.db";
 /**
  * Constructor that prepares the RexHandler.
  */
-RexHandler::RexHandler(){
+RexHandler::RexHandler() : RexCategory("Rex Options"){
     //Sets the C, C++ extensions.
     ext.push_back(C_FILE_EXT);
     ext.push_back(CPLUS_FILE_EXT);
@@ -74,7 +74,7 @@ int RexHandler::getNumFiles(){
  */
 vector<string> RexHandler::getFiles(){
     vector<string> strFiles;
-    for (path file : files) strFiles.push_back(file.string());
+    for (path file : files) strFiles.push_back(canonical(file).string());
 
     return strFiles;
 }
@@ -87,7 +87,6 @@ vector<string> RexHandler::getFiles(){
  */
 bool RexHandler::processClangToolCode(int argc, const char** argv){
     bool success = true;
-    llvm::cl::OptionCategory RexCategory("Rex Options");
 
     //Processes the arguments.
     const char** updatedArgv = prepareUpdatedArgs(&argc, argv);
@@ -119,16 +118,16 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
  */
 bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
     bool success = true;
-    llvm::cl::OptionCategory RexCategory("Rex Options");
-
     //Creates the command line arguments.
     int argc = 0;
     char** argv = prepareArgs(&argc);
 
+    //Gets the list of files.
+    const vector<string> fileList = getFileList();
+
     //Sets up the processor.
     CommonOptionsParser OptionsParser(argc, (const char**) argv, RexCategory);
-    ClangTool Tool(OptionsParser.getCompilations(),
-                   OptionsParser.getSourcePathList());
+    ClangTool Tool(OptionsParser.getCompilations(), fileList);
 
     //Runs the processor.
     if (minimalWalk){
@@ -320,11 +319,26 @@ char** RexHandler::prepareArgs(int *argc){
 
     //Next, loops through the files and copies.
     for (int i = 0; i < files.size(); i++){
-        argv[i + BASE_LEN] = new char[files.at(i).string().size() + 1];
-        strcpy(argv[i + BASE_LEN], files.at(i).c_str());
+        string curFile = canonical(files.at(i)).string();
+        argv[i + BASE_LEN] = new char[curFile.size() + 1];
+        strcpy(argv[i + BASE_LEN], curFile.c_str());
     }
 
     return argv;
+}
+
+/**
+ * Simply converts the path vector into a string
+ * vector.
+ * @return A string vector of files.
+ */
+const vector<string> RexHandler::getFileList(){
+    vector<string> results;
+    for (path curItem : files){
+        results.push_back(canonical(curItem).string());
+    }
+
+    return results;
 }
 
 /**

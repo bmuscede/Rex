@@ -725,24 +725,33 @@ bool processCommand(string line){
     if (line.compare("") == 0) return false;
 
     //Checks which option is used.
-    if (!line.compare(0, HELP_ARG.size(), HELP_ARG)) {
+    if (!line.compare(0, HELP_ARG.size(), HELP_ARG) &&
+            (line[HELP_ARG.size()] == ' ' || line.size() == HELP_ARG.size())) {
         handleHelp(line, helpStrings);
-    } else if (!line.compare(0, ABOUT_ARG.size(), ABOUT_ARG)){
+    } else if (!line.compare(0, ABOUT_ARG.size(), ABOUT_ARG) &&
+            (line[ABOUT_ARG.size()] == ' ' || line.size() == ABOUT_ARG.size())) {
         handleAbout();
-    } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG)) {
-        if (line.at(line.size() - 1) == '!') return true;
+    } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG) &&
+            (line[EXIT_ARG.size()] == ' ' || line[EXIT_ARG.size()] == '!') || line.size() == EXIT_ARG.size()) {
+        if (line.at(line.size() - 1) == '!') return false;
         return !handleExit();
-    } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG)) {
+    } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG) &&
+            (line[GEN_ARG.size()] == ' ' || line.size() == GEN_ARG.size())) {
         generateGraph(line, *(helpInfo.at(GEN_ARG).desc.get()));
-    } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG)) {
+    } else if (!line.compare(0, OUT_ARG.size(), OUT_ARG) &&
+            (line[OUT_ARG.size()] == ' ' || line.size() == OUT_ARG.size())) {
         outputGraphs(line, *(helpInfo.at(OUT_ARG).desc.get()));
-    } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG)) {
+    } else if (!line.compare(0, ADD_ARG.size(), ADD_ARG) &&
+            (line[ADD_ARG.size()] == ' ' || line.size() == ADD_ARG.size())) {
         addFiles(line);
-    } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG)) {
+    } else if (!line.compare(0, REMOVE_ARG.size(), REMOVE_ARG) &&
+            (line[REMOVE_ARG.size()] == ' ' || line.size() == REMOVE_ARG.size())) {
         removeFiles(line, *(helpInfo.at(REMOVE_ARG).desc.get()));
-    } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG)) {
+    } else if (!line.compare(0, LIST_ARG.size(), LIST_ARG) &&
+            (line[LIST_ARG.size()] == ' ' || line.size() == LIST_ARG.size())) {
         listState(line, *(helpInfo.at(LIST_ARG).desc.get()));
-    } else if (!line.compare(0, SCRIPT_ARG.size(), SCRIPT_ARG)) {
+    } else if (!line.compare(0, SCRIPT_ARG.size(), SCRIPT_ARG) &&
+            (line[SCRIPT_ARG.size()] == ' ' || line.size() == SCRIPT_ARG.size())) {
         runScript(line, *(helpInfo.at(SCRIPT_ARG).desc.get()));
     } else {
         cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;

@@ -79,10 +79,12 @@ private:
     /** Member Variables */
     std::vector<path> files;
     std::vector<std::string> ext;
+    llvm::cl::OptionCategory RexCategory;
 
     /** Arg Helper Methods */
     const char** prepareUpdatedArgs(int *argc, const char** argv);
     char** prepareArgs(int *argc);
+    const std::vector<std::string> getFileList();
 
     /** Add/Remove Helper Methods */
     int addFile(path file);
