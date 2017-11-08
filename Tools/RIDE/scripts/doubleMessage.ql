@@ -22,7 +22,8 @@ direct = inv @label o (contain o direct);
 
 //Gets the indegree
 inset = indegree(direct);
-inset = inset - (inset o {1});
+inset = inset - (inset o {2});
+inset = inv(call) o inset;
 
 //Prints the results.
 if (#inset == 0){
@@ -42,6 +43,6 @@ if (#inset == 0){
 		cFunction;
 
 		//Get the publishers.
-		direct . {item};
+		direct . (call . {item});
 	}
 }

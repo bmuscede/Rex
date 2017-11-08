@@ -16,8 +16,11 @@ ROSWalker::~ROSWalker(){ }
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
-    //First, handle and ROS messages.
-    handleMinimalStmt(statement);
+    //First, handle ROS messages.
+    ROSType type = handleMinimalStmt(statement);
+
+    //Check if we have a publisher.
+    if (type == ROSType::PUB) handleFullPub(statement);
 
     //Deal with call expressions.
     if (CallExpr* callExpr = dyn_cast<CallExpr>(statement)){
@@ -149,6 +152,17 @@ void ROSWalker::recordFieldDecl(const FieldDecl* decl){
 
     //Get the parent.
     addParentRelationship(decl, ID);
+}
+
+void ROSWalker::handleFullPub(const Stmt* statement){
+    //Gets the last publisher.
+    if (!currentPublisher) return;
+
+    //Parent Function Relation Adder.
+    recordParentFunction(statement, currentPublisher);
+
+    //Control Structure Adder.
+    recordROSControl(statement, currentPublisher);
 }
 
 void ROSWalker::recordCallExpr(const CallExpr* expr){
@@ -300,6 +314,71 @@ void ROSWalker::recordControlFlow(const DeclRefExpr* expr){
     refNode->addSingleAttribute(CONTROL_FLAG, "1");
 }
 
+void ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseItem){
+    //Gets the parent function.
+    const FunctionDecl* decl = getParentFunction(statement);
+    RexNode* funcNode = graph->findNode(generateID(decl));
+
+    //Checks if an edge already exists.
+    if (graph->doesEdgeExist(generateID(decl), baseItem->getID(), RexEdge::CALLS)) return;
+
+    //Adds a call relation between the two.
+    RexEdge* edge;
+    if (funcNode) {
+        edge = new RexEdge(funcNode, baseItem, RexEdge::CALLS);
+    } else {
+        edge = new RexEdge(generateID(decl), baseItem, RexEdge::CALLS);
+    }
+    graph->addEdge(edge);
+}
+
+void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
+    //First, we need to determine if this is part of some control structure.
+    bool getParent = true;
+    bool isControlStmt = false;
+
+    //Get the parent.
+    auto parent = Context->getParents(*baseStmt);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Cast to some control structures.
+        auto curIfStmt = parent[0].get<clang::IfStmt>();
+        if (curIfStmt && isa<clang::IfStmt>(curIfStmt)){
+            isControlStmt = true;
+            break;
+        }
+        auto curForStmt = parent[0].get<clang::ForStmt>();
+        if (curForStmt && isa<clang::ForStmt>(curForStmt)){
+            isControlStmt = true;
+            break;
+        }
+        auto curWhileStmt = parent[0].get<clang::WhileStmt>();
+        if (curWhileStmt && isa<clang::WhileStmt>(curWhileStmt)){
+            isControlStmt = true;
+            break;
+        }
+        auto curDoStmt = parent[0].get<clang::DoStmt>();
+        if (curDoStmt && isa<clang::DoStmt>(curDoStmt)){
+            isControlStmt = true;
+            break;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    //Records the relationship.
+    if (isControlStmt){
+        rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "1");
+    } else {
+        rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "0");
+    }
+}
+
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
     bool getParent = true;
     auto currentDecl = baseDecl;
@@ -342,11 +421,11 @@ void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
     }
 }
 
-const FunctionDecl* ROSWalker::getParentFunction(const Expr* callExpr){
+const FunctionDecl* ROSWalker::getParentFunction(const Stmt* baseFunc){
     bool getParent = true;
 
     //Get the parent.
-    auto parent = Context->getParents(*callExpr);
+    auto parent = Context->getParents(*baseFunc);
     while(getParent){
         //Check if it's empty.
         if (parent.empty()){

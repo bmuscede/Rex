@@ -34,6 +34,7 @@ public:
 
 private:
     const std::string CONTROL_FLAG = "isControlFlow";
+    const std::string ROS_CONTROL_FLAG = "isUnderControl";
 
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
@@ -41,10 +42,15 @@ private:
     void recordVarDecl(const VarDecl* decl);
     void recordFieldDecl(const FieldDecl* decl);
 
+    //ROS Managers
+    void handleFullPub(const Stmt* statement);
+
     //Expr Recorders
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
     void recordControlFlow(const DeclRefExpr* expr);
+    void recordParentFunction(const Stmt* statement, RexNode* baseItem);
+    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem);
 
     //Callback Recorder
     void checkForCallbacks(const FunctionDecl* decl);
@@ -55,7 +61,7 @@ private:
 
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
-    const FunctionDecl* getParentFunction(const Expr* callExpr);
+    const FunctionDecl* getParentFunction(const Stmt* expr);
 };
 
 #endif //REX_ROSWALKER_H

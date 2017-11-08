@@ -43,6 +43,7 @@ public:
     static std::string CALLBACK_FLAG;
 
 protected:
+    enum ROSType {ROS_NONE, PUB, SUB};
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;
     ASTContext *Context;
@@ -56,7 +57,7 @@ protected:
     const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
 
     //Minimal Handlers
-    void handleMinimalStmt(Stmt* statement);
+    ParentWalker::ROSType handleMinimalStmt(Stmt* statement);
     bool handleMinimalVarDecl(VarDecl* decl, bool pubEdge = true);
     bool handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
 
