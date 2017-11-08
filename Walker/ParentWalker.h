@@ -49,6 +49,7 @@ protected:
     ASTContext *Context;
 
     RexNode* currentSubscriber = nullptr;
+    RexNode* currentPublisherOutdated = nullptr;
     RexNode* currentPublisher = nullptr;
 
     //ROS Names

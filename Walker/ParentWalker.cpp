@@ -176,7 +176,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryO
 }
 
 ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
-    ROSType type = ROSType::ROS_NONE;
+    ROSType rtype = ROSType::ROS_NONE;
 
     //Looks for advertise and subscribe.
     if (CXXOperatorCallExpr* overload = dyn_cast<CXXOperatorCallExpr>(statement)){
@@ -187,14 +187,14 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             if (!assignee || !assignStmt) return ROSType::ROS_NONE;
 
             recordAssociations(assignee, assignStmt, type);
-            type = ROSType::PUB;
+            rtype = ROSType::PUB;
         } else if (type.compare("class " + SUBSCRIBER_CLASS) == 0) {
             const NamedDecl *assignee = getAssignee(overload);
             const MemberExpr *assignStmt = getAssignStmt(overload);
             if (!assignee || !assignStmt) return ROSType::ROS_NONE;
 
             recordAssociations(assignee, assignStmt, type);
-            type = ROSType::SUB;
+            rtype = ROSType::SUB;
         }
     } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
         if (isNodeHandlerObj(cxxExpr)) {
@@ -202,10 +202,10 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             recordParentNodeHandle(cxxExpr);
         } else if (isSubscriberObj(cxxExpr)) {
             recordParentSubscribe(cxxExpr);
-            type = ROSType::SUB;
+            rtype = ROSType::SUB;
         } else if (isPublisherObj(cxxExpr)) {
             recordParentPublish(cxxExpr);
-            type = ROSType::PUB;
+            rtype = ROSType::PUB;
         }
     }
 
@@ -214,16 +214,16 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
         //Deal with the expression.
         if (isPublish(callExpr)) {
             recordPublish(callExpr);
-            type = ROSType::PUB;
+            rtype = ROSType::PUB;
         } else if (isSubscribe(callExpr)) {
             recordSubscribe(callExpr);
-            type = ROSType::SUB;
+            rtype = ROSType::SUB;
         } else if (isAdvertise(callExpr)) {
             recordAdvertise(callExpr);
         }
     }
 
-    return type;
+    return rtype;
 }
 
 bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
@@ -304,6 +304,7 @@ void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExp
     //Sets the type.
     if (type.compare("class " + PUBLISHER_CLASS) == 0){
         currentPublisher = assigneeNode;
+        currentPublisherOutdated = assigneeNode;
     } else {
         currentSubscriber = assigneeNode;
     }
@@ -659,6 +660,7 @@ void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNo
     //Keeps track of the node being published/subscribed.
     if (type == RexNode::PUBLISHER) {
         currentPublisher = dst;
+        currentPublisherOutdated = dst;
     } else {
         currentSubscriber = dst;
     }

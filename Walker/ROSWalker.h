@@ -49,8 +49,8 @@ private:
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
     void recordControlFlow(const DeclRefExpr* expr);
-    void recordParentFunction(const Stmt* statement, RexNode* baseItem);
-    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem);
+    RexEdge* recordParentFunction(const Stmt* statement, RexNode* baseItem);
+    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem, RexEdge* callEdge);
 
     //Callback Recorder
     void checkForCallbacks(const FunctionDecl* decl);

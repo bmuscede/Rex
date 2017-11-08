@@ -155,14 +155,14 @@ void ROSWalker::recordFieldDecl(const FieldDecl* decl){
 }
 
 void ROSWalker::handleFullPub(const Stmt* statement){
-    //Gets the last publisher.
-    if (!currentPublisher) return;
+    //Gets the publisher.
+    if (!currentPublisherOutdated) return;
 
     //Parent Function Relation Adder.
-    recordParentFunction(statement, currentPublisher);
+    RexEdge* callEdge = recordParentFunction(statement, currentPublisherOutdated);
 
     //Control Structure Adder.
-    recordROSControl(statement, currentPublisher);
+    recordROSControl(statement, currentPublisherOutdated, callEdge);
 }
 
 void ROSWalker::recordCallExpr(const CallExpr* expr){
@@ -314,13 +314,14 @@ void ROSWalker::recordControlFlow(const DeclRefExpr* expr){
     refNode->addSingleAttribute(CONTROL_FLAG, "1");
 }
 
-void ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseItem){
+RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseItem){
     //Gets the parent function.
     const FunctionDecl* decl = getParentFunction(statement);
     RexNode* funcNode = graph->findNode(generateID(decl));
 
     //Checks if an edge already exists.
-    if (graph->doesEdgeExist(generateID(decl), baseItem->getID(), RexEdge::CALLS)) return;
+    if (graph->doesEdgeExist(generateID(decl), baseItem->getID(), RexEdge::CALLS))
+        return graph->findEdge(generateID(decl), baseItem->getID(), RexEdge::CALLS);
 
     //Adds a call relation between the two.
     RexEdge* edge;
@@ -330,9 +331,10 @@ void ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseItem){
         edge = new RexEdge(generateID(decl), baseItem, RexEdge::CALLS);
     }
     graph->addEdge(edge);
+    return edge;
 }
 
-void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
+void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem, RexEdge* callsRel){
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
     bool isControlStmt = false;
@@ -367,15 +369,28 @@ void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
             isControlStmt = true;
             break;
         }
-
+        auto curSwitchStmt = parent[0].get<clang::SwitchStmt>();
+        if (curSwitchStmt && isa<clang::SwitchStmt>(curSwitchStmt)){
+            isControlStmt = true;
+            break;
+        }
         parent = Context->getParents(parent[0]);
     }
 
     //Records the relationship.
     if (isControlStmt){
         rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "1");
-    } else {
+    } else if (rosItem->getSingleAttribute(ROS_CONTROL_FLAG).compare("0") == 0) {
         rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "0");
+    }
+
+    //Now, adds it on the calls edge.
+    if (callsRel){
+        if (isControlStmt){
+            callsRel->addSingleAttribute(ROS_CONTROL_FLAG, "1");
+        } else if (callsRel->getSingleAttribute(ROS_CONTROL_FLAG).compare("1") != 0) {
+            callsRel->addSingleAttribute(ROS_CONTROL_FLAG, "0");
+        }
     }
 }
 
