@@ -655,7 +655,9 @@ void runScript(string line, po::options_description desc){
     bool continueLoop = true;
     while(!scriptFile.eof() && continueLoop) {
         getline(scriptFile, curLine);
-        continueLoop = !processCommand(curLine);
+        if (curLine.size() > 0 && curLine[0] == '#') continue;
+
+        continueLoop = processCommand(curLine);
     }
 
     scriptFile.close();
@@ -722,7 +724,7 @@ void parseSimpleMode(int argc, const char** argv) {
 }
 
 bool processCommand(string line){
-    if (line.compare("") == 0) return false;
+    if (line.compare("") == 0) return true;
 
     //Checks which option is used.
     if (!line.compare(0, HELP_ARG.size(), HELP_ARG) &&
@@ -732,7 +734,7 @@ bool processCommand(string line){
             (line[ABOUT_ARG.size()] == ' ' || line.size() == ABOUT_ARG.size())) {
         handleAbout();
     } else if (!line.compare(0, EXIT_ARG.size(), EXIT_ARG) &&
-            (line[EXIT_ARG.size()] == ' ' || line[EXIT_ARG.size()] == '!') || line.size() == EXIT_ARG.size()) {
+            (line[EXIT_ARG.size()] == ' ' || line[EXIT_ARG.size()] == '!' || line.size() == EXIT_ARG.size())) {
         if (line.at(line.size() - 1) == '!') return false;
         return !handleExit();
     } else if (!line.compare(0, GEN_ARG.size(), GEN_ARG) &&
@@ -756,6 +758,8 @@ bool processCommand(string line){
     } else {
         cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
     }
+
+    return true;
 }
 
 /**
