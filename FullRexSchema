@@ -20,8 +20,7 @@ publish		rosPublisher	rosTopic
 subscribe	rosTopic	rosSubscriber
 reference	rosNodeHandle	rosMsg
 advertise	rosPublisher	rosTopic
-subscribe	rosSubscriber	rosTopic
-call		cAsgNds		cAsgNds
+call		cRoot		cRoot
 write		cFunction	cVariable
 read		cVariable	cFunction		
 
@@ -106,6 +105,7 @@ rosPublisher {
 	class_style = 6
 	numAttributes
 	rosNumber
+	isUnderControl = 0
 }
 
 rosTopic {
@@ -114,3 +114,6 @@ rosTopic {
 	class_style = 5
 }
 
+(call) {
+	isUnderControl = 0
+}
