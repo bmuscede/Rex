@@ -35,7 +35,8 @@ public:
 private:
     const std::string CONTROL_FLAG = "isControlFlow";
     const std::string ROS_CONTROL_FLAG = "isUnderControl";
-
+    const std::string PARAM_FLAG = "isParam";
+    
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
     void recordClassDecl(const CXXRecordDecl* decl);

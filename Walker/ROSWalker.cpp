@@ -134,6 +134,8 @@ void ROSWalker::recordVarDecl(const VarDecl* decl){
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::VARIABLE);
     node->addSingleAttribute(CONTROL_FLAG, "0");
+    if (isa<ParmVarDecl>(decl)) node->addSingleAttribute(PARAM_FLAG, "1");
+    else node->addSingleAttribute(PARAM_FLAG, "0");
     graph->addNode(node);
 
     //Get the parent.
