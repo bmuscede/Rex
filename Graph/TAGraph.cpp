@@ -211,6 +211,38 @@ string TAGraph::checkCorrectness(){
     return correctnessMsg;
 }
 
+bool TAGraph::resolveComponents(map<string, vector<string>> databaseMap){
+    //Go through the list of nodes.
+    for (auto entry : idList){
+        RexNode* curNode = entry.second;
+        if (curNode->getType() != RexNode::CLASS) continue;
+
+        //Get the filename.
+        vector<string> filenames = curNode->getMultiAttribute(FILENAME_ATTR);
+        for (string curFN : filenames){
+            //Gets a list of components
+            vector<string> components = databaseMap[curFN];
+
+            for (string curComp : components){
+                //Creates the node.
+                RexNode* compNode;
+                if (!doesNodeExist(curComp)){
+                    compNode = new RexNode(curComp, curComp, RexNode::COMPONENT);
+                    addNode(compNode);
+                } else {
+                    compNode = findNode(curComp);
+                }
+
+                //Adds the relationship.
+                RexEdge* edge = new RexEdge(compNode, curNode, RexEdge::COMP_CONTAINS);
+                addEdge(edge);
+            }
+        }
+    }
+
+    return true;
+}
+
 void TAGraph::resolveUnestablishedEdges(){
     //We go through our edges.
     for(auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++) {

@@ -31,6 +31,7 @@
 #include <fstream>
 #include "RexHandler.h"
 #include "../Walker/ROSConsumer.h"
+#include "../JSON/json.h"
 
 using namespace std;
 using namespace clang::tooling;
@@ -196,6 +197,31 @@ bool RexHandler::outputAllModels(std::string baseFileName){
     }
 
     return succ;
+}
+
+/**
+ * Resolves the components in the model.
+ * @param databasePaths The paths to potential compilation databases.
+ * @return A boolean indicating success.
+ */
+bool RexHandler::resolveComponents(std::vector<path> databasePaths){
+    map<string, string> databaseMap;
+
+    //First, from the path we resolve all compilation databases.
+    for (path curPath : databasePaths){
+        databaseMap = addDirectory(curPath, databaseMap);
+    }
+
+    //Count the number of keys.
+    cout << databaseMap.size() << " compilation databases were detected!" << endl;
+    if (databaseMap.size() == 0) return false;
+    cout << "Now resolving..." << endl;
+
+    //Go through each JSON file.
+    map<string, vector<string>> results = resolveJSON(databaseMap);
+
+    //Goes through each of the graphs.
+    return ParentWalker::resolveAllTAModels(results);
 }
 
 /**
@@ -450,6 +476,75 @@ int RexHandler::removeDirectory(path directory){
 
     return numRemoved;
 }
+
+map<string, string> RexHandler::addDirectory(path directory, map<string, string> databases){
+    vector<path> interiorDir = vector<path>();
+    directory_iterator endIter;
+
+    //Start by iterating through and inspecting each file.
+    for (directory_iterator iter(directory); iter != endIter; iter++){
+        //Check what the current file is.
+        if (is_regular_file(iter->path())){
+            //Check the file name.
+            string fn = iter->path().filename().string();
+
+            //Adds if its a compilation database.
+            if (fn.compare(COMPILATION_DB_NAME) == 0){
+                databases[directory.string()] = canonical(iter->path()).string();
+            }
+        } else if (is_directory(iter->path())){
+            //Add the directory to the search system.
+            interiorDir.push_back(iter->path());
+        }
+    }
+
+    //Next, goes to all the internal directories.
+    for (path cur : interiorDir){
+        databases = addDirectory(cur, databases);
+    }
+
+    return databases;
+}
+
+/**
+ * Generates a collection of file to components.
+ * @param databases The list of JSON databases.
+ * @return A mapping from file to component name.
+ */
+map<string, vector<string>> RexHandler::resolveJSON(map<string, string> databases){
+    map<string, vector<string>> resultMap;
+
+    //Loop through the list of databases.
+    for (auto entry : databases){
+        //Gets the JSON objects.
+        Json::Value root;
+
+        //Load the JSON file.
+        std::ifstream jsonFile(entry.second, std::ifstream::binary);
+        jsonFile >> root;
+        if (root.isNull()) continue;
+
+        //Now, we loop through each entry.
+        bool loop = true;
+        int i = 0;
+        while (loop){
+            Json::Value node = root[i];
+            if (node.isNull()){
+                loop = false;
+                continue;
+            }
+
+            //Get the file.
+            string filename = node["file"].asString();
+            resultMap[filename].push_back(entry.first);
+
+            i++;
+        }
+        jsonFile.close();
+    }
+
+    return resultMap;
+};
 
 /**
  * Adds libraries from the current supplied file and tells

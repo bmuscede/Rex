@@ -49,6 +49,7 @@ const static string OUT_ARG = "output";
 const static string ADD_ARG = "add";
 const static string REMOVE_ARG = "remove";
 const static string LIST_ARG = "list";
+const static string COMPONENT_ARG = "resolve";
 const static string SCRIPT_ARG = "script";
 
 /** Rex Command Handler */
@@ -210,13 +211,24 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     //Generates the help for script.
     (*helpMap)[SCRIPT_ARG] = RexHelp(SCRIPT_ARG, po::options_description("Options"));
     helpMap->at(SCRIPT_ARG).desc->add_options()
-            ("help,h", "Print help message for list.")
+            ("help,h", "Print help message for script.")
             ("script,s", po::value<std::string>(), "The script file to run.");
     ss.str(string());
     ss << *helpMap->at(SCRIPT_ARG).desc;
     (*helpString)[SCRIPT_ARG] = string("Script Help\nUsage: " + SCRIPT_ARG + " script\nRuns a script that can "
             "handle any of the commands in this program automatically.\nThe script will terminate when it reaches"
             " the end of the script or hits quit.\n\n" + ss.str());
+
+    //Generates the help for resolve-components.
+    (*helpMap)[COMPONENT_ARG] = RexHelp(COMPONENT_ARG, po::options_description("Options"));
+    helpMap->at(COMPONENT_ARG).desc->add_options()
+            ("help,h", "Print help message for list.")
+            ("dir,d", po::value<std::string>(), "The script file to run.");
+    ss.str(string());
+    ss << *helpMap->at(COMPONENT_ARG).desc;
+    (*helpString)[COMPONENT_ARG] = string("Resolve Help\nUsage: " + COMPONENT_ARG + " directory\n"
+            "Resolves components for each TA file using some base directory\ncontaining compilation databases "
+            "for each TA graph.\nThis command will be run for each TA file in the queue.\n\n" + ss.str());
 }
 
 /**
@@ -235,7 +247,8 @@ void handleHelp(string line, map<string, string> messages) {
         "add            : Adds a file/directory to be processed.\n"
         "remove         : Removes a file/directory from the queue.\n"
         "list           : Lists the current state of Rex.\n"
-        "script         : Runs a script that handles program commands.\n\n"
+        "script         : Runs a script that handles program commands.\n"
+        "resolve        : Resolves components from compilation databases.\n\n"
         "For more help type \"help [argument name]\" for more details.";
 
     auto tokens = tokenizeBySpace(line);
@@ -667,6 +680,52 @@ void runScript(string line, po::options_description desc){
 }
 
 /**
+ * Resolves all the components for each class in Rex. Can only be
+ * done if there are specific compilation databases for each package.
+ * @param line The command line.
+ * @param desc The program options for this command.
+ */
+void resolveComponents(string line, po::options_description desc){
+    //Tokenize by space.
+    vector<string> tokens = tokenizeBySpace(line);
+
+    //Next, we check for errors.
+    if (tokens.size() == 1) {
+        cerr << "Error: You must pass at least one directory that contains compile_commands.json files." << endl;
+        return;
+    } else if (masterHandle->getNumGraphs() == 0){
+        cerr << "Error: There must be at least one model in the processing queue." << endl;
+        return;
+    }
+
+    //Next, we loop through to add the paths to a vector.
+    vector<path> databasePaths;
+    for (int i = 1; i < tokens.size(); i++){
+        path curPath = tokens.at((unsigned int) i);
+
+        //Check if the element exists.
+        if (!exists(curPath)){
+            cerr << "Error: The path " << curPath << " does not exist. Not adding!" << endl;
+            continue;
+        } else if (!is_directory(curPath)) {
+            cerr << "Error: The path " << curPath << " is not a directory. Not adding!" << endl;
+        } else {
+            databasePaths.push_back(curPath);
+        }
+    }
+
+    //Next, tells the master handle to resolve.
+    cout << "Searching for compilation databases..." << endl;
+    bool success = masterHandle->resolveComponents(databasePaths);
+
+    if (success){
+        cout << "Components were resolved in all models!" << endl;
+    } else {
+        cerr << "There was an error resolving components in the models." << endl;
+    }
+}
+
+/**
  * Simple method that prints the header for Rex
  * to display to users what program they're running.
  */
@@ -755,6 +814,9 @@ bool processCommand(string line){
     } else if (!line.compare(0, SCRIPT_ARG.size(), SCRIPT_ARG) &&
             (line[SCRIPT_ARG.size()] == ' ' || line.size() == SCRIPT_ARG.size())) {
         runScript(line, *(helpInfo.at(SCRIPT_ARG).desc.get()));
+    } else if (!line.compare(0, COMPONENT_ARG.size(), COMPONENT_ARG) &&
+            (line[COMPONENT_ARG.size()] == ' ' || line.size() == COMPONENT_ARG.size())) {
+        resolveComponents(line, *(helpInfo.at(COMPONENT_ARG).desc.get()));
     } else {
         cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
     }

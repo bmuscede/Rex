@@ -36,6 +36,7 @@ public:
     static int generateTAModel(int num, std::string fileName);
     static int generateAllTAModels(std::vector<std::string> fileName);
     static void setCurrentGraphMinMode(bool minMode);
+    static bool resolveAllTAModels(std::map<std::string, std::vector<std::string>> databaseMap);
 
     //Processing Operations
     void addLibrariesToIgnore(std::vector<std::string> libraries);
@@ -43,6 +44,8 @@ public:
     static std::string CALLBACK_FLAG;
 
 protected:
+    const std::string FILENAME_ATTR = "filename";
+
     enum ROSType {ROS_NONE, PUB, SUB};
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;
@@ -89,6 +92,7 @@ protected:
     std::string generateID(const NamedDecl* decl);
     std::string generateName(const NamedDecl* decl);
     std::string validateStringArg(std::string name);
+    std::string generateFileName(const NamedDecl* decl);
 
     //Variable Access Methods
     enum AccessMethod {NONE, BOTH, READ, WRITE};

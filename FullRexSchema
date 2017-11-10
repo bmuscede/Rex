@@ -6,6 +6,7 @@ SCHEME TUPLE :
 $INHERIT	cArchitecturalNds	cRoot
 $INHERIT	cAsgNds			cRoot
 $INHERIT	rosMsg			cRoot
+$INHERIT	cComponent		cAsgNds
 $INHERIT	cClass			cAsgNds
 $INHERIT	cFunction		cAsgNds
 $INHERIT	cVariable		cAsgNds
@@ -15,6 +16,7 @@ $INHERIT	rosSubscriber		rosMsg
 $INHERIT	rosNodeHandle		rosMsg
 
 //Relationships
+compContain	cComponent	cClass
 contain		cRoot		cRoot
 publish		rosPublisher	rosTopic
 subscribe	rosTopic	rosSubscriber
@@ -59,6 +61,12 @@ cArchitecturalNds {
 rosMsg {
 	class_style = 4
 	color = (0.0 0.0 1.0)
+}
+
+cComponent {
+	color = (0.7 0.3 0.1)
+	labelcolor = (0.0 0.0 0.0)
+	class_style = 2
 }
 
 cFunction {

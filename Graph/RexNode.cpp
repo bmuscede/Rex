@@ -33,6 +33,9 @@ string RexNode::typeToString(RexNode::NodeType type){
 
         case FILE:
             return "cFile";
+
+        case COMPONENT:
+            return "cComponent";
     }
 
     return "cRoot";

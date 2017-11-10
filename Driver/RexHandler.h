@@ -55,6 +55,7 @@ public:
     /** Output Helpers */
     bool outputIndividualModel(int modelNum, std::string fileName = std::string());
     bool outputAllModels(std::string baseFileName);
+    bool resolveComponents(std::vector<path> databasePaths);
 
     /** Add and Remove Functions */
     int addByPath(path curPath);
@@ -70,6 +71,7 @@ private:
     const std::string INCLUDE_DIR_LOC = "--extra-arg=-I" + INCLUDE_DIR;
     static const std::string DEFAULT_LOAD;
     const int BASE_LEN = 2;
+    const std::string COMPILATION_DB_NAME = "compile_commands.json";
 
     /** C/C++ Extensions */
     const std::string C_FILE_EXT = ".c";
@@ -91,6 +93,10 @@ private:
     int addDirectory(path directory);
     int removeFile(path file);
     int removeDirectory(path directory);
+
+    /** Resolve Helper Methods */
+    std::map<std::string, std::string> addDirectory(path directory, std::map<std::string, std::string> databases);
+    std::map<std::string, std::vector<std::string>> resolveJSON(std::map<std::string, std::string> databases);
 
     /** Loading Helper Methods */
     std::vector<std::string> loadLibraries(std::string libs);

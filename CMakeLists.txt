@@ -34,7 +34,10 @@ set(SOURCE_FILES
         Walker/ROSWalker.cpp
         Walker/ROSWalker.h
         Walker/ROSConsumer.cpp
-        Walker/ROSConsumer.h)
+        Walker/ROSConsumer.h
+		JSON/jsoncpp.cpp
+        JSON/json-forwards.h
+        JSON/json.h)
 
 add_executable(Rex ${SOURCE_FILES})
 

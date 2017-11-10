@@ -120,6 +120,8 @@ void ROSWalker::recordClassDecl(const CXXRecordDecl *decl){
 
     //Creates the node.
     RexNode* node = new RexNode(ID, name, RexNode::CLASS);
+    string filename = generateFileName(decl);
+    node->addMultiAttribute(FILENAME_ATTR, filename);
     graph->addNode(node);
 
     //Get the parent.

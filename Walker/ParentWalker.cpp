@@ -71,6 +71,16 @@ void ParentWalker::setCurrentGraphMinMode(bool minMode){
     graph->setMinMode(minMode);
 }
 
+bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
+    //Goes through the graphs and forces them to resolve.
+    for (TAGraph* curGraph : graphList){
+        bool status  = curGraph->resolveComponents(databaseMap);
+        if (!status) return false;
+    }
+
+    return true;
+}
+
 void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
     ignoreLibraries = libraries;
 }
@@ -331,6 +341,8 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bo
         string className = parentFinal->getQualifiedNameAsString();
 
         classNode = new RexNode(className, className, RexNode::NodeType::CLASS);
+        string filename = generateFileName(parentFinal);
+        classNode->addMultiAttribute(FILENAME_ATTR, filename);
         graph->addNode(classNode);
     }
 
@@ -853,6 +865,21 @@ string ParentWalker::generateName(const NamedDecl* decl){
     }
 
     return name;
+}
+
+string ParentWalker::generateFileName(const NamedDecl* decl){
+    //Gets the file name.
+    SourceManager& SrcMgr = Context->getSourceManager();
+    const FileEntry* Entry = SrcMgr.getFileEntryForID(SrcMgr.getFileID(decl->getSourceRange().getBegin()));
+
+    if (Entry == nullptr) return string();
+
+    string fileName(Entry->getName());
+
+    //Use boost to get the absolute path.
+    boost::filesystem::path fN = boost::filesystem::path(fileName);
+    string newPath = canonical(fN.normalize()).string();
+    return newPath;
 }
 
 string ParentWalker::validateStringArg(string name){

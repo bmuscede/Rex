@@ -12,6 +12,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
         case CONTAINS:
             return "contain";
 
+        case COMP_CONTAINS:
+            return "compContain";
+
         case REFERENCES:
             return "reference";
 
