@@ -122,16 +122,21 @@ void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
     addParentRelationship(decl, ID);
 }
 
-void ROSWalker::recordClassDecl(const CXXRecordDecl *decl){
+void ROSWalker::recordClassDecl(const CXXRecordDecl *decl) {
     //Generates some fields.
     string ID = generateID(decl);
     string name = generateName(decl);
 
     //Creates the node.
-    RexNode* node = new RexNode(ID, name, RexNode::CLASS);
+    if (!graph->doesNodeExist(ID)) {
+        RexNode *node = new RexNode(ID, name, RexNode::CLASS);
+        graph->addNode(node);
+    }
+
+    //Resolves the filename.
     string filename = generateFileName(decl);
+    RexNode* node = graph->findNode(ID);
     node->addMultiAttribute(FILENAME_ATTR, filename);
-    graph->addNode(node);
 
     //Get the parent.
     addParentRelationship(decl, ID);
