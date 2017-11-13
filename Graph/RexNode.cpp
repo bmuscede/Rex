@@ -4,6 +4,7 @@
 
 #include <openssl/md5.h>
 #include <cstring>
+#include <algorithm>
 #include "RexNode.h"
 
 using namespace std;
@@ -107,6 +108,10 @@ void RexNode::addSingleAttribute(std::string key, std::string value){
 }
 
 void RexNode::addMultiAttribute(std::string key, std::string value){
+    //Get the vector for the key.
+    vector<string> kV = multiAttributes[key];
+    if (std::find(kV.begin(), kV.end(), value) != kV.end()) return;
+
     //Add the pair to the list.
     multiAttributes[key].push_back(value);
 }

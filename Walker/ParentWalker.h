@@ -93,6 +93,7 @@ protected:
     std::string generateName(const NamedDecl* decl);
     std::string validateStringArg(std::string name);
     std::string generateFileName(const NamedDecl* decl);
+    void recordParentClassLoc(const FunctionDecl* decl);
 
     //Variable Access Methods
     enum AccessMethod {NONE, BOTH, READ, WRITE};
@@ -134,6 +135,7 @@ private:
     void recordROSActionMinimal(const NamedDecl* decl, std::string type, bool pubEdge = true);
     const NamedDecl* getAssignee(const CXXOperatorCallExpr* parent);
     const MemberExpr* getAssignStmt(const CXXOperatorCallExpr* parent);
+    const CXXRecordDecl* getParentClass(const NamedDecl* decl);
 
     //ROSHandlers - Helpers
     bool isClass(const CXXConstructExpr* ctor, std::string className);

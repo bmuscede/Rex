@@ -51,6 +51,9 @@ bool ROSWalker::VisitVarDecl(VarDecl* decl){
     //Record the variable declaration.
     recordVarDecl(decl);
 
+    //Next, check for parent class information.
+    recordParentClassLoc(decl->getAsFunction());
+
     return true;
 }
 
@@ -64,6 +67,9 @@ bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     //Record the function declaration.
     recordFieldDecl(decl);
 
+    //Next, check for parent class information.
+    recordParentClassLoc(decl->getAsFunction());
+
     return true;
 }
 
@@ -73,6 +79,9 @@ bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
     //Record the function declaration.
     recordFunctionDecl(decl);
     checkForCallbacks(decl);
+
+    //Next, check for parent class information.
+    recordParentClassLoc(decl);
 
     return true;
 }

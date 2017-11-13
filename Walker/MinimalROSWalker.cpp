@@ -26,6 +26,9 @@ bool MinimalROSWalker::VisitVarDecl(VarDecl* decl) {
     //Now, we just handle the varDecl for minimal ROS handler.
     handleMinimalVarDecl(decl);
 
+    //Next, check for parent class information.
+    recordParentClassLoc(decl->getAsFunction());
+
     return true;
 }
 
@@ -34,6 +37,9 @@ bool MinimalROSWalker::VisitFieldDecl(FieldDecl* decl) {
 
     //Now, we just handle the fieldDecl for minimal ROS handler.
     handleMinimalFieldDecl(decl);
+
+    //Next, check for parent class information.
+    recordParentClassLoc(decl->getAsFunction());
 
     return true;
 }

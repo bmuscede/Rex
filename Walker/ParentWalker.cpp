@@ -390,6 +390,30 @@ const MemberExpr* ParentWalker::getAssignStmt(const CXXOperatorCallExpr* parent)
     return lastItem;
 }
 
+const CXXRecordDecl* ParentWalker::getParentClass(const NamedDecl* decl){
+    bool getParent = true;
+
+    //Get the parent.
+    auto parent = Context->getParents(*decl);
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        auto currentDecl = parent[0].get<clang::NamedDecl>();
+        if (currentDecl && isa<clang::CXXRecordDecl>(currentDecl)){
+            return dyn_cast<CXXRecordDecl>(currentDecl);
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    return nullptr;
+}
+
 bool ParentWalker::isClass(const CXXConstructExpr* ctor, string className){
     //Get the underlying class.
     QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
@@ -870,16 +894,31 @@ string ParentWalker::generateName(const NamedDecl* decl){
 string ParentWalker::generateFileName(const NamedDecl* decl){
     //Gets the file name.
     SourceManager& SrcMgr = Context->getSourceManager();
-    const FileEntry* Entry = SrcMgr.getFileEntryForID(SrcMgr.getFileID(decl->getSourceRange().getBegin()));
+    auto fullLoc = Context->getFullLoc(decl->getLocStart());
+    if (!fullLoc.isValid()) return string();
 
-    if (Entry == nullptr) return string();
-
-    string fileName(Entry->getName());
+    string fileName = SrcMgr.getFilename(fullLoc).str();
 
     //Use boost to get the absolute path.
     boost::filesystem::path fN = boost::filesystem::path(fileName);
     string newPath = canonical(fN.normalize()).string();
     return newPath;
+}
+
+void ParentWalker::recordParentClassLoc(const FunctionDecl* decl){
+    if (!decl) return;
+    auto funcDec = decl->getDefinition();
+    if (!funcDec) return;
+
+    //Gets the parent class.
+    const CXXRecordDecl* classDec = getParentClass(decl);
+    if (!classDec) return;
+    RexNode* parentClass = graph->findNode(generateID(classDec));
+    if (!parentClass) return;
+
+    //Generates the filename.
+    string baseFN = generateFileName(funcDec);
+    parentClass->addMultiAttribute(FILENAME_ATTR, baseFN);
 }
 
 string ParentWalker::validateStringArg(string name){
