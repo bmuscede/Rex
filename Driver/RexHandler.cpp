@@ -535,7 +535,7 @@ map<string, vector<string>> RexHandler::resolveJSON(map<string, string> database
             }
 
             //Get the file.
-            string filename = node["file"].asString();
+            string filename = canonical(path(node["file"].asString())).string();
             resultMap[filename].push_back(entry.first);
 
             i++;
