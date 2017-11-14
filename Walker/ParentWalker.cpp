@@ -338,12 +338,17 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bo
     //First, we want to add the class as a node.
     RexNode* classNode = nullptr;
     if (parentFinal){
-        string className = parentFinal->getQualifiedNameAsString();
+        string ID = generateID(decl);
+        string name = generateName(decl);
 
-        classNode = new RexNode(className, className, RexNode::NodeType::CLASS);
+        //Checks if we add the node.
+        if (!graph->doesNodeExist(ID)) {
+            classNode = new RexNode(ID, name, RexNode::NodeType::CLASS);
+            graph->addNode(classNode);
+        }
+
         string filename = generateFileName(parentFinal);
         classNode->addMultiAttribute(FILENAME_ATTR, filename);
-        graph->addNode(classNode);
     }
 
     //Next, we make our Rex variable object.
