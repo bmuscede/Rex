@@ -35,6 +35,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case PUBLISH:
             return "publish";
+
+        case VAR_WRITES:
+            return "varWrite";
     }
 
     return "unknown";

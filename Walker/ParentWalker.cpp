@@ -86,20 +86,27 @@ void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
 }
 
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
+    map<string, ParentWalker::AccessMethod> lhsMap;
+    map<string, ParentWalker::AccessMethod> rhsMap;
     map<string, ParentWalker::AccessMethod> usageMap;
 
     //Checks the lefthand side.
     Expr* lhs = op->getLHS();
     if (isa<DeclRefExpr>(lhs)){
-        usageMap[generateID(dyn_cast<DeclRefExpr>(lhs)->getDecl())] = determineAccess(true, op->getOpcode());
+        ParentWalker::AccessMethod method = determineAccess(true, op->getOpcode());
+        usageMap[generateID(dyn_cast<DeclRefExpr>(lhs)->getDecl())] = method;
+        lhsMap[generateID(dyn_cast<DeclRefExpr>(lhs)->getDecl())] = method;
     } else if (isa<MemberExpr>(lhs)) {
-        usageMap[generateID(dyn_cast<MemberExpr>(lhs)->getMemberDecl())] = determineAccess(true, op->getOpcode());
+        ParentWalker::AccessMethod method = determineAccess(true, op->getOpcode());
+        usageMap[generateID(dyn_cast<MemberExpr>(lhs)->getMemberDecl())] = method;
+        lhsMap[generateID(dyn_cast<MemberExpr>(lhs)->getMemberDecl())] = method;
     } else  {
         //Get the opcode.
         ParentWalker::AccessMethod method = determineAccess(true, op->getOpcode());
 
         //Get the usage map.
         usageMap = buildAccessMap(method, lhs);
+        lhsMap = usageMap;
 
         //Iterates through the map and combines.
         map<string, ParentWalker::AccessMethod>::iterator it;
@@ -107,6 +114,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
             if ((usageMap[it->first] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
                  usageMap[it->first] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ)){
                 usageMap[it->first] = ParentWalker::BOTH;
+                lhsMap[it->first] = ParentWalker::BOTH;
             }
         }
     }
@@ -123,8 +131,10 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
                 (usageMap[addID] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
                         usageMap[addID] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ)){
             usageMap[addID] = ParentWalker::AccessMethod::BOTH;
+            rhsMap[addID] = ParentWalker::AccessMethod::BOTH;
         } else {
             usageMap[addID] = method;
+            rhsMap[addID] = method;
         }
     } else {
         //Get the opcode.
@@ -139,17 +149,37 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
                 (usageMap[it->first] == ParentWalker::AccessMethod::READ && it->second == ParentWalker::AccessMethod::WRITE ||
                  usageMap[it->first] == ParentWalker::AccessMethod::WRITE && it->second == ParentWalker::AccessMethod::READ)){
                 usageMap[it->first] = ParentWalker::AccessMethod::BOTH;
+                rhsMap[it->first] = ParentWalker::AccessMethod::BOTH;
             } else {
                 usageMap[it->first] = it->second;
+                rhsMap[it->first] = it->second;
             }
 
             //Now, checks to see what the method is.
             if (usageMap[it->first] == ParentWalker::AccessMethod::READ && method == ParentWalker::AccessMethod::WRITE ||
                 usageMap[it->first] == ParentWalker::AccessMethod::WRITE && method == ParentWalker::AccessMethod::READ){
                 usageMap[it->first] = ParentWalker::AccessMethod::BOTH;
+                rhsMap[it->first] = it->second;
             }
         }
 
+    }
+
+    //Next, we process the relations between variables.
+    for (auto lhsItem : lhsMap){
+        for (auto rhsItem : rhsMap){
+            if ((lhsItem.second == ParentWalker::BOTH || lhsItem.second == ParentWalker::WRITE) &&
+                    (rhsItem.second == ParentWalker::BOTH || rhsItem.second == ParentWalker::READ)){
+                //Get the variables.
+                RexNode* lhsNode = graph->findNode(lhsItem.first);
+                RexNode* rhsNode = graph->findNode(rhsItem.first);
+                if (!lhsNode || !rhsNode) continue;
+
+                //Add the edge.
+                RexEdge* edge = new RexEdge(rhsNode, lhsNode, RexEdge::VAR_WRITES);
+                graph->addEdge(edge);
+            }
+        }
     }
 
     return usageMap;
