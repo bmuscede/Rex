@@ -38,6 +38,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case VAR_WRITES:
             return "varWrite";
+
+        case VAR_INFLUENCE:
+            return "varInfluence";
     }
 
     return "unknown";

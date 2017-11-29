@@ -51,7 +51,15 @@ private:
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
     void recordControlFlow(const DeclRefExpr* expr);
     RexEdge* recordParentFunction(const Stmt* statement, RexNode* baseItem);
-    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem, RexEdge* callEdge);
+    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem);
+
+    //Var Recorders
+    std::vector<const NamedDecl*> getVars(const IfStmt* stmt);
+    std::vector<const NamedDecl*> getVars(const ForStmt* stmt);
+    std::vector<const NamedDecl*> getVars(const WhileStmt* stmt);
+    std::vector<const NamedDecl*> getVars(const DoStmt* stmt);
+    std::vector<const NamedDecl*> getVars(const SwitchStmt* stmt);
+    std::vector<const NamedDecl*> getVars(const Stmt* stmt);
 
     //Callback Recorder
     void checkForCallbacks(const FunctionDecl* decl);

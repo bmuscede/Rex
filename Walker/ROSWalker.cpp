@@ -180,7 +180,7 @@ void ROSWalker::handleFullPub(const Stmt* statement){
     RexEdge* callEdge = recordParentFunction(statement, currentPublisherOutdated);
 
     //Control Structure Adder.
-    recordROSControl(statement, currentPublisherOutdated, callEdge);
+    recordROSControl(statement, currentPublisherOutdated);
 }
 
 void ROSWalker::recordCallExpr(const CallExpr* expr){
@@ -352,10 +352,11 @@ RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseIte
     return edge;
 }
 
-void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem, RexEdge* callsRel){
+void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
     bool isControlStmt = false;
+    vector<const NamedDecl*> vars;
 
     //Get the parent.
     auto parent = Context->getParents(*baseStmt);
@@ -370,46 +371,91 @@ void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem, RexEdge
         auto curIfStmt = parent[0].get<clang::IfStmt>();
         if (curIfStmt && isa<clang::IfStmt>(curIfStmt)){
             isControlStmt = true;
+            vars = getVars(curIfStmt);
             break;
         }
         auto curForStmt = parent[0].get<clang::ForStmt>();
         if (curForStmt && isa<clang::ForStmt>(curForStmt)){
             isControlStmt = true;
+            vars = getVars(curForStmt);
             break;
         }
         auto curWhileStmt = parent[0].get<clang::WhileStmt>();
         if (curWhileStmt && isa<clang::WhileStmt>(curWhileStmt)){
             isControlStmt = true;
+            vars = getVars(curWhileStmt);
             break;
         }
         auto curDoStmt = parent[0].get<clang::DoStmt>();
         if (curDoStmt && isa<clang::DoStmt>(curDoStmt)){
             isControlStmt = true;
+            vars = getVars(curDoStmt);
             break;
         }
         auto curSwitchStmt = parent[0].get<clang::SwitchStmt>();
         if (curSwitchStmt && isa<clang::SwitchStmt>(curSwitchStmt)){
             isControlStmt = true;
+            vars = getVars(curSwitchStmt);
             break;
         }
         parent = Context->getParents(parent[0]);
     }
 
-    //Records the relationship.
-    if (isControlStmt){
-        rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "1");
-    } else if (rosItem->getSingleAttribute(ROS_CONTROL_FLAG).compare("0") == 0) {
-        rosItem->addSingleAttribute(ROS_CONTROL_FLAG, "0");
-    }
+    //Now, adds a relation from the control vars to the publisher.
+    if (!isControlStmt) return;
+    for (const NamedDecl* var : vars){
+        //Looks up the node of the var.
+        RexNode* varNode = graph->findNode(generateID(var));
+        RexEdge* infEdge;
+        if (varNode){
+            infEdge = new RexEdge(varNode, rosItem, RexEdge::VAR_INFLUENCE);
+        } else {
+            infEdge = new RexEdge(generateID(var), rosItem, RexEdge::VAR_INFLUENCE);
+        }
 
-    //Now, adds it on the calls edge.
-    if (callsRel){
-        if (isControlStmt){
-            callsRel->addSingleAttribute(ROS_CONTROL_FLAG, "1");
-        } else if (callsRel->getSingleAttribute(ROS_CONTROL_FLAG).compare("1") != 0) {
-            callsRel->addSingleAttribute(ROS_CONTROL_FLAG, "0");
+        graph->addEdge(infEdge);
+    }
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const IfStmt* stmt){
+    return getVars(stmt->getCond());
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const ForStmt* stmt){
+    return getVars(stmt->getCond());
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const WhileStmt* stmt){
+    return getVars(stmt->getCond());
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const DoStmt* stmt){
+    return getVars(stmt->getCond());
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const SwitchStmt* stmt){
+    return getVars(stmt->getCond());
+}
+
+vector<const NamedDecl*> ROSWalker::getVars(const Stmt* condition){
+    vector<const NamedDecl*> vars;
+
+    //Gets the children of this statement.
+    Stmt::const_child_range rng = condition->children();
+    for (Stmt::const_child_iterator it = rng.begin(); it != rng.end(); it++) {
+
+        if (isa<DeclRefExpr>(*it)){
+            //Adds the value to the array.
+            auto decl = dyn_cast<DeclRefExpr>(*it);
+            vars.push_back(dyn_cast<NamedDecl>(decl->getDecl()));
+        } else {
+            //Gets the children.
+            vector<const NamedDecl*> inner = getVars(*it);
+            vars.insert(vars.end(), inner.begin(), inner.end());
         }
     }
+
+    return vars;
 }
 
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
