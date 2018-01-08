@@ -25,6 +25,7 @@ advertise	rosPublisher	rosTopic
 call		cRoot		cRoot
 write		cFunction	cVariable
 read		cVariable	cFunction		
+varWrites	cVariable	cVariable
 
 SCHEME ATTRIBUTE :
 $ENTITY {

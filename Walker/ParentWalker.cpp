@@ -576,16 +576,18 @@ ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperato
     if (!lhs) return ParentWalker::AccessMethod::READ;
 
     switch(opcode){
-        case BinaryOperator::Opcode::BO_Assign:
         case BinaryOperator::Opcode::BO_AddAssign:
         case BinaryOperator::Opcode::BO_DivAssign:
-        case BinaryOperator::Opcode::BO_AndAssign:
         case BinaryOperator::Opcode::BO_MulAssign:
+        case BinaryOperator::Opcode::BO_SubAssign:
+            return ParentWalker::AccessMethod::BOTH;
+        case BinaryOperator::Opcode::BO_Assign:
+        case BinaryOperator::Opcode::BO_AndAssign:
         case BinaryOperator::Opcode::BO_OrAssign:
         case BinaryOperator::Opcode::BO_RemAssign:
         case BinaryOperator::Opcode::BO_ShlAssign:
         case BinaryOperator::Opcode::BO_ShrAssign:
-        case BinaryOperator::Opcode::BO_SubAssign:
+
         case BinaryOperator::Opcode::BO_XorAssign:
             return ParentWalker::AccessMethod::WRITE;
         case BinaryOperator::Opcode::BO_PtrMemD:
