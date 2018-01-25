@@ -51,7 +51,7 @@ private:
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
     void recordControlFlow(const DeclRefExpr* expr);
     RexEdge* recordParentFunction(const Stmt* statement, RexNode* baseItem);
-    void recordROSControl(const Stmt* baseStmt, RexNode* rosItem);
+    void recordASTControl(const Stmt* baseStmt, RexNode* rosItem);
 
     //Var Recorders
     std::vector<const NamedDecl*> getVars(const IfStmt* stmt);

@@ -180,7 +180,7 @@ void ROSWalker::handleFullPub(const Stmt* statement){
     RexEdge* callEdge = recordParentFunction(statement, currentPublisherOutdated);
 
     //Control Structure Adder.
-    recordROSControl(statement, currentPublisherOutdated);
+    recordASTControl(statement, currentPublisherOutdated);
 }
 
 void ROSWalker::recordCallExpr(const CallExpr* expr){
@@ -208,6 +208,9 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
                     new RexEdge(callerNode, calleeID, RexEdge::CALLS) :
                     new RexEdge(callerNode, calleeNode, RexEdge::CALLS);
     graph->addEdge(edge);
+
+    //Last, adds a relation if its a control structure.
+    recordASTControl(expr, calleeNode);
 }
 
 void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
@@ -352,7 +355,7 @@ RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseIte
     return edge;
 }
 
-void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
+void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
     bool isControlStmt = false;
@@ -408,9 +411,11 @@ void ROSWalker::recordROSControl(const Stmt* baseStmt, RexNode* rosItem){
         RexNode* varNode = graph->findNode(generateID(var));
         RexEdge* infEdge;
         if (varNode){
-            infEdge = new RexEdge(varNode, rosItem, RexEdge::VAR_INFLUENCE);
+            infEdge = new RexEdge(varNode, astItem, (astItem->getType() == RexNode::FUNCTION) ?
+                                                    RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
         } else {
-            infEdge = new RexEdge(generateID(var), rosItem, RexEdge::VAR_INFLUENCE);
+            infEdge = new RexEdge(generateID(var), astItem, (astItem->getType() == RexNode::FUNCTION) ?
+                                                            RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
         }
 
         graph->addEdge(infEdge);

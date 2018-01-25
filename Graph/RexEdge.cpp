@@ -41,6 +41,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case VAR_INFLUENCE:
             return "varInfluence";
+
+        case VAR_INFLUENCE_FUNC:
+            return "varInfFunc";
     }
 
     return "unknown";
