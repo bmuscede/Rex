@@ -36,6 +36,9 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
     } else if (UnaryOperator* unaryOp = dyn_cast<UnaryOperator>(statement)){
         auto accesses = getAccessType(unaryOp);
         recordVarUsage(getParentFunction(unaryOp), accesses);
+    } else if (DeclStmt* declOp = dyn_cast<DeclStmt>(statement)){
+        auto accesses = getAccessType(declOp);
+        recordVarUsage(getParentFunction(declOp), accesses);
     }
 
     return true;
@@ -295,7 +298,6 @@ void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalke
         RexNode* varNode = graph->findNode(varID);
 
         //Adds the edge.
-
         switch(it->second){
             case ParentWalker::AccessMethod::BOTH:
             case ParentWalker::AccessMethod::WRITE:
@@ -308,7 +310,7 @@ void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalke
 
                 if (it->second == ParentWalker::AccessMethod::WRITE) break;
             case ParentWalker::AccessMethod::READ:
-                if (!graph->doesEdgeExist(functionID, varID, RexEdge::READS)){
+                if (!graph->doesEdgeExist(varID, functionID, RexEdge::READS)){
                     RexEdge* edge = (varNode == nullptr) ?
                                     new RexEdge(varID, functionNode, RexEdge::READS) :
                                     new RexEdge(varNode, functionNode, RexEdge::READS);

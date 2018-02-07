@@ -85,6 +85,46 @@ void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
     ignoreLibraries = libraries;
 }
 
+map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const DeclStmt* op){
+    map<string, ParentWalker::AccessMethod> usageMap;
+
+    if (op->isSingleDecl()){
+        map<string, ParentWalker::AccessMethod> rhs;
+
+        //Gets the variable declared here.
+        auto var = dyn_cast<VarDecl>(op->getSingleDecl());
+        if (!var) return usageMap;
+
+        //Gets the expression.
+        auto expr = var->getInit();
+        usageMap[generateID(var)] = AccessMethod::WRITE;
+        rhs = buildAccessMap(AccessMethod::READ, expr);
+
+        //Generates the var linkage.
+        generateVarLinkage(usageMap, rhs);
+        usageMap.insert(rhs.begin(), rhs.end());
+    } else {
+        map<string, ParentWalker::AccessMethod> curUsage;
+        map<string, ParentWalker::AccessMethod>  curRHS;
+        for (auto it = op->decl_begin(); it != op->decl_end(); it++){
+            auto curVar = dyn_cast<VarDecl>(*it);
+            if (!curVar) continue;
+
+            //Gets the expression.
+            auto expr = curVar->getInit();
+            curUsage[generateID(curVar)] = AccessMethod::WRITE;
+            curRHS = buildAccessMap(AccessMethod::READ, expr);
+
+            //Generates the var linkage.
+            generateVarLinkage(curUsage, curRHS);
+            usageMap.insert(curUsage.begin(), curUsage.end());
+            usageMap.insert(curRHS.begin(), curRHS.end());
+        }
+    }
+
+    return usageMap;
+}
+
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
     map<string, ParentWalker::AccessMethod> lhsMap;
     map<string, ParentWalker::AccessMethod> rhsMap;
@@ -165,23 +205,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
 
     }
 
-    //Next, we process the relations between variables.
-    for (auto lhsItem : lhsMap){
-        for (auto rhsItem : rhsMap){
-            if ((lhsItem.second == ParentWalker::BOTH || lhsItem.second == ParentWalker::WRITE) &&
-                    (rhsItem.second == ParentWalker::BOTH || rhsItem.second == ParentWalker::READ)){
-                //Get the variables.
-                RexNode* lhsNode = graph->findNode(lhsItem.first);
-                RexNode* rhsNode = graph->findNode(rhsItem.first);
-                if (!lhsNode || !rhsNode) continue;
-
-                //Add the edge.
-                RexEdge* edge = new RexEdge(rhsNode, lhsNode, RexEdge::VAR_WRITES);
-                graph->addEdge(edge);
-            }
-        }
-    }
-
+    generateVarLinkage(lhsMap, rhsMap);
     return usageMap;
 }
 
@@ -637,7 +661,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
         return getAccessType(dyn_cast<BinaryOperator>(curExpr));
     } else if (isa<UnaryOperator>(curExpr))  {
         return getAccessType(dyn_cast<UnaryOperator>(curExpr));
-    } else if (isa<DeclRefExpr>(curExpr)){
+    } else if (isa<DeclRefExpr>(curExpr)) {
         map<string, ParentWalker::AccessMethod> singleMap;
         singleMap[generateID(dyn_cast<DeclRefExpr>(curExpr)->getDecl())] = prevAccess;
         return singleMap;
@@ -662,6 +686,24 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
 #endif
 
     return map<string, ParentWalker::AccessMethod>();
+}
+
+void ParentWalker::generateVarLinkage(map<string, ParentWalker::AccessMethod> lhsMap,
+                                      map<string, ParentWalker::AccessMethod> rhsMap){
+    //Next, we process the relations between variables.
+    for (auto lhsItem : lhsMap){
+        for (auto rhsItem : rhsMap){
+            if ((lhsItem.second == ParentWalker::BOTH || lhsItem.second == ParentWalker::WRITE) &&
+                (rhsItem.second == ParentWalker::BOTH || rhsItem.second == ParentWalker::READ)){
+                //Get the variables.
+                if (!graph->doesEdgeExist(rhsItem.first, lhsItem.first, RexEdge::VAR_WRITES)) continue;
+
+                //Add the edge.
+                RexEdge* edge = new RexEdge(rhsItem.first, lhsItem.first, RexEdge::VAR_WRITES);
+                graph->addEdge(edge);
+            }
+        }
+    }
 }
 
 bool ParentWalker::isInSystemHeader(const Stmt *statement) {

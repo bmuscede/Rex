@@ -97,6 +97,7 @@ protected:
 
     //Variable Access Methods
     enum AccessMethod {NONE, BOTH, READ, WRITE};
+    std::map<std::string, ParentWalker::AccessMethod> getAccessType(const DeclStmt* op);
     std::map<std::string, ParentWalker::AccessMethod> getAccessType(const BinaryOperator* op);
     std::map<std::string, ParentWalker::AccessMethod> getAccessType(const UnaryOperator* op);
 
@@ -151,6 +152,8 @@ private:
     ParentWalker::AccessMethod determineAccess(UnaryOperator::Opcode opcode);
     std::map<std::string, ParentWalker::AccessMethod> buildAccessMap(ParentWalker::AccessMethod prevAccess,
                                                                      const Expr* curExpr);
+    void generateVarLinkage(std::map<std::string, ParentWalker::AccessMethod> lhs,
+                            std::map<std::string, ParentWalker::AccessMethod> rhs);
 };
 
 
