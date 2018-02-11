@@ -28,6 +28,17 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
         recordCallExpr(callExpr);
     }
 
+    //Deal with uses of control flow.
+    if (IfStmt* ifStmt = dyn_cast<IfStmt>(statement)){
+        parentExpression.push_back(ifStmt->getCond());
+    } else if (SwitchStmt* switchStmt = dyn_cast<SwitchStmt>(statement)) {
+        parentExpression.push_back(switchStmt->getCond());
+    } else if (ForStmt* forStmt = dyn_cast<ForStmt>(statement)){
+        parentExpression.push_back(forStmt->getCond());
+    } else if (WhileStmt* whileStmt = dyn_cast<WhileStmt>(statement)){
+        parentExpression.push_back(whileStmt->getCond());
+    }
+
     //Deal with variable usages.
     if (BinaryOperator* binOp = dyn_cast<BinaryOperator>(statement)){
         //Get all variable usages.
@@ -236,6 +247,8 @@ bool ROSWalker::usedInIfStatement(const DeclRefExpr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
     auto parent = Context->getParents(*declRef);
+    auto previous = Context->getParents(*declRef);
+
     while(getParent){
         //Check if it's empty.
         if (parent.empty()){
@@ -246,9 +259,19 @@ bool ROSWalker::usedInIfStatement(const DeclRefExpr* declRef){
         //Get the current parent as an if statement.
         auto ifStmt = parent[0].get<clang::IfStmt>();
         if (ifStmt) {
-            return true;
+            auto conditionExpression = previous[0].get<clang::Expr>();
+            if (findExpression(conditionExpression)) return true;
+            return false;
         }
 
+        auto switchStmt = parent[0].get<clang::CaseStmt>();
+        if (switchStmt){
+            auto conditionExpression = previous[0].get<clang::Expr>();
+            if (findExpression(conditionExpression)) return true;
+            return false;
+        }
+
+        previous = parent;
         parent = Context->getParents(parent[0]);
     }
 
@@ -259,6 +282,8 @@ bool ROSWalker::usedInLoop(const DeclRefExpr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
     auto parent = Context->getParents(*declRef);
+    auto previous = Context->getParents(*declRef);
+
     while(getParent){
         //Check if it's empty.
         if (parent.empty()){
@@ -269,15 +294,28 @@ bool ROSWalker::usedInLoop(const DeclRefExpr* declRef){
         //Get the current parent as an if statement.
         auto whileStmt = parent[0].get<clang::WhileStmt>();
         if (whileStmt) {
-            return true;
+            auto conditionExpression = previous[0].get<clang::Expr>();
+            if (findExpression(conditionExpression)) return true;
+            return false;
         }
 
         auto forStmt = parent[0].get<clang::ForStmt>();
         if (forStmt){
-            return true;
+            auto conditionExpression = previous[0].get<clang::Expr>();
+            if (findExpression(conditionExpression)) return true;
+            return false;
         }
 
+        previous = parent;
         parent = Context->getParents(parent[0]);
+    }
+
+    return false;
+}
+
+bool ROSWalker::findExpression(const Expr* expression){
+    for (Expr* cur : parentExpression){
+        if (cur == expression) return true;
     }
 
     return false;

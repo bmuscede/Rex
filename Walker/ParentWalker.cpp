@@ -97,6 +97,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const DeclSt
 
         //Gets the expression.
         auto expr = var->getInit();
+        if (!expr) return usageMap;
         usageMap[generateID(var)] = AccessMethod::WRITE;
         rhs = buildAccessMap(AccessMethod::READ, expr);
 
@@ -112,6 +113,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const DeclSt
 
             //Gets the expression.
             auto expr = curVar->getInit();
+            if (!expr) return usageMap;
             curUsage[generateID(curVar)] = AccessMethod::WRITE;
             curRHS = buildAccessMap(AccessMethod::READ, expr);
 
@@ -696,7 +698,7 @@ void ParentWalker::generateVarLinkage(map<string, ParentWalker::AccessMethod> lh
             if ((lhsItem.second == ParentWalker::BOTH || lhsItem.second == ParentWalker::WRITE) &&
                 (rhsItem.second == ParentWalker::BOTH || rhsItem.second == ParentWalker::READ)){
                 //Get the variables.
-                if (!graph->doesEdgeExist(rhsItem.first, lhsItem.first, RexEdge::VAR_WRITES)) continue;
+                if (graph->doesEdgeExist(rhsItem.first, lhsItem.first, RexEdge::VAR_WRITES)) continue;
 
                 //Add the edge.
                 RexEdge* edge = new RexEdge(rhsItem.first, lhsItem.first, RexEdge::VAR_WRITES);

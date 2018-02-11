@@ -34,9 +34,10 @@ public:
 
 private:
     const std::string CONTROL_FLAG = "isControlFlow";
-    const std::string ROS_CONTROL_FLAG = "isUnderControl";
     const std::string PARAM_FLAG = "isParam";
-    
+
+    std::vector<clang::Expr*> parentExpression;
+
     //C++ Detectors
     void recordFunctionDecl(const FunctionDecl* decl);
     void recordClassDecl(const CXXRecordDecl* decl);
@@ -67,6 +68,7 @@ private:
     //Control Flow Detectors
     bool usedInIfStatement(const DeclRefExpr* declRef);
     bool usedInLoop(const DeclRefExpr* declRef);
+    bool findExpression(const Expr* expression);
 
     //Secondary Helper Functions
     void addParentRelationship(const NamedDecl* baseDecl, std::string baseID);
