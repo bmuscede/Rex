@@ -966,9 +966,12 @@ string ParentWalker::generateID(const NamedDecl* decl){
 
 string ParentWalker::generateName(const NamedDecl* decl){
     string name = decl->getQualifiedNameAsString();
-    //Finally, check if we have a main method.
+
+    //Check if we have a main method.
     if (name.compare("main") == 0){
         name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
+    } else {
+        return generateID(decl);
     }
 
     return name;

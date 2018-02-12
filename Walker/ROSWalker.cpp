@@ -111,6 +111,17 @@ bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
     return true;
 }
 
+bool ROSWalker::VisitMemberExpr(MemberExpr *memExpr) {
+    if (isInSystemHeader(memExpr)) return true;
+
+    //Check if we have an if-statement noted here.
+    if (usedInIfStatement(memExpr) || usedInLoop(memExpr)){
+        recordControlFlow(memExpr);
+    }
+
+    return true;
+}
+
 bool ROSWalker::VisitDeclRefExpr(DeclRefExpr *declRef) {
     if (isInSystemHeader(declRef)) return true;
 
@@ -243,7 +254,7 @@ void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
     }
 }
 
-bool ROSWalker::usedInIfStatement(const DeclRefExpr* declRef){
+bool ROSWalker::usedInIfStatement(const Expr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
     auto parent = Context->getParents(*declRef);
@@ -278,7 +289,7 @@ bool ROSWalker::usedInIfStatement(const DeclRefExpr* declRef){
     return false;
 }
 
-bool ROSWalker::usedInLoop(const DeclRefExpr* declRef){
+bool ROSWalker::usedInLoop(const Expr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
     auto parent = Context->getParents(*declRef);
@@ -365,7 +376,15 @@ void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalke
 void ROSWalker::recordControlFlow(const DeclRefExpr* expr){
     //Get the decl responsible.
     const ValueDecl* decl = expr->getDecl();
+    recordControlFlow(decl);
+}
 
+void ROSWalker::recordControlFlow(const MemberExpr* expr){
+    const ValueDecl* decl = expr->getMemberDecl();
+    recordControlFlow(decl);
+}
+
+void ROSWalker::recordControlFlow(const ValueDecl* decl){
     //Get the ID and find it.
     string declID = generateID(decl);
     RexNode* refNode = graph->findNode(declID);
@@ -489,10 +508,14 @@ vector<const NamedDecl*> ROSWalker::getVars(const Stmt* condition){
     Stmt::const_child_range rng = condition->children();
     for (Stmt::const_child_iterator it = rng.begin(); it != rng.end(); it++) {
 
-        if (isa<DeclRefExpr>(*it)){
+        if (isa<DeclRefExpr>(*it)) {
             //Adds the value to the array.
             auto decl = dyn_cast<DeclRefExpr>(*it);
             vars.push_back(dyn_cast<NamedDecl>(decl->getDecl()));
+        } else if (isa<MemberExpr>(*it)) {
+            //Adds the value to the array.
+            auto decl = dyn_cast<MemberExpr>(*it);
+            vars.push_back(dyn_cast<NamedDecl>(decl->getMemberDecl()));
         } else {
             //Gets the children.
             vector<const NamedDecl*> inner = getVars(*it);

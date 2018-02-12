@@ -30,6 +30,7 @@ public:
     bool VisitFieldDecl(FieldDecl* decl);
     bool VisitFunctionDecl(FunctionDecl* decl);
     bool VisitCXXRecordDecl(CXXRecordDecl* decl);
+    bool VisitMemberExpr(MemberExpr* memExpr);
     bool VisitDeclRefExpr(DeclRefExpr* declRef);
 
 private:
@@ -51,6 +52,8 @@ private:
     void recordCallExpr(const CallExpr* expr);
     void recordVarUsage(const FunctionDecl* decl, std::map<std::string, ParentWalker::AccessMethod> accesses);
     void recordControlFlow(const DeclRefExpr* expr);
+    void recordControlFlow(const MemberExpr* expr);
+    void recordControlFlow(const ValueDecl* decl);
     RexEdge* recordParentFunction(const Stmt* statement, RexNode* baseItem);
     void recordASTControl(const Stmt* baseStmt, RexNode* rosItem);
 
@@ -66,8 +69,8 @@ private:
     void checkForCallbacks(const FunctionDecl* decl);
 
     //Control Flow Detectors
-    bool usedInIfStatement(const DeclRefExpr* declRef);
-    bool usedInLoop(const DeclRefExpr* declRef);
+    bool usedInIfStatement(const Expr* declRef);
+    bool usedInLoop(const Expr* declRef);
     bool findExpression(const Expr* expression);
 
     //Secondary Helper Functions
