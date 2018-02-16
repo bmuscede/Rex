@@ -1,6 +1,28 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TAGraph.h
 //
-// Created by bmuscede on 10/04/17.
+// Created By: Bryan J Muscedere
+// Date: 10/04/17.
 //
+// Master system for maintaining the in-memory
+// digraph system. This is important to store
+// C++ entities and then output to TA.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef REX_TAGRAPH_H
 #define REX_TAGRAPH_H
@@ -13,17 +35,22 @@
 
 class TAGraph {
 public:
+    //Constructor/Destructor
     TAGraph(RexEdge::EdgeType edgeType = RexEdge::EdgeType::CONTAINS);
     ~TAGraph();
 
+    //Setters
     void setMinMode(bool minMode);
 
+    //Node/Edge Adders
     void addNode(RexNode* node);
     void addEdge(RexEdge* edge);
 
+    //Node/Edge Removers
     void removeNode(std::string nodeID);
     void removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type, bool hashed = false);
 
+    //Find Methods
     RexNode* findNode(std::string nodeID);
     RexNode* findNodeByName(std::string nodeName, bool MD5Check = false);
     RexNode* findNodeByEndName(std::string endName, bool MD5Check = false);
@@ -31,20 +58,25 @@ public:
     std::vector<RexEdge*> findEdgesBySrc(std::string srcID, bool md5 = true);
     std::vector<RexEdge*> findEdgesByDst(std::string dstID, bool md5 = true);
 
+    //Element Exist Methods
     bool doesNodeExist(std::string nodeID);
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
+    //Graph Clean Methods
     std::string checkCorrectness();
     bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap);
     void resolveUnestablishedEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
 
+    //TA Generators
     std::string getTAModel();
 
+    //ROS Node Generators
     RexNode* generateSubscriberNode(std::string parentID, std::string parentName);
     RexNode* generatePublisherNode(std::string parentID, std::string parentName);
 
 private:
+    //Member variables
     std::unordered_map<std::string, RexNode*> idList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeSrcList;
     std::unordered_map<std::string, std::vector<RexEdge*>> edgeDstList;
@@ -57,6 +89,7 @@ private:
     std::string const ROS_NUM = "rosNumber";
     std::string const FILENAME_ATTR = "filename";
 
+    //Rex TA Schemas
     std::string const FULL_TA_SCHEMA = "//Full Rex Extraction\n//Author: Bryan J Muscedere\n\nSCHEME TUPLE :\n//Nodes\n"
             "$INHERIT\tcArchitecturalNds\tcRoot\n$INHERIT\tcAsgNds\t\t\tcRoot\n$INHERIT\trosMsg\t\t\tcRoot\n$INHERIT\tc"
             "Component\t\tcAsgNds\n$INHERIT\tcClass\t\t\tcAsgNds\n$INHERIT\tcFunction\t\tcAsgNds\n$INHERIT\tcVariable\t"
@@ -97,21 +130,19 @@ private:
 
     int const MD5_LENGTH = 33;
 
+    //MD5 Generator
     std::string getMD5(std::string ID);
 
+    //Edge Resolvers
     bool resolveEdge(RexEdge* edge);
     bool resolveEdgeByName(RexEdge* edge);
 
+    //ROS Helper Functions
     RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
     int getLastROSNumber(std::string rosID);
 
-    bool hasEnding(std::string const &fullString, std::string const &ending){
-        if (fullString.length() >= ending.length()) {
-            return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-        } else {
-            return false;
-        }
-    }
+    //Helper Function
+    bool hasEnding(std::string const &fullString, std::string const &ending);
 };
 
 

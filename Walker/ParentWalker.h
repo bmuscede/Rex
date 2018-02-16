@@ -1,6 +1,29 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ParentWalker.h
 //
-// Created by bmuscede on 06/07/17.
+// Created By: Bryan J Muscedere
+// Date: 06/07/17.
 //
+// Contains the majority of the logic for adding
+// nodes and relations to the graph. Many of these
+// are helper functions like ID generation or
+// class resolution.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef REX_PARENTWALKER_H
 #define REX_PARENTWALKER_H
@@ -24,6 +47,7 @@ using namespace clang::tooling;
 
 class ParentWalker {
 public:
+    //Constructor/Destructor
     explicit ParentWalker(ASTContext *Context);
     virtual ~ParentWalker();
 

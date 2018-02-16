@@ -1,6 +1,6 @@
 # Rex - *The ROS Extractor*
 
-This readme contains information about Rexx, as well as setup and usage details.
+This readme contains information about Rex, as well as setup and usage details.
 
 ## What is Rex?
 Rex is a C/C++ fact extractor that uses Clang libraries to extract details from C or C++ source code to a lightweight but powerful program model. Importantly, Rex differs from [ClangEx](http://plg.uwaterloo.ca/~holt/papers/ta-intro.htm) as it is designed to capture ROS messages between components.  This program model can be visualized or queried using relational algebra to discover problems in source code on an ad-hoc basis.
@@ -106,6 +106,13 @@ That's it! With this, Clang and LLVM will be installed. To ensure proper install
 $ clang --version
 ```
 
+Lastly, two important environment variables need to be set: `LLVM_BUILD` and `CLANG_VER`. The `LLVM_BUILD` directory must point to where LLVM was build to. In this tutorial it was installed to the `Clang-Build` directory. The `CLANG_VER` is the version of Clang being used. An example of how these two variables look are as follows:
+```
+$ export LLVM_BUILD=/home/user/Clang-Build
+$ export CLANG_VER=5.0.0
+```
+You **must** have these set before you can build Rex.
+
 #### Obtaining Boost Libraries
 Boost libraries are also required. This process is very simple on Debian/Ubuntu systems.
 
@@ -117,7 +124,7 @@ $ sudo apt-get install libboost-all-dev
 **IMPORTANT NOTE:** Boost libraries are also needed on your system *even if* you are simply running the executable built on another system. Follow the instructions above to get the necessary Boost libraries to run the portable executable.
 
 ### Building Rex
-Now that the prerequisties are all satisfied, you can now download and build Rex! If all prerequisties are truly satisfied, Rex should build without issue.
+Now that the prerequisties are all satisfied, you can now download and build Rex! If all prerequisties are truly satisfied, Rex should build without issue. Importantly you should have the `LLVM_BUILD` and `CLANG_VER` variables set. See the Clang section if this is not the case for ore information.
 
 First, we must checkout the current version of Rex from GitHub. This will be downloaded to your current working directory. The Rex repository has all required files and libraries.
 
@@ -199,9 +206,16 @@ There are two types of processing modes: *Full Analysis Mode* is invoked automat
 $ generate
 $ generate -m
 ```
-The first one generates while operating in full mode. The second generates in minimal mode.
+The first one generates a model in full mode. The second generates a model in minimal mode.
 
 **NOTE:** Rex requires the use of a compile_commands.json database located in some top level directory that tells Rex how to compile the files.
+
+### Resolving Components
+Since you might be analyzing multiple ROS packages at once, Rex has a `resolve` command which looks at the top level compilation database to determine which classes belong to which ROS components. This allows for detailed queries that allow you to look at interactions at the feature/component level. To resolve, simply do the following:
+```
+$ resolve <DIRECTORY>
+```
+By giving a directory containing each CMAKE file for each component, Rex will look at the file names of the model and then resolve each entity to a component. If the `resolve` command is not used, the compContains relation and component entity will not be in the resultant model.
 
 ### Output TA Models
 Once Rex generated the TA model from the previous step, it now can be outputted. To do this, simply use the `output` command. While there are many different options, the most simple usage of this command is the following:

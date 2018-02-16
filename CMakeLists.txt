@@ -6,7 +6,18 @@ project(Rex)
 find_package(Boost 1.58 COMPONENTS system filesystem serialization regex program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
 
-set(LLVM_PATH /home/bmuscede/Applications/LLVM-Build)
+# Sets up LLVM.
+if(DEFINED ENV{CLANG_VER})
+	set(CLANG_VER $ENV{CLANG_VER})
+else()
+	message( FATAL_ERROR "The CLANG_VER environment variable is not set. Please set it before compiling Rex." )
+endif()
+if(DEFINED ENV{LLVM_PATH})
+	set(LLVM_PATH $ENV{LLVM_PATH})
+else()
+	message( FATAL_ERROR "The LLVM_PATH environment variable is not set. Please set it before compiling Rex." )
+endif()
+
 link_directories(${LLVM_PATH}/lib)
 include_directories(${LLVM_PATH}/include)
 
@@ -203,6 +214,9 @@ target_link_libraries(Rex
         ${Boost_LIBRARIES}
         )
 
+add_custom_command(TARGET Rex PRE_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${LLVM_PATH}/lib/clang/${CLANG_VER}/include ${CMAKE_SOURCE_DIR}/include)
 add_custom_command(TARGET Rex POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/include $<TARGET_FILE_DIR:Rex>/include)

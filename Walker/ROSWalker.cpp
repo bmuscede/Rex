@@ -1,3 +1,30 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ROSWalker.cpp
+//
+// Created By: Bryan J Muscedere
+// Date: 07/04/17.
+//
+// Walks through Clang's AST using the full analysis
+// mode methodology. This is achieved using the parent
+// walker class to help obtain information about each
+// AST node.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #include <fstream>
 #include <iostream>
 #include "clang/AST/Mangle.h"
@@ -9,10 +36,22 @@
 
 using namespace std;
 
+/**
+ * Constructor
+ * @param Context AST Context
+ */
 ROSWalker::ROSWalker(ASTContext *Context) : ParentWalker(Context) { }
 
+/**
+ * Destructor
+ */
 ROSWalker::~ROSWalker(){ }
 
+/**
+ * Visits statements for ROS components.
+ * @param statement The statement to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitStmt(Stmt *statement) {
     if (isInSystemHeader(statement)) return true;
 
@@ -55,6 +94,11 @@ bool ROSWalker::VisitStmt(Stmt *statement) {
     return true;
 }
 
+/**
+ * Visits variable declarations.
+ * @param decl The variable declaration to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitVarDecl(VarDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
@@ -71,6 +115,11 @@ bool ROSWalker::VisitVarDecl(VarDecl* decl){
     return true;
 }
 
+/**
+ * Visits field declarations.
+ * @param decl The variable declaration to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
@@ -87,6 +136,11 @@ bool ROSWalker::VisitFieldDecl(FieldDecl* decl){
     return true;
 }
 
+/**
+ * Visits function declarations.
+ * @param decl The function declaration to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
@@ -100,6 +154,11 @@ bool ROSWalker::VisitFunctionDecl(FunctionDecl* decl){
     return true;
 }
 
+/**
+ * Visits class declarations.
+ * @param decl The class declaration to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
     if (isInSystemHeader(decl)) return true;
 
@@ -111,6 +170,11 @@ bool ROSWalker::VisitCXXRecordDecl(CXXRecordDecl* decl){
     return true;
 }
 
+/**
+ * Visits member expressions.
+ * @param decl The member expression to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitMemberExpr(MemberExpr *memExpr) {
     if (isInSystemHeader(memExpr)) return true;
 
@@ -122,6 +186,11 @@ bool ROSWalker::VisitMemberExpr(MemberExpr *memExpr) {
     return true;
 }
 
+/**
+ * Visits declaration reference expressions.
+ * @param decl The declaration reference to visit.
+ * @return Whether we should continue.
+ */
 bool ROSWalker::VisitDeclRefExpr(DeclRefExpr *declRef) {
     if (isInSystemHeader(declRef)) return true;
 
@@ -133,6 +202,10 @@ bool ROSWalker::VisitDeclRefExpr(DeclRefExpr *declRef) {
     return true;
 }
 
+/**
+ * Records a basic function declaration to the TA model.
+ * @param decl The declaration to add.
+ */
 void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
     //Generates the fields.
     string ID = generateID(decl);
@@ -147,6 +220,10 @@ void ROSWalker::recordFunctionDecl(const FunctionDecl* decl){
     addParentRelationship(decl, ID);
 }
 
+/**
+ * Records a basic class declaration to the TA model.
+ * @param decl The declaration to add.
+ */
 void ROSWalker::recordClassDecl(const CXXRecordDecl *decl) {
     //Generates some fields.
     string ID = generateID(decl);
@@ -167,6 +244,10 @@ void ROSWalker::recordClassDecl(const CXXRecordDecl *decl) {
     addParentRelationship(decl, ID);
 }
 
+/**
+ * Records a basic variable declaration to the TA model.
+ * @param decl The declaration to add.
+ */
 void ROSWalker::recordVarDecl(const VarDecl* decl){
     //Generates some fields.
     string ID = generateID(decl);
@@ -183,6 +264,10 @@ void ROSWalker::recordVarDecl(const VarDecl* decl){
     addParentRelationship(decl, ID);
 }
 
+/**
+ * Records a basic field declaration to the TA model.
+ * @param decl The declaration to add.
+ */
 void ROSWalker::recordFieldDecl(const FieldDecl* decl){
     //Generates some fields.
     string ID = generateID(decl);
@@ -197,6 +282,11 @@ void ROSWalker::recordFieldDecl(const FieldDecl* decl){
     addParentRelationship(decl, ID);
 }
 
+/**
+ * Handles any extra publisher operations after the basic ones were handled by
+ * the parent walker.
+ * @param statement The statement with the publisher call.
+ */
 void ROSWalker::handleFullPub(const Stmt* statement){
     //Gets the publisher.
     if (!currentPublisherOutdated) return;
@@ -208,6 +298,10 @@ void ROSWalker::handleFullPub(const Stmt* statement){
     recordASTControl(statement, currentPublisherOutdated);
 }
 
+/**
+ * Records a basic call expression.
+ * @param expr The expression to record.
+ */
 void ROSWalker::recordCallExpr(const CallExpr* expr){
     //Get the sub-function.
     auto callee = expr->getCalleeDecl();
@@ -238,6 +332,10 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
     recordASTControl(expr, calleeNode);
 }
 
+/**
+ * Checks a function declaration for whether its a callback function.
+ * @param decl The declaration to inspect.
+ */
 void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
     if (decl == nullptr) return;
 
@@ -254,6 +352,11 @@ void ROSWalker::checkForCallbacks(const FunctionDecl* decl){
     }
 }
 
+/**
+ * Check if a declaration reference expression is used in an if statement.
+ * @param declRef The declaration reference expression.
+ * @return Whether the variable is used.
+ */
 bool ROSWalker::usedInIfStatement(const Expr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
@@ -289,6 +392,11 @@ bool ROSWalker::usedInIfStatement(const Expr* declRef){
     return false;
 }
 
+/**
+ * Check if a declaration reference expression is used in a loop.
+ * @param declRef The declaration reference expression.
+ * @return Whether the variable is used.
+ */
 bool ROSWalker::usedInLoop(const Expr* declRef){
     //Iterate through and find if we have an if statement parent.
     bool getParent = true;
@@ -324,6 +432,11 @@ bool ROSWalker::usedInLoop(const Expr* declRef){
     return false;
 }
 
+/**
+ * Finds an expression based on stored expressions.
+ * @param expression The expression to find.
+ * @return Whether the expression was found.
+ */
 bool ROSWalker::findExpression(const Expr* expression){
     for (Expr* cur : parentExpression){
         if (cur == expression) return true;
@@ -332,6 +445,11 @@ bool ROSWalker::findExpression(const Expr* expression){
     return false;
 }
 
+/**
+ * Records any variable usages.
+ * @param decl The declaration to add.
+ * @param accesses The access map.
+ */
 void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalker::AccessMethod> accesses){
     if (decl == nullptr) return;
 
@@ -373,17 +491,29 @@ void ROSWalker::recordVarUsage(const FunctionDecl* decl, map<string, ParentWalke
     }
 }
 
+/**
+ * Records whether a variable is used in a control flow statement.
+ * @param expr The expression to analyze.
+ */
 void ROSWalker::recordControlFlow(const DeclRefExpr* expr){
     //Get the decl responsible.
     const ValueDecl* decl = expr->getDecl();
     recordControlFlow(decl);
 }
 
+/**
+ * Records whether a variable is used in a control flow statement.
+ * @param expr The expression to analyze.
+ */
 void ROSWalker::recordControlFlow(const MemberExpr* expr){
     const ValueDecl* decl = expr->getMemberDecl();
     recordControlFlow(decl);
 }
 
+/**
+ * Records whether a variable is used in a control flow statement.
+ * @param decl The value declaration to analyze.
+ */
 void ROSWalker::recordControlFlow(const ValueDecl* decl){
     //Get the ID and find it.
     string declID = generateID(decl);
@@ -394,6 +524,12 @@ void ROSWalker::recordControlFlow(const ValueDecl* decl){
     refNode->addSingleAttribute(CONTROL_FLAG, "1");
 }
 
+/**
+ * Records the parent function in a statement.
+ * @param statement The statement.
+ * @param baseItem The baseItem of the parent.
+ * @return The generated Rex edge.
+ */
 RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseItem){
     //Gets the parent function.
     const FunctionDecl* decl = getParentFunction(statement);
@@ -414,6 +550,11 @@ RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseIte
     return edge;
 }
 
+/**
+ * Records whether a statement is part of a control structure.
+ * @param baseStmt The base statement to process.
+ * @param astItem The node to add as parent.
+ */
 void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
@@ -481,26 +622,60 @@ void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
     }
 }
 
+/**
+ * Gets all variables in the condition of an if statement.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const IfStmt* stmt){
     return getVars(stmt->getCond());
 }
 
+
+/**
+ * Gets all variables in the condition of an for loop.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const ForStmt* stmt){
     return getVars(stmt->getCond());
 }
 
+
+/**
+ * Gets all variables in the condition of an while loop.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const WhileStmt* stmt){
     return getVars(stmt->getCond());
 }
 
+/**
+ * Gets all variables in the condition of a do loop.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const DoStmt* stmt){
     return getVars(stmt->getCond());
 }
 
+
+/**
+ * Gets all variables in the condition of a switch statement.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const SwitchStmt* stmt){
     return getVars(stmt->getCond());
 }
 
+
+/**
+ * Gets all variables in the condition of a statement. This is the helper method.
+ * @param stmt The statement.
+ * @return The variables.
+ */
 vector<const NamedDecl*> ROSWalker::getVars(const Stmt* condition){
     vector<const NamedDecl*> vars;
 
@@ -526,6 +701,11 @@ vector<const NamedDecl*> ROSWalker::getVars(const Stmt* condition){
     return vars;
 }
 
+/**
+ * Adds the parent relationship.
+ * @param baseDecl The base declaration.
+ * @param baseID The base ID.
+ */
 void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
     bool getParent = true;
     auto currentDecl = baseDecl;
@@ -568,6 +748,11 @@ void ROSWalker::addParentRelationship(const NamedDecl* baseDecl, string baseID){
     }
 }
 
+/**
+ * Gets the parent function to process.
+ * @param baseFunc The base function.
+ * @return The function declaration object.
+ */
 const FunctionDecl* ROSWalker::getParentFunction(const Stmt* baseFunc){
     bool getParent = true;
 

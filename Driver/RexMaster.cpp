@@ -782,6 +782,11 @@ void parseSimpleMode(int argc, const char** argv) {
     }
 }
 
+/**
+ * Processes the commands.
+ * @param line The line to process.
+ * @return Whether to quit.
+ */
 bool processCommand(string line){
     if (line.compare("") == 0) return true;
 

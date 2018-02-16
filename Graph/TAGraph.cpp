@@ -1,6 +1,28 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// TAGraph.cpp
 //
-// Created by bmuscede on 10/04/17.
+// Created By: Bryan J Muscedere
+// Date: 10/04/17.
 //
+// Master system for maintaining the in-memory
+// digraph system. This is important to store
+// C++ entities and then output to TA.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 #include <openssl/md5.h>
@@ -11,6 +33,10 @@
 
 using namespace std;
 
+/**
+ * Constructor. Sets up all the member variables.
+ * @param edgeType The edge type that forms the forest.
+ */
 TAGraph::TAGraph(RexEdge::EdgeType edgeType){
     forestEdgeType = edgeType;
     idList = std::unordered_map<std::string, RexNode*>();
@@ -18,6 +44,9 @@ TAGraph::TAGraph(RexEdge::EdgeType edgeType){
     edgeDstList = std::unordered_map<std::string, std::vector<RexEdge*>>();
 }
 
+/**
+ * Destructor. Deletes all nodes and edges.
+ */
 TAGraph::~TAGraph(){
     for (auto &entry : idList){
         delete entry.second;
@@ -29,22 +58,33 @@ TAGraph::~TAGraph(){
     }
 }
 
+/**
+ * Sets whether we are processing in minimal or full mode.
+ * @param minMode Whether we're in minimal mode.
+ */
 void TAGraph::setMinMode(bool minMode){
     this->minMode = minMode;
 }
 
+/**
+ * Adds a new node.
+ * @param node The node to add.
+ */
 void TAGraph::addNode(RexNode* node){
     //Convert the node to a hash version.
     string newID = getMD5(node->getID());
     node->setID(newID);
 
     //Add the node.
-    //TODO: This doesn't work.
     if (idList.find(node->getID()) != idList.end())
         assert("Entry already exists.");
     idList[node->getID()] = node;
 }
 
+/**
+ * Adds a new edge.
+ * @param edge  The edge to add.
+ */
 void TAGraph::addEdge(RexEdge* edge){
     //Convert the edge to a hash version.
     edge->setSourceID(getMD5(edge->getSourceID()));
@@ -54,6 +94,11 @@ void TAGraph::addEdge(RexEdge* edge){
     edgeDstList[edge->getDestinationID()].push_back(edge);
 }
 
+
+/**
+ * Removes a node.
+ * @param nodeID The ID of the node to remove.
+ */
 void TAGraph::removeNode(std::string nodeID){
     nodeID = getMD5(nodeID);
     RexNode* node = idList[nodeID];
@@ -73,6 +118,13 @@ void TAGraph::removeNode(std::string nodeID){
     }
 }
 
+/**
+ * Removes an edge.
+ * @param srcID The source node ID
+ * @param dstID The destination node ID
+ * @param type The node type.
+ * @param hashed Whether the IDs we're searching for are already hashed.
+ */
 void TAGraph::removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type, bool hashed){
     if (!hashed){
         srcID = getMD5(srcID);
@@ -108,12 +160,23 @@ void TAGraph::removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType
     if (edgeToRemove) delete edgeToRemove;
 }
 
+/**
+ * Finds a node by ID
+ * @param nodeID The ID to check.
+ * @return The pointer to the node.
+ */
 RexNode* TAGraph::findNode(std::string nodeID){
     //Check to see if the node exists.
     if (!doesNodeExist(nodeID)) return nullptr;
     return idList[getMD5(nodeID)];
 }
 
+/**
+ * Finds node by name
+ * @param nodeName The name of the node.
+ * @param MD5Check Whether we want to hash by MD5
+ * @return The pointer to the node.
+ */
 RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
     //Loop through the map.
     for (auto entry : idList){
@@ -125,6 +188,12 @@ RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
     return nullptr;
 }
 
+/**
+ * Finds a node by the end of its name.
+ * @param endName The end name string to search for.
+ * @param MD5Check Whether we want to hash by MD5
+ * @return The pointer to the node.
+ */
 RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     for (auto entry: idList){
         string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
@@ -136,6 +205,13 @@ RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     return nullptr;
 }
 
+/**
+ * Find edge bashed on its IDs.
+ * @param srcID The source node ID.
+ * @param dstID The destination node ID.
+ * @param type The node type.
+ * @return The edge that was found.
+ */
 RexEdge* TAGraph::findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type){
     //Gets the edges for a source.
     vector<RexEdge*> edges = edgeSrcList[getMD5(srcID)];
@@ -149,21 +225,45 @@ RexEdge* TAGraph::findEdge(std::string srcID, std::string dstID, RexEdge::EdgeTy
     return nullptr;
 }
 
+/**
+ * Finds edge by source ID.
+ * @param srcID The source ID.
+ * @param md5 Whether we want to hash the ID.
+ * @return A vector of matched nodes.
+ */
 std::vector<RexEdge*> TAGraph::findEdgesBySrc(std::string srcID, bool md5){
     if (md5) return edgeSrcList[getMD5(srcID)];
     return edgeSrcList[srcID];
 }
 
+/**
+ * Finds edge by destination ID.
+ * @param srcID The destination ID.
+ * @param md5 Whether we want to hash the ID.
+ * @return A vector of matched nodes.
+ */
 std::vector<RexEdge*> TAGraph::findEdgesByDst(std::string dstID, bool md5){
     if (md5) return edgeDstList[getMD5(dstID)];
     return edgeDstList[dstID];
 }
 
+/**
+ * Checks whether a node exists.
+ * @param nodeID The ID of the node.
+ * @return Whether the node exists.
+ */
 bool TAGraph::doesNodeExist(std::string nodeID){
     if (idList.find(getMD5(nodeID)) == idList.end()) return false;
     return true;
 }
 
+/**
+ * Checks whether an edge exists.
+ * @param srcID The source ID of the node.
+ * @param dstID The destination ID of the node.
+ * @type type The edge type.
+ * @return Whether the edge exists.
+ */
 bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type){
     //Gets the edges for a source.
     vector<RexEdge*> edges = edgeSrcList[getMD5(srcID)];
@@ -177,6 +277,10 @@ bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeT
     return false;
 }
 
+/**
+ * Checks the TA graph for correctness to ensure it conforms to requirements.
+ * @return A list of problems.
+ */
 string TAGraph::checkCorrectness(){
     string correctnessMsg = "";
 
@@ -211,6 +315,11 @@ string TAGraph::checkCorrectness(){
     return correctnessMsg;
 }
 
+/**
+ * Reslolves components based on a map of databases to files.
+ * @param databaseMap The map of files to compile commands databases.
+ * @return Whether the operation was successful.
+ */
 bool TAGraph::resolveComponents(map<string, vector<string>> databaseMap){
     //Go through the list of nodes.
     for (auto entry : idList){
@@ -243,6 +352,9 @@ bool TAGraph::resolveComponents(map<string, vector<string>> databaseMap){
     return true;
 }
 
+/**
+ * Resolves edges that have not been established.
+ */
 void TAGraph::resolveUnestablishedEdges(){
     //We go through our edges.
     for(auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++) {
@@ -260,6 +372,10 @@ void TAGraph::resolveUnestablishedEdges(){
     }
 }
 
+/**
+ * Removes unestablished edges.
+ * @param resolveFirst Whether we resolve them first.
+ */
 void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
     //We iterate through our edges.
     for(auto it = edgeSrcList.begin(); it != edgeSrcList.end(); it++) {
@@ -279,6 +395,10 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
     }
 }
 
+/**
+ * Generates the TA model of the graph.
+ * @return The string representation of the model.
+ */
 string TAGraph::getTAModel(){
     string model = (minMode) ? MINI_TA_SCHEMA : FULL_TA_SCHEMA;
 
@@ -313,14 +433,31 @@ string TAGraph::getTAModel(){
     return model;
 }
 
+/**
+ * Generates a unique ROS-based node.
+ * @param parentID The ID of the parent.
+ * @param parentName The name of the parent.
+ * @return The node generated.
+ */
 RexNode* TAGraph::generateSubscriberNode(std::string parentID, std::string parentName){
     return generateROSNode(parentID, parentName, RexNode::SUBSCRIBER);
 }
 
+/**
+ * Generates a unique ROS-based node.
+ * @param parentID The ID of the parent.
+ * @param parentName The name of the parent.
+ * @return The node generated.
+ */
 RexNode* TAGraph::generatePublisherNode(std::string parentID, std::string parentName){
     return generateROSNode(parentID, parentName, RexNode::PUBLISHER);
 }
 
+/**
+ * Hashes a string based on the MD5 hash.
+ * @param ID The string to hash.
+ * @return The hashed string.
+ */
 string TAGraph::getMD5(string ID){
     //Creates a digest buffer.
     unsigned char digest[MD5_DIGEST_LENGTH];
@@ -340,6 +477,11 @@ string TAGraph::getMD5(string ID){
     return string(mdString);
 }
 
+/**
+ * Resolves an edge. If the nodes exist, the edge will be properly resolved.
+ * @param edge The edge to resolve.
+ * @return Whether it was resolved successfully.
+ */
 bool TAGraph::resolveEdge(RexEdge *edge) {
     if (edge->isEstablished()) return true;
 
@@ -370,6 +512,11 @@ bool TAGraph::resolveEdge(RexEdge *edge) {
     return true;
 }
 
+/**
+ * Resolves an edge based on the names of the nodes.
+ * @param edge The edge to resolve.
+ * @return Whether it was resolved successfully.
+ */
 bool TAGraph::resolveEdgeByName(RexEdge* edge){
     if (edge->isEstablished()) return true;
 
@@ -394,6 +541,13 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
     return true;
 }
 
+/**
+ * Generates a ROS node based on parent information.
+ * @param parentID The ID of the parent.
+ * @param parentName The name of the parent.
+ * @param type The type of the node.
+ * @return The generated node.
+ */
 RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::NodeType type){
     //Generates the ID.
     string rosID = parentID + "::" + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + "::";
@@ -414,7 +568,11 @@ RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::N
     return node;
 }
 
-//TODO: Inefficient
+/**
+ * Generates a unique number based on the ROS ID.
+ * @param rosID The ID of the entity.
+ * @return The unique number.
+ */
 int TAGraph::getLastROSNumber(std::string rosID){
     int curNum = 0;
     bool exists = true;
@@ -437,4 +595,18 @@ int TAGraph::getLastROSNumber(std::string rosID){
     }
 
     return curNum;
+}
+
+/**
+ * Checks if a string has an ending.
+ * @param fullString The string to check.
+ * @param ending The ending to apply.
+ * @return Whether that string has that ending.
+ */
+bool TAGraph::hasEnding(std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
 }

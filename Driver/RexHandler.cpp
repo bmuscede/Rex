@@ -477,6 +477,12 @@ int RexHandler::removeDirectory(path directory){
     return numRemoved;
 }
 
+/**
+ * Adds a directory to the queue.
+ * @param directory The directory to add.
+ * @param databases A collection of databases.
+ * @return A map of databases per file.
+ */
 map<string, string> RexHandler::addDirectory(path directory, map<string, string> databases){
     vector<path> interiorDir = vector<path>();
     directory_iterator endIter;

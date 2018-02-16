@@ -1,6 +1,29 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ROSWalker.h
 //
-// Created by bmuscede on 07/04/17.
+// Created By: Bryan J Muscedere
+// Date: 07/04/17.
 //
+// Walks through Clang's AST using the full analysis
+// mode methodology. This is achieved using the parent
+// walker class to help obtain information about each
+// AST node.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef REX_ROSWALKER_H
 #define REX_ROSWALKER_H
@@ -21,6 +44,7 @@ using namespace clang::tooling;
 
 class ROSWalker : public RecursiveASTVisitor<ROSWalker>, public ParentWalker {
 public:
+    //Constructor/Destructor
     explicit ROSWalker(ASTContext *Context);
     ~ROSWalker();
 

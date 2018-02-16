@@ -1,6 +1,29 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ParentWalker.cpp
 //
-// Created by bmuscede on 06/07/17.
+// Created By: Bryan J Muscedere
+// Date: 06/07/17.
 //
+// Contains the majority of the logic for adding
+// nodes and relations to the graph. Many of these
+// are helper functions like ID generation or
+// class resolution.
+//
+// Copyright (C) 2017, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <fstream>
 #include <iostream>
@@ -15,12 +38,22 @@ TAGraph* ParentWalker::graph = new TAGraph();
 vector<TAGraph*> ParentWalker::graphList = vector<TAGraph*>();
 std::string ParentWalker::CALLBACK_FLAG = "isCallbackFunc";
 
+/**
+ * Constructor for the parent walker class.
+ * @param Context The AST context.
+ */
 ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {
     ignoreLibraries.push_back(STANDARD_IGNORE);
 }
 
+/**
+ * Destructor.
+ */
 ParentWalker::~ParentWalker() {}
 
+/**
+ * Deletes all TA graphs being maintained.
+ */
 void ParentWalker::deleteTAGraphs(){
     delete graph;
     for (int i = 0; i < graphList.size(); i++)
@@ -29,16 +62,28 @@ void ParentWalker::deleteTAGraphs(){
     graphList = vector<TAGraph*>();
 }
 
+/**
+ * Deletes a TA graph by graph number.
+ * @param num The number to delete.
+ */
 void ParentWalker::deleteTAGraph(int num){
     if (num < 0 || num >= graphList.size()) return;
     delete graphList.at(num);
     graphList.erase(graphList.begin() + num);
 }
 
+/**
+ * Gets the number of graphs being maintained.
+ * @return The number of graphs.
+ */
 int ParentWalker::getNumGraphs(){
     return (int) graphList.size();
 }
 
+/**
+ * Stops processing the current graph.
+ * @return The graph number of this graph.
+ */
 int ParentWalker::endCurrentGraph(){
     //Moves the current graph.
     graphList.push_back(graph);
@@ -47,16 +92,32 @@ int ParentWalker::endCurrentGraph(){
     return (int) graphList.size() - 1;
 }
 
+/**
+ * Outputs the current model.
+ * @param fileName The filename to output.
+ * @return Integer of graph number.
+ */
 int ParentWalker::generateCurrentTAModel(string fileName){
     return ParentWalker::generateTAModel(graph, fileName);
 }
 
+/**
+ * Generates a TA model by number.
+ * @param num The number to generate.
+ * @param fileName The file to output it as.
+ * @return Integer of graph number.
+ */
 int ParentWalker::generateTAModel(int num, string fileName){
     //Get the graph at the number.
     if (num >= graphList.size() || num < 0) return 0;
     return ParentWalker::generateTAModel(graphList.at(num), fileName);
 }
 
+/**
+ * Outputs all graph models.
+ * @param fileNames The file names to output as.
+ * @return The return code.
+ */
 int ParentWalker::generateAllTAModels(vector<string> fileNames){
     if (fileNames.size() != graphList.size()) return 0;
     for (int i = 0; i < fileNames.size(); i++){
@@ -67,10 +128,19 @@ int ParentWalker::generateAllTAModels(vector<string> fileNames){
     return 1;
 }
 
+/**
+ * Sets the mode of the graph.
+ * @param minMode The processing mode.
+ */
 void ParentWalker::setCurrentGraphMinMode(bool minMode){
     graph->setMinMode(minMode);
 }
 
+/**
+ * Resolves all TA files based on a compile commands database map.
+ * @param databaseMap The database map.
+ * @return Whether the operation was successful.
+ */
 bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
     //Goes through the graphs and forces them to resolve.
     for (TAGraph* curGraph : graphList){
@@ -81,10 +151,18 @@ bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
     return true;
 }
 
+/*
+ * Sets particular libraries to ignore when processing.
+ */
 void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
     ignoreLibraries = libraries;
 }
 
+/**
+ * Gets the variable access method. Whether its a variable read or write.
+ * @param op The declaration statement being analyzed.
+ * @return A collection of access methods for each variable.
+ */
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const DeclStmt* op){
     map<string, ParentWalker::AccessMethod> usageMap;
 
@@ -127,6 +205,11 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const DeclSt
     return usageMap;
 }
 
+/**
+ * Gets the access type based on binary operator.
+ * @param op The binary operator to analyze.
+ * @return A collection of access methods for each variable.
+ */
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const BinaryOperator* op){
     map<string, ParentWalker::AccessMethod> lhsMap;
     map<string, ParentWalker::AccessMethod> rhsMap;
@@ -211,6 +294,11 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const Binary
     return usageMap;
 }
 
+/**
+ * Gets access types for variables in a unary expression.
+ * @param op The unary operator expression to analyze.
+ * @return A collection of access methods for each variable.
+ */
 map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryOperator* op){
     map<string, ParentWalker::AccessMethod> usageMap;
 
@@ -241,6 +329,12 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryO
     return usageMap;
 }
 
+/**
+ * Helper method for the two walkers that handles statements. This is done
+ * to avoid repeats in both walkers.
+ * @param statement The statement to analyze.
+ * @return The type of operation.
+ */
 ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
     ROSType rtype = ROSType::ROS_NONE;
 
@@ -292,6 +386,13 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
     return rtype;
 }
 
+/**
+ * Helper method for the two walkers that handles variable declarations. This is done
+ * to avoid repeats in both walkers.
+ * @param decl The variable decl to analyze.
+ * @param pubEdge Whether we publish the edge.
+ * @return The type of operation.
+ */
 bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
@@ -309,6 +410,13 @@ bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     return false;
 }
 
+/**
+ * Helper method for the two walkers that handles field declarations. This is done
+ * to avoid repeats in both walkers.
+ * @param decl The field declaration to analyze.
+ * @param pubEdge Whether we publish edges or not.
+ * @return The type of operation.
+ */
 bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     //Add ROS specific nodes and fields.
     CXXRecordDecl* parent = decl->getType()->getAsCXXRecordDecl();
@@ -326,30 +434,66 @@ bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     return false;
 }
 
+/**
+ * Checks if we're constructing a node handle.
+ * @param ctor The CXX constructor.
+ * @return Whether its a node handle.
+ */
 bool ParentWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
     return isClass(ctor, NODE_HANDLE_CLASS);
 }
 
+/**
+ * Checks if we're constructing a subscriber.
+ * @param ctor The CXX constructor.
+ * @return Whether its a subscriber.
+ */
 bool ParentWalker::isSubscriberObj(const CXXConstructExpr* ctor){
     return isClass(ctor, SUBSCRIBER_CLASS);
 }
 
+/**
+ * Checks if we're constructing a publisher.
+ * @param ctor The CXX constructor.
+ * @return Whether its a publisher.
+ */
 bool ParentWalker::isPublisherObj(const CXXConstructExpr* ctor){
     return isClass(ctor, PUBLISHER_CLASS);
 }
 
+/**
+ * Checks if we're making a publish call.
+ * @param ctor The CXX constructor.
+ * @return Whether its a publish call.
+ */
 bool ParentWalker::isPublish(const CallExpr *expr) {
     return isFunction(expr, PUBLISH_FUNCTION);
 }
 
+/**
+ * Checks if we're making a subscribe call.
+ * @param ctor The CXX constructor.
+ * @return Whether its a subscribe call.
+ */
 bool ParentWalker::isSubscribe(const CallExpr *expr) {
     return isFunction(expr, SUBSCRIBE_FUNCTION);
 }
 
+/**
+ * Checks if we're making an advertise call.
+ * @param ctor The CXX constructor.
+ * @return Whether its an advertise call.
+ */
 bool ParentWalker::isAdvertise(const CallExpr* expr){
     return isFunction(expr, ADVERTISE_FUNCTION);
 }
 
+/**
+ * Records any associations that might exist between entities.
+ * @param assignee The assignee.
+ * @param assign The assign element.
+ * @param type The type.
+ */
 void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExpr* assign, string type) {
     //Get the assignee with the name.
     string assigneeID = generateID(assignee);
@@ -376,6 +520,12 @@ void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExp
     }
 }
 
+/**
+ * Records a minimal ROS action.
+ * @param decl The decl to add.
+ * @param type The type of node to add.
+ * @param pubEdge Whether we publish an edge too.
+ */
 void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bool pubEdge){
     //First, get the parent class.
     auto parent = Context->getParents(*decl);
@@ -425,6 +575,11 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bo
     }
 }
 
+/**
+ * Gets the item that was assigned based on an operator call.
+ * @param parent The parent object.
+ * @return The decl that is the assignee.
+ */
 const NamedDecl* ParentWalker::getAssignee(const CXXOperatorCallExpr* parent){
     //Gets the lhs of the expression.
     int num = parent->getNumArgs();
@@ -440,6 +595,11 @@ const NamedDecl* ParentWalker::getAssignee(const CXXOperatorCallExpr* parent){
     return decl;
 }
 
+/**
+ * Gets the assignment statement.
+ * @param parent The parent object.
+ * @return The assign statement part of this operator.
+ */
 const MemberExpr* ParentWalker::getAssignStmt(const CXXOperatorCallExpr* parent){
     int num = parent->getNumArgs();
     if (num != 2) return nullptr;
@@ -453,6 +613,11 @@ const MemberExpr* ParentWalker::getAssignStmt(const CXXOperatorCallExpr* parent)
     return lastItem;
 }
 
+/**
+ * Gets the parent class of a decl.
+ * @param decl The decl to find the parent class.
+ * @return The class.
+ */
 const CXXRecordDecl* ParentWalker::getParentClass(const NamedDecl* decl){
     bool getParent = true;
 
@@ -477,6 +642,12 @@ const CXXRecordDecl* ParentWalker::getParentClass(const NamedDecl* decl){
     return nullptr;
 }
 
+/**
+ * Checks whether an entity is a class.
+ * @param ctor The class.
+ * @param className The name of the class.
+ * @return Whether the two items compare.
+ */
 bool ParentWalker::isClass(const CXXConstructExpr* ctor, string className){
     //Get the underlying class.
     QualType type = ctor->getBestDynamicClassTypeExpr()->getType();
@@ -490,6 +661,12 @@ bool ParentWalker::isClass(const CXXConstructExpr* ctor, string className){
     return true;
 }
 
+/**
+ * Checks whether an entity is a function..
+ * @param expr The call expression.
+ * @param functionName The name of the function.
+ * @return Whether the two items compare.
+ */
 bool ParentWalker::isFunction(const CallExpr *expr, string functionName){
     //Gets the underlying callee.
     if (expr->getCalleeDecl() == nullptr) return false;
@@ -501,6 +678,11 @@ bool ParentWalker::isFunction(const CallExpr *expr, string functionName){
     return true;
 }
 
+/**
+ * Gets the decl assigned to a class.
+ * @param expr The constructor expression.
+ * @return The decl that was assigned.
+ */
 const NamedDecl* ParentWalker::getParentAssign(const CXXConstructExpr* expr){
     bool getParent = true;
 
@@ -529,6 +711,11 @@ const NamedDecl* ParentWalker::getParentAssign(const CXXConstructExpr* expr){
     return nullptr;
 }
 
+/**
+ * Gets the callback function based on a string.
+ * @param callbackQualified The name of the callback function.
+ * @return The node of the callback function.
+ */
 RexNode* ParentWalker::findCallbackFunction(std::string callbackQualified){
     //First, check to see if the string starts with &.
     if (callbackQualified.at(0) == '&'){
@@ -539,6 +726,11 @@ RexNode* ParentWalker::findCallbackFunction(std::string callbackQualified){
     return graph->findNodeByEndName(callbackQualified);
 }
 
+/**
+ * Gets arguments of a call expression.
+ * @param expr The expression to get arguments.
+ * @return The vector of arguments.
+ */
 vector<string> ParentWalker::getArgs(const CallExpr* expr){
     string sBuffer;
 
@@ -562,6 +754,11 @@ vector<string> ParentWalker::getArgs(const CallExpr* expr){
     return args;
 }
 
+/**
+ * Gets the type of publisher.
+ * @param expr The expression of the publisher.
+ * @return The type of publisher.
+ */
 string ParentWalker::getPublisherType(const CallExpr* expr) {
     //Get the string representation of the expression.
     string sBuffer = "";
@@ -586,6 +783,11 @@ string ParentWalker::getPublisherType(const CallExpr* expr) {
     return type;
 }
 
+/**
+ * Gets the parent variable of a call expression.
+ * @param callExpr The call expression.
+ * @return The parent variable.
+ */
 NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     //Get the CXX Member Call.
     auto call = dyn_cast<CXXMemberCallExpr>(callExpr);
@@ -598,6 +800,12 @@ NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     return dyn_cast<NamedDecl>(parentVar->getReferencedDeclOfCallee());
 }
 
+/**
+ * Determines variable access.
+ * @param lhs Whether we're dealing with a left hand side.
+ * @param opcode The type of operation.
+ * @return The access type.
+ */
 ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperator::Opcode opcode){
     if (!lhs) return ParentWalker::AccessMethod::READ;
 
@@ -624,6 +832,11 @@ ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperato
     }
 }
 
+/**
+ * Determines access based on a unary opcode.
+ * @param opcode The opcode.
+ * @return The access type.
+ */
 ParentWalker::AccessMethod ParentWalker::determineAccess(UnaryOperator::Opcode opcode){
     switch(opcode){
         case UnaryOperator::Opcode::UO_PostDec:
@@ -641,6 +854,12 @@ ParentWalker::AccessMethod ParentWalker::determineAccess(UnaryOperator::Opcode o
     }
 }
 
+/**
+ * Builds an access map based on previous accesses.
+ * @param prevAccess The upper/parent access type.
+ * @param curExpr The current expression.
+ * @return The updated access map.
+ */
 map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalker::AccessMethod prevAccess,
                                                                      const Expr* curExpr){
     const Expr* prevExpr;
@@ -690,6 +909,11 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
     return map<string, ParentWalker::AccessMethod>();
 }
 
+/**
+ * Generates which variables write to others.
+ * @param lhsMap The left hand side.
+ * @param rhsMap The right hand side.
+ */
 void ParentWalker::generateVarLinkage(map<string, ParentWalker::AccessMethod> lhsMap,
                                       map<string, ParentWalker::AccessMethod> rhsMap){
     //Next, we process the relations between variables.
@@ -708,6 +932,11 @@ void ParentWalker::generateVarLinkage(map<string, ParentWalker::AccessMethod> lh
     }
 }
 
+/**
+ * Checks whether a statement is in the system header.
+ * @param statement The statement.
+ * @return Whether its in the system header.
+ */
 bool ParentWalker::isInSystemHeader(const Stmt *statement) {
     if (statement == nullptr) return false;
 
@@ -726,6 +955,11 @@ bool ParentWalker::isInSystemHeader(const Stmt *statement) {
     return isIn;
 }
 
+/**
+ * Checks whether a decl is in the system header.
+ * @param decl The declaration.
+ * @return Whether its in the system header.
+ */
 bool ParentWalker::isInSystemHeader(const Decl *decl){
     if (decl == nullptr) return false;
 
@@ -744,6 +978,10 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
     return isIn;
 }
 
+/**
+ * Records the parent subscriber.
+ * @param expr The expression to add.
+ */
 void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
     //First, see if we have parents.
     const NamedDecl* parentVar = getParentAssign(expr);
@@ -752,6 +990,10 @@ void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
     recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::SUBSCRIBER);
 }
 
+/**
+ * Records the parent publisher.
+ * @param expr The expression to add.
+ */
 void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
     //First, see if we have parents.
     const NamedDecl* parentVar = getParentAssign(expr);
@@ -760,6 +1002,12 @@ void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
     recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::PUBLISHER);
 }
 
+/**
+ * Records a generic parent ROS item.
+ * @param parentID The ID to add.
+ * @param parentName The name to add.
+ * @param type The type to add.
+ */
 void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNode::NodeType type){
     //Next, we record the relationship between the two items.
     RexNode* src = graph->findNode(parentID);
@@ -786,15 +1034,26 @@ void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNo
 
 }
 
+/**
+ * Records the parent node handle.
+ * @param expr The expression to add.
+ */
 void ParentWalker::recordParentNodeHandle(const CXXConstructExpr* expr){
     //TODO
 }
 
+/**
+ * Records a node handle.
+ * @param expr The expression to add.
+ */
 void ParentWalker::recordNodeHandle(const CXXConstructExpr* expr){
     //TODO
 }
 
-
+/**
+ * Records a subscriber object.
+ * @param expr The expression with the subscriber.
+ */
 void ParentWalker::recordSubscribe(const CallExpr* expr){
     if (currentSubscriber == nullptr) return;
 
@@ -836,6 +1095,10 @@ void ParentWalker::recordSubscribe(const CallExpr* expr){
     currentSubscriber = nullptr;
 }
 
+/**
+ * Records a publisher object.
+ * @param expr The publisher object.
+ */
 void ParentWalker::recordPublish(const CallExpr* expr){
     //Get the publisher object.
     auto parent = getParentVariable(expr);
@@ -868,6 +1131,10 @@ void ParentWalker::recordPublish(const CallExpr* expr){
     graph->addEdge(edge);
 }
 
+/**
+ * Records an advertise call.
+ * @param expr The call with the advertise.
+ */
 void ParentWalker::recordAdvertise(const CallExpr* expr) {
     if (currentPublisher == nullptr) return;
 
@@ -890,6 +1157,10 @@ void ParentWalker::recordAdvertise(const CallExpr* expr) {
     currentPublisher = nullptr;
 }
 
+/**
+ * Records a topic.
+ * @param name The name of the topic.
+ */
 void ParentWalker::recordTopic(string name){
     string ID = TOPIC_PREFIX + name;
     if (graph->doesNodeExist(ID)) return;
@@ -899,6 +1170,11 @@ void ParentWalker::recordTopic(string name){
     graph->addNode(node);
 }
 
+/**
+ * Generates a unique ID based on a decl.
+ * @param decl The decl to generate the ID.
+ * @return A string of the ID.
+ */
 string ParentWalker::generateID(const NamedDecl* decl){
     //Gets the canonical decl.
     decl = dyn_cast<NamedDecl>(decl->getCanonicalDecl());
@@ -964,6 +1240,11 @@ string ParentWalker::generateID(const NamedDecl* decl){
     return name;
 }
 
+/**
+ * Generates a name based on a decl.
+ * @param decl The declaration.
+ * @return The string of the decl.
+ */
 string ParentWalker::generateName(const NamedDecl* decl){
     string name = decl->getQualifiedNameAsString();
 
@@ -977,6 +1258,11 @@ string ParentWalker::generateName(const NamedDecl* decl){
     return name;
 }
 
+/**
+ * Gets the filename of the decl.
+ * @param decl The declaration.
+ * @return The filename the declaration is in.
+ */
 string ParentWalker::generateFileName(const NamedDecl* decl){
     //Gets the file name.
     SourceManager& SrcMgr = Context->getSourceManager();
@@ -991,6 +1277,10 @@ string ParentWalker::generateFileName(const NamedDecl* decl){
     return newPath;
 }
 
+/**
+ * Gets the location of the function decl.
+ * @param decl The decl to add.
+ */
 void ParentWalker::recordParentClassLoc(const FunctionDecl* decl){
     if (!decl) return;
     auto funcDec = decl->getDefinition();
@@ -1007,6 +1297,11 @@ void ParentWalker::recordParentClassLoc(const FunctionDecl* decl){
     parentClass->addMultiAttribute(FILENAME_ATTR, baseFN);
 }
 
+/**
+ * Validates a string argument.
+ * @param name The argument to validate.
+ * @return The cleaned up string.
+ */
 string ParentWalker::validateStringArg(string name){
     //Checks the topic name.
     std::string prefix("\"");
@@ -1020,6 +1315,12 @@ string ParentWalker::validateStringArg(string name){
     return name;
 }
 
+/**
+ * Generates a TA model.
+ * @param graph The graph to generate.
+ * @param fileName The filename to save.
+ * @return Status code.
+ */
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
@@ -1045,6 +1346,12 @@ int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     return 1;
 }
 
+/**
+ * Checks whether an item is in a system header file.
+ * @param manager The source manager.
+ * @param loc The source location.
+ * @return Whether its in a system header file.
+ */
 bool ParentWalker::isInSystemHeader(const SourceManager& manager, SourceLocation loc) {
     //Get the expansion location.
     auto expansionLoc = manager.getExpansionLoc(loc);
