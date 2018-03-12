@@ -355,17 +355,24 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
 
             recordAssociations(assignee, assignStmt, type);
             rtype = ROSType::SUB;
+        } else if (type.compare("class " + TIMER_CLASS) == 0) {
+            const NamedDecl *assignee = getAssignee(overload);
+            const MemberExpr *assignStmt = getAssignStmt(overload);
+            if (!assignee || !assignStmt) return ROSType::ROS_NONE;
+
+            recordAssociations(assignee, assignStmt, type);
+            rtype = ROSType::SUB;
         }
     } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
-        if (isNodeHandlerObj(cxxExpr)) {
-            recordNodeHandle(cxxExpr);
-            recordParentNodeHandle(cxxExpr);
-        } else if (isSubscriberObj(cxxExpr)) {
+        if (isSubscriberObj(cxxExpr)) {
             recordParentSubscribe(cxxExpr);
             rtype = ROSType::SUB;
         } else if (isPublisherObj(cxxExpr)) {
             recordParentPublish(cxxExpr);
             rtype = ROSType::PUB;
+        } else if (isTimerObj(cxxExpr)) {
+            recordParentTimer(cxxExpr);
+            rtype = ROSType::TIMER;
         }
     }
 
@@ -380,6 +387,9 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             rtype = ROSType::SUB;
         } else if (isAdvertise(callExpr)) {
             recordAdvertise(callExpr);
+        } else if (isTimer(callExpr)) {
+            recordTimer(callExpr);
+            rtype = ROSType::TIMER;
         }
     }
 
@@ -461,6 +471,10 @@ bool ParentWalker::isPublisherObj(const CXXConstructExpr* ctor){
     return isClass(ctor, PUBLISHER_CLASS);
 }
 
+bool ParentWalker::isTimerObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, TIMER_CLASS);
+}
+
 /**
  * Checks if we're making a publish call.
  * @param ctor The CXX constructor.
@@ -486,6 +500,10 @@ bool ParentWalker::isSubscribe(const CallExpr *expr) {
  */
 bool ParentWalker::isAdvertise(const CallExpr* expr){
     return isFunction(expr, ADVERTISE_FUNCTION);
+}
+
+bool ParentWalker::isTimer(const CallExpr* expr){
+    return isFunction(expr, TIMER_FUNCTION);
 }
 
 /**
@@ -515,8 +533,10 @@ void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExp
     if (type.compare("class " + PUBLISHER_CLASS) == 0){
         currentPublisher = assigneeNode;
         currentPublisherOutdated = assigneeNode;
-    } else {
+    } else if (type.compare("class " + SUBSCRIBER_CLASS) == 0) {
         currentSubscriber = assigneeNode;
+    } else {
+        currentTimer = assigneeNode;
     }
 }
 
@@ -821,7 +841,6 @@ ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperato
         case BinaryOperator::Opcode::BO_RemAssign:
         case BinaryOperator::Opcode::BO_ShlAssign:
         case BinaryOperator::Opcode::BO_ShrAssign:
-
         case BinaryOperator::Opcode::BO_XorAssign:
             return ParentWalker::AccessMethod::WRITE;
         case BinaryOperator::Opcode::BO_PtrMemD:
@@ -899,7 +918,6 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
     }
 
 #ifdef EXPR_DEBUG
-    //TODO: Experimental! Fix later.
     cerr << "Error: Expression cannot be detected!" << endl;
     cerr << "Expression on line " << Context->getSourceManager().getSpellingLineNumber(curExpr->getLocStart())
          << " in file " << Context->getSourceManager().getFilename(curExpr->getLocStart()).str() << endl;
@@ -1002,6 +1020,14 @@ void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
     recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::PUBLISHER);
 }
 
+void ParentWalker::recordParentTimer(const CXXConstructExpr* expr){
+    //First, see if we have parents.
+    const NamedDecl* parentVar = getParentAssign(expr);
+    if (!parentVar) return;
+
+    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::TIMER);
+}
+
 /**
  * Records a generic parent ROS item.
  * @param parentID The ID to add.
@@ -1015,39 +1041,29 @@ void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNo
     if (type == RexNode::PUBLISHER) {
         src->addSingleAttribute(ROS_PUB_VAR_FLAG, "1");
         dst = graph->generatePublisherNode(parentID, parentName);
-    } else {
+    } else if (type == RexNode::SUBSCRIBER){
         src->addSingleAttribute(ROS_SUB_VAR_FLAG, "1");
         dst = graph->generateSubscriberNode(parentID, parentName);
+    } else if (type == RexNode::TIMER){
+        dst = graph->generateTimerNode(parentID, parentName);
     }
 
     //Creates the edge.
-    RexEdge* edge = new RexEdge(src, dst, ((type == RexNode::PUBLISHER) ? RexEdge::PUBLISH : RexEdge::SUBSCRIBE));
-    graph->addEdge(edge);
+    RexEdge* edge = nullptr;
 
     //Keeps track of the node being published/subscribed.
     if (type == RexNode::PUBLISHER) {
         currentPublisher = dst;
         currentPublisherOutdated = dst;
-    } else {
+        edge = new RexEdge(src, dst, RexEdge::PUBLISH);
+    } else if (type == RexNode::SUBSCRIBER){
         currentSubscriber = dst;
+        edge = new RexEdge(src, dst, RexEdge::SUBSCRIBE);
+    } else if (type == RexNode::TIMER){
+        currentTimer = dst;
+        edge = new RexEdge(src, dst, RexEdge::SET_TIME);
     }
-
-}
-
-/**
- * Records the parent node handle.
- * @param expr The expression to add.
- */
-void ParentWalker::recordParentNodeHandle(const CXXConstructExpr* expr){
-    //TODO
-}
-
-/**
- * Records a node handle.
- * @param expr The expression to add.
- */
-void ParentWalker::recordNodeHandle(const CXXConstructExpr* expr){
-    //TODO
+    graph->addEdge(edge);
 }
 
 /**
@@ -1155,6 +1171,10 @@ void ParentWalker::recordAdvertise(const CallExpr* expr) {
     currentPublisher->addSingleAttribute(ROS_PUB_TYPE, getPublisherType(expr));
 
     currentPublisher = nullptr;
+}
+
+void ParentWalker::recordTimer(const CallExpr* expr){
+
 }
 
 /**

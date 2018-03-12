@@ -453,6 +453,10 @@ RexNode* TAGraph::generatePublisherNode(std::string parentID, std::string parent
     return generateROSNode(parentID, parentName, RexNode::PUBLISHER);
 }
 
+RexNode* TAGraph::generateTimerNode(std::string parentID, std::string parentName){
+    return generateROSNode(parentID, parentName, RexNode::TIMER);
+}
+
 /**
  * Hashes a string based on the MD5 hash.
  * @param ID The string to hash.
@@ -550,10 +554,26 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
  */
 RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::NodeType type){
     //Generates the ID.
-    string rosID = parentID + "::" + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + "::";
+    string rosID = parentID + "::";
+    if (type == RexNode::PUBLISHER) {
+        rosID += PUB_NAME;
+    } else if (type == RexNode::SUBSCRIBER){
+        rosID += SUB_NAME;
+    } else {
+        rosID += TIMER_NAME;
+    }
+    rosID += "::";
 
     //Generates the name.
-    string rosName = parentName + "\'s " + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + " ";
+    string rosName = parentName + "\'s ";
+    if (type == RexNode::PUBLISHER) {
+        rosName += PUB_NAME;
+    } else if (type == RexNode::SUBSCRIBER){
+        rosName += SUB_NAME;
+    } else {
+        rosName += TIMER_NAME;
+    }
+    rosName += " ";
 
     //Gets the current number.
     int num = getLastROSNumber(rosID);

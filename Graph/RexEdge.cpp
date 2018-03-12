@@ -72,6 +72,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case VAR_INFLUENCE_FUNC:
             return "varInfFunc";
+
+        case SET_TIME:
+            return "time";
     }
 
     return "unknown";

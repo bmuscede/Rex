@@ -74,6 +74,7 @@ public:
     //ROS Node Generators
     RexNode* generateSubscriberNode(std::string parentID, std::string parentName);
     RexNode* generatePublisherNode(std::string parentID, std::string parentName);
+    RexNode* generateTimerNode(std::string parentID, std::string parentName);
 
 private:
     //Member variables
@@ -86,6 +87,7 @@ private:
     //ROS Functionality
     std::string const PUB_NAME = "Publisher";
     std::string const SUB_NAME = "Subscriber";
+    std::string const TIMER_NAME = "Timer";
     std::string const ROS_NUM = "rosNumber";
     std::string const FILENAME_ATTR = "filename";
 

@@ -33,8 +33,8 @@
 class RexEdge {
 public:
     //Node Type Information
-    enum EdgeType {CONTAINS, COMP_CONTAINS, VAR_WRITES,  REFERENCES, CALLS, READS, WRITES,
-        ADVERTISE, SUBSCRIBE, PUBLISH, VAR_INFLUENCE, VAR_INFLUENCE_FUNC};
+    enum EdgeType {CONTAINS, COMP_CONTAINS, VAR_WRITES, REFERENCES, CALLS, READS, WRITES,
+        ADVERTISE, SUBSCRIBE, PUBLISH, VAR_INFLUENCE, VAR_INFLUENCE_FUNC, SET_TIME};
     static std::string typeToString(EdgeType type);
 
     //Constructor/Destructor

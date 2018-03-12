@@ -70,7 +70,7 @@ public:
 protected:
     const std::string FILENAME_ATTR = "filename";
 
-    enum ROSType {ROS_NONE, PUB, SUB};
+    enum ROSType {ROS_NONE, PUB, SUB, TIMER};
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;
     ASTContext *Context;
@@ -78,11 +78,13 @@ protected:
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisherOutdated = nullptr;
     RexNode* currentPublisher = nullptr;
+    RexNode* currentTimer = nullptr;
 
     //ROS Names
     const std::string PUBLISHER_CLASS = "ros::Publisher";
     const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
     const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+    const std::string TIMER_CLASS = "ros::Timer";
 
     //Minimal Handlers
     ParentWalker::ROSType handleMinimalStmt(Stmt* statement);
@@ -93,9 +95,11 @@ protected:
     bool isNodeHandlerObj(const CXXConstructExpr* ctor);
     bool isSubscriberObj(const CXXConstructExpr* ctor);
     bool isPublisherObj(const CXXConstructExpr* ctor);
+    bool isTimerObj(const CXXConstructExpr* ctor);
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
     bool isAdvertise(const CallExpr* expr);
+    bool isTimer(const CallExpr* expr);
 
     //System Headers
     bool isInSystemHeader(const Stmt* statement);
@@ -104,12 +108,12 @@ protected:
     //ROS Recorders
     void recordParentSubscribe(const CXXConstructExpr* expr);
     void recordParentPublish(const CXXConstructExpr* expr);
+    void recordParentTimer(const CXXConstructExpr* expr);
     void recordParentGeneric(std::string parentID, std::string parentName, RexNode::NodeType type);
-    void recordParentNodeHandle(const CXXConstructExpr* expr);
-    void recordNodeHandle(const CXXConstructExpr* expr);
     void recordSubscribe(const CallExpr* expr);
     void recordPublish(const CallExpr* expr);
     void recordAdvertise(const CallExpr* expr);
+    void recordTimer(const CallExpr* expr);
     void recordTopic(std::string name);
 
     //Name Helper Functions
@@ -133,6 +137,7 @@ private:
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
     const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
     const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
+    const std::string TIMER_FUNCTION = "ros::NodeHandle::createTimer";
 
     //ROS Attributes
     const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
