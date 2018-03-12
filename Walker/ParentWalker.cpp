@@ -365,12 +365,15 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
         }
     } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
         if (isSubscriberObj(cxxExpr)) {
+            cout << "This is a test" << endl;
             recordParentSubscribe(cxxExpr);
             rtype = ROSType::SUB;
         } else if (isPublisherObj(cxxExpr)) {
+            cout << "This is a test" << endl;
             recordParentPublish(cxxExpr);
             rtype = ROSType::PUB;
         } else if (isTimerObj(cxxExpr)) {
+            cout << "This is a test" << endl;
             recordParentTimer(cxxExpr);
             rtype = ROSType::TIMER;
         }
