@@ -77,6 +77,7 @@ target_link_libraries(Rex
         LLVMDebugInfoDWARF
         LLVMCoverage
         LLVMTableGen
+        LLVMDlltoolDriver
         LLVMOrcJIT
         LLVMXCoreDisassembler
         LLVMXCoreCodeGen
@@ -137,6 +138,7 @@ target_link_libraries(Rex
         LLVMARMDesc
         LLVMARMInfo
         LLVMARMAsmPrinter
+        LLVMARMUtils
         LLVMAMDGPUDisassembler
         LLVMAMDGPUCodeGen
         LLVMAMDGPUAsmParser
@@ -154,6 +156,8 @@ target_link_libraries(Rex
         LLVMObjectYAML
         LLVMLibDriver
         LLVMOption
+        LLVMWindowsManifest
+        LLVMFuzzMutate
         LLVMX86Disassembler
         LLVMX86AsmParser
         LLVMX86CodeGen
@@ -192,6 +196,7 @@ target_link_libraries(Rex
         LLVMMC
         LLVMBitReader
         LLVMCore
+        LLVMBinaryFormat
         LLVMSupport
         LLVMDemangle
         )
