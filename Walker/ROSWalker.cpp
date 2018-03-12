@@ -295,7 +295,8 @@ void ROSWalker::handleFullPub(const Stmt* statement){
     RexEdge* callEdge = recordParentFunction(statement, currentPublisherOutdated);
 
     //Control Structure Adder.
-    recordASTControl(statement, currentPublisherOutdated);
+    recordASTControl(statement, currentPublisherOutdated,
+                     currentPublisherOutdated->getID(), currentPublisherOutdated->getType());
 }
 
 /**
@@ -329,7 +330,7 @@ void ROSWalker::recordCallExpr(const CallExpr* expr){
     graph->addEdge(edge);
 
     //Last, adds a relation if its a control structure.
-    recordASTControl(expr, calleeNode);
+    recordASTControl(expr, calleeNode, calleeID, RexNode::FUNCTION);
 }
 
 /**
@@ -554,8 +555,10 @@ RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseIte
  * Records whether a statement is part of a control structure.
  * @param baseStmt The base statement to process.
  * @param astItem The node to add as parent.
+ * @param astID The ID of the node being added as parent.
+ * @param astType The node type beind added.
  */
-void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
+void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem, string astID, RexNode::NodeType astType){
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
     bool isControlStmt = false;
@@ -610,14 +613,23 @@ void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
         //Looks up the node of the var.
         RexNode* varNode = graph->findNode(generateID(var));
         RexEdge* infEdge;
-        if (varNode){
-            infEdge = new RexEdge(varNode, astItem, (astItem->getType() == RexNode::FUNCTION) ?
-                                                    RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+        if (astItem) {
+            if (varNode) {
+                infEdge = new RexEdge(varNode, astItem, (astItem->getType() == RexNode::FUNCTION) ?
+                                                        RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+            } else {
+                infEdge = new RexEdge(generateID(var), astItem, (astItem->getType() == RexNode::FUNCTION) ?
+                                                                RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+            }
         } else {
-            infEdge = new RexEdge(generateID(var), astItem, (astItem->getType() == RexNode::FUNCTION) ?
-                                                            RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+            if (varNode) {
+                infEdge = new RexEdge(varNode, astID, (astType == RexNode::FUNCTION) ?
+                                                        RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+            } else {
+                infEdge = new RexEdge(generateID(var), astID, (astType == RexNode::FUNCTION) ?
+                                                                RexEdge::VAR_INFLUENCE_FUNC : RexEdge::VAR_INFLUENCE);
+            }
         }
-
         graph->addEdge(infEdge);
     }
 }

@@ -30,6 +30,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include "ParentWalker.h"
 
 using namespace std;
@@ -338,7 +340,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryO
 ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
     ROSType rtype = ROSType::ROS_NONE;
 
-    //Looks for advertise and subscribe.
+    //Looks for publish, subscribe, and time.
     if (CXXOperatorCallExpr* overload = dyn_cast<CXXOperatorCallExpr>(statement)){
         string type = overload->getType().getAsString();
         if (type.compare("class " + PUBLISHER_CLASS) == 0){
@@ -362,20 +364,6 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
 
             recordAssociations(assignee, assignStmt, type);
             rtype = ROSType::SUB;
-        }
-    } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
-        if (isSubscriberObj(cxxExpr)) {
-            cout << "This is a test" << endl;
-            recordParentSubscribe(cxxExpr);
-            rtype = ROSType::SUB;
-        } else if (isPublisherObj(cxxExpr)) {
-            cout << "This is a test" << endl;
-            recordParentPublish(cxxExpr);
-            rtype = ROSType::PUB;
-        } else if (isTimerObj(cxxExpr)) {
-            cout << "This is a test" << endl;
-            recordParentTimer(cxxExpr);
-            rtype = ROSType::TIMER;
         }
     }
 
@@ -585,9 +573,16 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bo
     //Next, we make our Rex variable object.
     string varNodeID = generateID(decl);
     string varNodeName = generateName(decl);
-    RexNode::NodeType nType = (type.compare(PUBLISHER_CLASS) == 0 ? RexNode::PUBLISHER :
-                               ((type.compare(SUBSCRIBER_CLASS) == 0) ? RexNode::SUBSCRIBER :
-                                RexNode::NodeType::NODE_HANDLE));
+    RexNode::NodeType nType;
+    if (type.compare(PUBLISHER_CLASS) == 0){
+        nType = RexNode::PUBLISHER;
+    } else if (type.compare(SUBSCRIBER_CLASS) == 0){
+        nType = RexNode::SUBSCRIBER;
+    } else if (type.compare(TIMER_CLASS) == 0){
+        nType = RexNode::TIMER;
+    } else {
+        nType = RexNode::NODE_HANDLE;
+    }
 
     RexNode* rexVarNode = new RexNode(varNodeID, varNodeName, nType);
     graph->addNode(rexVarNode);
@@ -1000,76 +995,6 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
 }
 
 /**
- * Records the parent subscriber.
- * @param expr The expression to add.
- */
-void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
-    //First, see if we have parents.
-    const NamedDecl* parentVar = getParentAssign(expr);
-    if (!parentVar) return;
-
-    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::SUBSCRIBER);
-}
-
-/**
- * Records the parent publisher.
- * @param expr The expression to add.
- */
-void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
-    //First, see if we have parents.
-    const NamedDecl* parentVar = getParentAssign(expr);
-    if (!parentVar) return;
-
-    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::PUBLISHER);
-}
-
-void ParentWalker::recordParentTimer(const CXXConstructExpr* expr){
-    //First, see if we have parents.
-    const NamedDecl* parentVar = getParentAssign(expr);
-    if (!parentVar) return;
-
-    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::TIMER);
-}
-
-/**
- * Records a generic parent ROS item.
- * @param parentID The ID to add.
- * @param parentName The name to add.
- * @param type The type to add.
- */
-void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNode::NodeType type){
-    //Next, we record the relationship between the two items.
-    RexNode* src = graph->findNode(parentID);
-    RexNode* dst;
-    if (type == RexNode::PUBLISHER) {
-        src->addSingleAttribute(ROS_PUB_VAR_FLAG, "1");
-        dst = graph->generatePublisherNode(parentID, parentName);
-    } else if (type == RexNode::SUBSCRIBER){
-        src->addSingleAttribute(ROS_SUB_VAR_FLAG, "1");
-        dst = graph->generateSubscriberNode(parentID, parentName);
-    } else if (type == RexNode::TIMER){
-        dst = graph->generateTimerNode(parentID, parentName);
-    }
-
-    //Creates the edge.
-    RexEdge* edge = nullptr;
-
-    //Keeps track of the node being published/subscribed.
-    if (type == RexNode::PUBLISHER) {
-        currentPublisher = dst;
-        currentPublisherOutdated = dst;
-        edge = new RexEdge(src, dst, RexEdge::PUBLISH);
-    } else if (type == RexNode::SUBSCRIBER){
-        currentSubscriber = dst;
-        edge = new RexEdge(src, dst, RexEdge::SUBSCRIBE);
-    } else if (type == RexNode::TIMER){
-        currentTimer = dst;
-        edge = new RexEdge(src, dst, RexEdge::SET_TIME);
-    }
-    graph->addEdge(edge);
-}
-
-/**
  * Records a subscriber object.
  * @param expr The expression with the subscriber.
  */
@@ -1177,7 +1102,53 @@ void ParentWalker::recordAdvertise(const CallExpr* expr) {
 }
 
 void ParentWalker::recordTimer(const CallExpr* expr){
+    if (currentTimer == nullptr) return;
 
+    //First, get the arguments.
+    int numArgs = expr->getNumArgs();
+    auto timerArgs = getArgs(expr);
+
+    //Gets the duration.
+    string timerFreq = timerArgs[0];
+    if (boost::starts_with(timerFreq, TIMER_PREFIX_1)){
+        boost::replace_all(timerFreq, TIMER_PREFIX_1, "");
+        boost::replace_all(timerFreq, ")", "");
+    } else if (boost::starts_with(timerFreq, TIMER_PREFIX_2)){
+        boost::replace_all(timerFreq, TIMER_PREFIX_2, "");
+        boost::replace_all(timerFreq, ")", "");
+    }
+
+    //Checks if we have a one shot timer.
+    string oneshot = timerArgs[3];
+    if (oneshot == "" || oneshot == "false"){
+        oneshot = "0";
+    } else {
+        oneshot = "1";
+    }
+
+    //Adds specific attributes.
+    currentTimer->addSingleAttribute(TIMER_DURATION, timerFreq);
+    currentTimer->addSingleAttribute(TIMER_ONESHOT, oneshot);
+
+    //Get the callback function.
+    RexNode* callback = findCallbackFunction(timerArgs[1]);
+
+    //Finally, adds in the callback function.
+    RexEdge* callbackEdge;
+    if (callback){
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::CALLS);
+    } else {
+        //Remove the & at the beginning.
+        string callback = timerArgs[1];
+        if (callback.at(0) == '&'){
+            callback = callback.erase(0, 1);
+        }
+
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::CALLS);
+    }
+    graph->addEdge(callbackEdge);
+
+    currentTimer = nullptr;
 }
 
 /**

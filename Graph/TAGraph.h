@@ -71,11 +71,6 @@ public:
     //TA Generators
     std::string getTAModel();
 
-    //ROS Node Generators
-    RexNode* generateSubscriberNode(std::string parentID, std::string parentName);
-    RexNode* generatePublisherNode(std::string parentID, std::string parentName);
-    RexNode* generateTimerNode(std::string parentID, std::string parentName);
-
 private:
     //Member variables
     std::unordered_map<std::string, RexNode*> idList;
@@ -85,10 +80,6 @@ private:
     RexEdge::EdgeType forestEdgeType;
 
     //ROS Functionality
-    std::string const PUB_NAME = "Publisher";
-    std::string const SUB_NAME = "Subscriber";
-    std::string const TIMER_NAME = "Timer";
-    std::string const ROS_NUM = "rosNumber";
     std::string const FILENAME_ATTR = "filename";
 
     //Rex TA Schemas
@@ -138,10 +129,6 @@ private:
     //Edge Resolvers
     bool resolveEdge(RexEdge* edge);
     bool resolveEdgeByName(RexEdge* edge);
-
-    //ROS Helper Functions
-    RexNode* generateROSNode(std::string parentID, std::string parentName, RexNode::NodeType type);
-    int getLastROSNumber(std::string rosID);
 
     //Helper Function
     bool hasEnding(std::string const &fullString, std::string const &ending);

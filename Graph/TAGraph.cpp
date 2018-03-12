@@ -434,30 +434,6 @@ string TAGraph::getTAModel(){
 }
 
 /**
- * Generates a unique ROS-based node.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @return The node generated.
- */
-RexNode* TAGraph::generateSubscriberNode(std::string parentID, std::string parentName){
-    return generateROSNode(parentID, parentName, RexNode::SUBSCRIBER);
-}
-
-/**
- * Generates a unique ROS-based node.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @return The node generated.
- */
-RexNode* TAGraph::generatePublisherNode(std::string parentID, std::string parentName){
-    return generateROSNode(parentID, parentName, RexNode::PUBLISHER);
-}
-
-RexNode* TAGraph::generateTimerNode(std::string parentID, std::string parentName){
-    return generateROSNode(parentID, parentName, RexNode::TIMER);
-}
-
-/**
  * Hashes a string based on the MD5 hash.
  * @param ID The string to hash.
  * @return The hashed string.
@@ -543,78 +519,6 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
     }
 
     return true;
-}
-
-/**
- * Generates a ROS node based on parent information.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @param type The type of the node.
- * @return The generated node.
- */
-RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::NodeType type){
-    //Generates the ID.
-    string rosID = parentID + "::";
-    if (type == RexNode::PUBLISHER) {
-        rosID += PUB_NAME;
-    } else if (type == RexNode::SUBSCRIBER){
-        rosID += SUB_NAME;
-    } else {
-        rosID += TIMER_NAME;
-    }
-    rosID += "::";
-
-    //Generates the name.
-    string rosName = parentName + "\'s ";
-    if (type == RexNode::PUBLISHER) {
-        rosName += PUB_NAME;
-    } else if (type == RexNode::SUBSCRIBER){
-        rosName += SUB_NAME;
-    } else {
-        rosName += TIMER_NAME;
-    }
-    rosName += " ";
-
-    //Gets the current number.
-    int num = getLastROSNumber(rosID);
-    rosID += to_string(num);
-    rosName += to_string(num);
-
-    //Now creates the node.
-    RexNode* node = new RexNode(rosID, rosName, type);
-    node->addSingleAttribute(ROS_NUM, to_string(num));
-    addNode(node);
-
-    return node;
-}
-
-/**
- * Generates a unique number based on the ROS ID.
- * @param rosID The ID of the entity.
- * @return The unique number.
- */
-int TAGraph::getLastROSNumber(std::string rosID){
-    int curNum = 0;
-    bool exists = true;
-
-    //Loops through until we don't find an entry.
-    while (exists) {
-        bool found = false;
-
-        //Loops through the map.
-        for (auto mapItem : idList){
-            if (mapItem.first.compare(rosID + to_string(curNum)) == 0){
-                found = true;
-                break;
-            }
-        }
-
-        //Check if we found the item.
-        if (!found) exists = false;
-        else curNum++;
-    }
-
-    return curNum;
 }
 
 /**

@@ -106,10 +106,6 @@ protected:
     bool isInSystemHeader(const Decl* decl);
 
     //ROS Recorders
-    void recordParentSubscribe(const CXXConstructExpr* expr);
-    void recordParentPublish(const CXXConstructExpr* expr);
-    void recordParentTimer(const CXXConstructExpr* expr);
-    void recordParentGeneric(std::string parentID, std::string parentName, RexNode::NodeType type);
     void recordSubscribe(const CallExpr* expr);
     void recordPublish(const CallExpr* expr);
     void recordAdvertise(const CallExpr* expr);
@@ -138,6 +134,8 @@ private:
     const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
     const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
     const std::string TIMER_FUNCTION = "ros::NodeHandle::createTimer";
+    const std::string TIMER_PREFIX_1 = "ros::Duration(";
+    const std::string TIMER_PREFIX_2 = "Duration(";
 
     //ROS Attributes
     const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
@@ -146,8 +144,9 @@ private:
     const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
     const std::string ROS_CALLBACK = "callbackFunc";
     const std::string ROS_PUB_TYPE = "publisherType";
-    const std::string ROS_NUMBER = "rosNumber";
     const std::string ROS_PUB_DATA = "pubData";
+    const std::string TIMER_DURATION = "timerDuration";
+    const std::string TIMER_ONESHOT = "isOneshot";
     const int PUB_MAX = 30;
 
     //Header Libraries
