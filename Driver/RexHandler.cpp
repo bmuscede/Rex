@@ -32,6 +32,7 @@
 #include "RexHandler.h"
 #include "../Walker/ROSConsumer.h"
 #include "../JSON/json.h"
+#include "../Configuration/ScenarioWalker.h"
 
 using namespace std;
 using namespace clang::tooling;
@@ -222,6 +223,16 @@ bool RexHandler::resolveComponents(std::vector<path> databasePaths){
 
     //Goes through each of the graphs.
     return ParentWalker::resolveAllTAModels(results);
+}
+
+bool RexHandler::processScenarioInformation(path scnPath){
+    //Create a scenario walker instance.
+    ScenarioWalker* walker = new ScenarioWalker(scnPath);
+
+    bool res = walker->processScenario();
+    if (!res) return false;
+
+    return true;
 }
 
 /**

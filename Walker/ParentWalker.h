@@ -92,10 +92,6 @@ protected:
     bool handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
 
     //ROS Handlers
-    bool isNodeHandlerObj(const CXXConstructExpr* ctor);
-    bool isSubscriberObj(const CXXConstructExpr* ctor);
-    bool isPublisherObj(const CXXConstructExpr* ctor);
-    bool isTimerObj(const CXXConstructExpr* ctor);
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
     bool isAdvertise(const CallExpr* expr);
@@ -138,8 +134,6 @@ private:
     const std::string TIMER_PREFIX_2 = "Duration(";
 
     //ROS Attributes
-    const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
-    const std::string ROS_PUB_VAR_FLAG = "isPublisher";
     const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
     const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
     const std::string ROS_CALLBACK = "callbackFunc";

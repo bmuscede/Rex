@@ -50,6 +50,7 @@ const static string ADD_ARG = "add";
 const static string REMOVE_ARG = "remove";
 const static string LIST_ARG = "list";
 const static string COMPONENT_ARG = "resolve";
+const static string SCENARIO_ARG = "scenario";
 const static string SCRIPT_ARG = "script";
 
 /** Rex Command Handler */
@@ -222,13 +223,24 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     //Generates the help for resolve-components.
     (*helpMap)[COMPONENT_ARG] = RexHelp(COMPONENT_ARG, po::options_description("Options"));
     helpMap->at(COMPONENT_ARG).desc->add_options()
-            ("help,h", "Print help message for list.")
+            ("help,h", "Print help message for resolve.")
             ("dir,d", po::value<std::string>(), "The script file to run.");
     ss.str(string());
     ss << *helpMap->at(COMPONENT_ARG).desc;
     (*helpString)[COMPONENT_ARG] = string("Resolve Help\nUsage: " + COMPONENT_ARG + " directory\n"
             "Resolves components for each TA file using some base directory\ncontaining compilation databases "
             "for each TA graph.\nThis command will be run for each TA file in the queue.\n\n" + ss.str());
+
+    //Generates the help for scenario.
+    (*helpMap)[SCENARIO_ARG] = RexHelp(SCENARIO_ARG, po::options_description("Options"));
+    helpMap->at(SCENARIO_ARG).desc->add_options()
+            ("help,h", "Print help message for scenario.")
+            ("dir,d", po::value<std::string>(), "The directory containing scenario files.");
+    ss.str(string());
+    ss << *helpMap->at(SCENARIO_ARG).desc;
+    (*helpString)[SCENARIO_ARG] = string("Scenario Help\nUsage: " + SCENARIO_ARG + " directory\n"
+            "(For Autonomoose projects only!)\nReads in Autonomoose scenarios to determine which features\n"
+            "are running and the number of each feature running.\n\n" + ss.str());
 }
 
 /**
@@ -248,7 +260,8 @@ void handleHelp(string line, map<string, string> messages) {
         "remove         : Removes a file/directory from the queue.\n"
         "list           : Lists the current state of Rex.\n"
         "script         : Runs a script that handles program commands.\n"
-        "resolve        : Resolves components from compilation databases.\n\n"
+        "resolve        : Resolves features from compilation databases.\n"
+        "scenario       : Adds Autonomoose scenario information into the TA model.\n\n"
         "For more help type \"help [argument name]\" for more details.";
 
     auto tokens = tokenizeBySpace(line);
@@ -725,6 +738,41 @@ void resolveComponents(string line, po::options_description desc){
     }
 }
 
+void readScenario(string line, po::options_description desc){
+    //Tokenize by space.
+    vector<string> tokens = tokenizeBySpace(line);
+
+    //Next, we check to ensure the command is correct.
+    if (tokens.size() != 2) {
+        cerr << "Error: You can only pass in one scenario directory." << endl;
+        return;
+    } else if (masterHandle->getNumGraphs() == 0){
+        cerr << "Error: There must be at least one model in the processing queue." << endl;
+        return;
+    }
+
+    //Get the path.
+    path dir = tokens.at(1);
+    if (!exists(dir)){
+        cerr << "Error: The directory " << dir << " does not exist." << endl;
+        return;
+    } else if (!is_directory(dir)) {
+        cerr << "Error: The path " << dir << " is not a directory." << endl;
+        return;
+    }
+
+
+    //Add scenario information.
+    cout << "Found directory " << dir << ". Checking for scenario information..." << endl;
+    bool success = masterHandle->processScenarioInformation(dir);
+
+    if (success){
+        cout << "Scenario information added to all models!" << endl;
+    } else {
+        cerr << "There was an error obtaining scenario information from " << dir << "." << endl;
+    }
+}
+
 /**
  * Simple method that prints the header for Rex
  * to display to users what program they're running.
@@ -822,6 +870,9 @@ bool processCommand(string line){
     } else if (!line.compare(0, COMPONENT_ARG.size(), COMPONENT_ARG) &&
             (line[COMPONENT_ARG.size()] == ' ' || line.size() == COMPONENT_ARG.size())) {
         resolveComponents(line, *(helpInfo.at(COMPONENT_ARG).desc.get()));
+    } else if (!line.compare(0, SCENARIO_ARG.size(), SCENARIO_ARG) &&
+            (line[SCENARIO_ARG.size()] == ' ' || line.size() == SCENARIO_ARG.size())){
+        readScenario(line, *(helpInfo.at(SCENARIO_ARG).desc.get()));
     } else {
         cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
     }

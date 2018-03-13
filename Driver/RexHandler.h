@@ -55,7 +55,10 @@ public:
     /** Output Helpers */
     bool outputIndividualModel(int modelNum, std::string fileName = std::string());
     bool outputAllModels(std::string baseFileName);
+
+    /** TA Helpers */
     bool resolveComponents(std::vector<path> databasePaths);
+    bool processScenarioInformation(path scnPath);
 
     /** Add and Remove Functions */
     int addByPath(path curPath);

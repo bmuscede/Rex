@@ -48,7 +48,13 @@ set(SOURCE_FILES
         Walker/ROSConsumer.h
 		JSON/jsoncpp.cpp
         JSON/json-forwards.h
-        JSON/json.h)
+        JSON/json.h
+		XML/rapidxml.hpp
+		XML/rapidxml_iterators.hpp
+		XML/rapidxml_print.hpp
+		XML/rapidxml_utils.hpp
+		Configuration/ScenarioWalker.cpp
+		Configuration/ScenarioWalker.h)
 
 add_executable(Rex ${SOURCE_FILES})
 

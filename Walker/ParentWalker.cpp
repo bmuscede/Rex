@@ -403,7 +403,8 @@ bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     string parentName = parent->getQualifiedNameAsString();
     if (parentName.compare(PUBLISHER_CLASS) == 0 ||
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
-        parentName.compare(NODE_HANDLE_CLASS) == 0){
+        parentName.compare(NODE_HANDLE_CLASS) == 0 ||
+        parentName.compare(TIMER_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
         return true;
     }
@@ -427,43 +428,13 @@ bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     string parentName = parent->getQualifiedNameAsString();
     if (parentName.compare(PUBLISHER_CLASS) == 0 ||
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
-        parentName.compare(NODE_HANDLE_CLASS) == 0){
+        parentName.compare(NODE_HANDLE_CLASS) == 0 ||
+        parentName.compare(TIMER_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
         return true;
     }
 
     return false;
-}
-
-/**
- * Checks if we're constructing a node handle.
- * @param ctor The CXX constructor.
- * @return Whether its a node handle.
- */
-bool ParentWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
-    return isClass(ctor, NODE_HANDLE_CLASS);
-}
-
-/**
- * Checks if we're constructing a subscriber.
- * @param ctor The CXX constructor.
- * @return Whether its a subscriber.
- */
-bool ParentWalker::isSubscriberObj(const CXXConstructExpr* ctor){
-    return isClass(ctor, SUBSCRIBER_CLASS);
-}
-
-/**
- * Checks if we're constructing a publisher.
- * @param ctor The CXX constructor.
- * @return Whether its a publisher.
- */
-bool ParentWalker::isPublisherObj(const CXXConstructExpr* ctor){
-    return isClass(ctor, PUBLISHER_CLASS);
-}
-
-bool ParentWalker::isTimerObj(const CXXConstructExpr* ctor){
-    return isClass(ctor, TIMER_CLASS);
 }
 
 /**
