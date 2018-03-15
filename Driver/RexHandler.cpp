@@ -225,9 +225,9 @@ bool RexHandler::resolveComponents(std::vector<path> databasePaths){
     return ParentWalker::resolveAllTAModels(results);
 }
 
-bool RexHandler::processScenarioInformation(path scnPath){
+bool RexHandler::processScenarioInformation(path scnPath, path rosPath){
     //Create a scenario walker instance.
-    ScenarioWalker* walker = new ScenarioWalker(scnPath);
+    ScenarioWalker* walker = new ScenarioWalker(scnPath, rosPath);
 
     bool res = walker->processScenario();
     if (!res) return false;

@@ -235,11 +235,12 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     (*helpMap)[SCENARIO_ARG] = RexHelp(SCENARIO_ARG, po::options_description("Options"));
     helpMap->at(SCENARIO_ARG).desc->add_options()
             ("help,h", "Print help message for scenario.")
-            ("dir,d", po::value<std::string>(), "The directory containing scenario files.");
+            ("dir,d", po::value<std::string>(), "The directory containing the files for a scenario.")
+            ("proj,p", po::value<std::string>(), "The directory containing all ROS project files.");
     ss.str(string());
     ss << *helpMap->at(SCENARIO_ARG).desc;
     (*helpString)[SCENARIO_ARG] = string("Scenario Help\nUsage: " + SCENARIO_ARG + " directory\n"
-            "(For Autonomoose projects only!)\nReads in Autonomoose scenarios to determine which features\n"
+            "(For ROS projects with launch files!)\nReads in ROS-based scenarios to determine which features\n"
             "are running and the number of each feature running.\n\n" + ss.str());
 }
 
@@ -743,8 +744,8 @@ void readScenario(string line, po::options_description desc){
     vector<string> tokens = tokenizeBySpace(line);
 
     //Next, we check to ensure the command is correct.
-    if (tokens.size() != 2) {
-        cerr << "Error: You can only pass in one scenario directory." << endl;
+    if (tokens.size() != 3) {
+        cerr << "Error: You can only pass in one scenario directory and a ROS project directory." << endl;
         return;
     } else if (masterHandle->getNumGraphs() == 0){
         cerr << "Error: There must be at least one model in the processing queue." << endl;
@@ -761,10 +762,19 @@ void readScenario(string line, po::options_description desc){
         return;
     }
 
+    //Get the ROS project path.
+    path projPath = tokens.at(2);
+    if (!exists(projPath)){
+        cerr << "Error: The directory " << projPath << " does not exist." << endl;
+        return;
+    } else if (!is_directory(dir)) {
+        cerr << "Error: The path " << projPath << " is not a directory." << endl;
+        return;
+    }
 
     //Add scenario information.
     cout << "Found directory " << dir << ". Checking for scenario information..." << endl;
-    bool success = masterHandle->processScenarioInformation(dir);
+    bool success = masterHandle->processScenarioInformation(dir, projPath);
 
     if (success){
         cout << "Scenario information added to all models!" << endl;

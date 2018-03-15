@@ -58,7 +58,7 @@ public:
 
     /** TA Helpers */
     bool resolveComponents(std::vector<path> databasePaths);
-    bool processScenarioInformation(path scnPath);
+    bool processScenarioInformation(path scnPath, path rosPath);
 
     /** Add and Remove Functions */
     int addByPath(path curPath);
