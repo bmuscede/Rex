@@ -153,6 +153,16 @@ bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
     return true;
 }
 
+bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
+    //Goes through the graph and eliminates certain features.
+    for (TAGraph* curGraph : graphList){
+        bool status  = curGraph->keepFeatures(features);
+        if (!status) return false;
+    }
+
+    return true;
+}
+
 /*
  * Sets particular libraries to ignore when processing.
  */

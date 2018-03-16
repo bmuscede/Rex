@@ -47,6 +47,7 @@ public:
     void addEdge(RexEdge* edge);
 
     //Node/Edge Removers
+    void hierarchyRemove(RexNode* toRemove);
     void removeNode(std::string nodeID);
     void removeEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type, bool hashed = false);
 
@@ -54,6 +55,7 @@ public:
     RexNode* findNode(std::string nodeID);
     RexNode* findNodeByName(std::string nodeName, bool MD5Check = false);
     RexNode* findNodeByEndName(std::string endName, bool MD5Check = false);
+    std::vector<RexNode*> findNodesByType(RexNode::NodeType type);
     RexEdge* findEdge(std::string srcID, std::string dstID, RexEdge::EdgeType type);
     std::vector<RexEdge*> findEdgesBySrc(std::string srcID, bool md5 = true);
     std::vector<RexEdge*> findEdgesByDst(std::string dstID, bool md5 = true);
@@ -67,6 +69,7 @@ public:
     bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap);
     void resolveUnestablishedEdges();
     void purgeUnestablishedEdges(bool resolveFirst = true);
+    bool keepFeatures(std::vector<std::string> features);
 
     //TA Generators
     std::string getTAModel();

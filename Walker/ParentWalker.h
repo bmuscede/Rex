@@ -61,6 +61,7 @@ public:
     static int generateAllTAModels(std::vector<std::string> fileName);
     static void setCurrentGraphMinMode(bool minMode);
     static bool resolveAllTAModels(std::map<std::string, std::vector<std::string>> databaseMap);
+    static bool onlyKeepFeatures(std::vector<std::string> features);
 
     //Processing Operations
     void addLibrariesToIgnore(std::vector<std::string> libraries);

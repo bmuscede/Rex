@@ -22,6 +22,8 @@ public:
     bool readFiles();
     bool processScenario();
 
+    std::vector<std::string> getActivePackages();
+
 private:
     const std::string JSON_EXT = ".json";
     const std::string LAUNCH_EXT = ".launch";
@@ -38,6 +40,8 @@ private:
     path mainScenario;
     path launchFile;
     path jsonFile;
+
+    std::vector<std::string> activePackages;
 
     void readLaunchFile();
 

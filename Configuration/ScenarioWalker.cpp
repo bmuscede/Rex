@@ -50,6 +50,10 @@ bool ScenarioWalker::processScenario(){
     return true;
 }
 
+vector<string> ScenarioWalker::getActivePackages(){
+    return activePackages;
+}
+
 void ScenarioWalker::readLaunchFile(){
     //Attempt to load in the XML file.
     rapidxml::file<> xmlFile(launchFile.string().c_str());
@@ -65,6 +69,7 @@ void ScenarioWalker::readLaunchFile(){
         vector<string> cur = getActivePackages(curDoc);
         results.insert(results.end(), cur.begin(), cur.end());
     }
+    activePackages = results;
 
     for (auto curDoc : docs) delete curDoc;
 }

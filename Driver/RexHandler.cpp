@@ -232,6 +232,8 @@ bool RexHandler::processScenarioInformation(path scnPath, path rosPath){
     bool res = walker->processScenario();
     if (!res) return false;
 
+    //Next, resolve graph information.
+    ParentWalker::onlyKeepFeatures(walker->getActivePackages());
     return true;
 }
 

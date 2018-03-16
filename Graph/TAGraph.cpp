@@ -94,6 +94,17 @@ void TAGraph::addEdge(RexEdge* edge){
     edgeDstList[edge->getDestinationID()].push_back(edge);
 }
 
+void TAGraph::hierarchyRemove(RexNode* toRemove){
+    auto edges = findEdgesBySrc(toRemove->getID());
+    for (auto &item : edges){
+        if (item == nullptr) continue;
+        if (item->getType() == RexEdge::COMP_CONTAINS || item->getType() == RexEdge::CONTAINS){
+            hierarchyRemove(item->getDestination());
+        }
+    }
+
+    removeNode(toRemove->getID());
+}
 
 /**
  * Removes a node.
@@ -203,6 +214,16 @@ RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     }
 
     return nullptr;
+}
+
+vector<RexNode*> TAGraph::findNodesByType(RexNode::NodeType type){
+    vector<RexNode*> nodes;
+
+    for (auto entry : idList){
+        if (entry.second->getType() == type) nodes.push_back(entry.second);
+    }
+
+    return nodes;
 }
 
 /**
@@ -385,12 +406,22 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
         for (int i = 0; i < edges.size(); i++){
             RexEdge* curEdge = edges.at(i);
 
-            //Check if the edge is established.
+            //Check if the edge is established
             if (!curEdge->isEstablished()){
                 bool remove = true;
                 if (resolveFirst) remove = !resolveEdge(curEdge);
                 if (remove) removeEdge(curEdge->getSourceID(), curEdge->getDestinationID(), curEdge->getType(), true);
             }
+        }
+    }
+}
+
+bool TAGraph::keepFeatures(vector<string> features){
+    //Find features by name.
+    vector<RexNode*> featureNodes = findNodesByType(RexNode::COMPONENT);
+    for (RexNode* curNode : featureNodes){
+        if (find(features.begin(), features.end(), curNode->getName()) == features.end()){
+            hierarchyRemove(curNode);
         }
     }
 }
