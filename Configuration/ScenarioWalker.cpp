@@ -61,69 +61,83 @@ void ScenarioWalker::readLaunchFile(){
     doc.parse<0>(xmlFile.data());
 
     //Get all include tags.
-    vector<rapidxml::xml_document<>*> docs = expandIncludes(&doc);
-
-    //Next, parse the documents for active nodes.
-    vector<string> results;
-    for (auto curDoc : docs){
-        vector<string> cur = getActivePackages(curDoc);
-        results.insert(results.end(), cur.begin(), cur.end());
-    }
+    vector<string> results = expandIncludes(&doc, doc.first_node());
+    results = clearDuplicates(results);
     activePackages = results;
-
-    for (auto curDoc : docs) delete curDoc;
 }
 
-vector<rapidxml::xml_document<>*> ScenarioWalker::expandIncludes(rapidxml::xml_document<> *doc){
-    vector<rapidxml::xml_document<>*> docs;
-    docs.push_back(doc);
+vector<string> ScenarioWalker::expandIncludes(rapidxml::xml_document<>* curDoc,
+                                                                 rapidxml::xml_node<>* curNode){
+    vector<string> results;
 
     //Iterate through the include tags in the document.
-    for (auto node = doc->first_node(INCLUDE_NODE.c_str()); node; node = node->next_sibling(INCLUDE_NODE.c_str())){
-        //Get the file attribute.
-        for (auto attr = node->first_attribute(); attr; attr = attr->next_attribute()){
-            if (attr->name() == FILE_ATTRIBUTE.c_str()){
-                //Expand out the document.
-                string loc  = attr->value();
+    for (auto node = curNode; node; node = node->next_sibling()){
 
-                //Search for find.
-                if (boost::regex_search(loc, FIND_REGEX)){
-                    //Get the results.
-                    boost::smatch match;
-                    boost::regex_search(loc, match, FIND_REGEX);
-                    string result = match.str(1);
+        if (node->name() == INCLUDE_NODE){
+            //Get the file attribute.
+            for (auto attr = node->first_attribute(); attr; attr = attr->next_attribute()) {
+                if (attr->name() == FILE_ATTRIBUTE) {
+                    //Expand out the document.
+                    string loc = attr->value();
 
-                    //Remove characters from string and trim.
-                    boost::erase_all(result, "$");
-                    boost::erase_all(result, "(");
-                    boost::erase_all(result, ")");
-                    boost::erase_all(result, "find");
-                    boost::trim(result);
+                    //Search for find.
+                    if (boost::regex_search(loc, FIND_REGEX)) {
+                        //Get the results.
+                        boost::smatch match;
+                        boost::regex_search(loc, match, FIND_REGEX);
+                        string result = match.str();
 
-                    //Look up the string.
-                    string path = findPackage(result, rosPkgDir);
-                    if (path != "") string replacePath = regex_replace(loc, FIND_REGEX, path);
+                        //Remove characters from string and trim.
+                        boost::erase_all(result, "$");
+                        boost::erase_all(result, "(");
+                        boost::erase_all(result, ")");
+                        boost::erase_all(result, "find");
+                        boost::trim(result);
+
+                        //Look up the string.
+                        string path = findPackage(result, rosPkgDir);
+                        if (path != "") {
+                            string replacePath = regex_replace(loc, FIND_REGEX, path);
+                            loc = replacePath;
+                        }
+                    }
+
+                    //Next, search for the file.
+                    path nextFile = loc;
+                    if (!exists(nextFile)) {
+                        continue;
+                    }
+
+                    //Open it for parsing.
+                    rapidxml::file<> xmlFile(nextFile.string().c_str());
+                    auto nextDoc = new rapidxml::xml_document<>();
+                    nextDoc->parse<0>(xmlFile.data());
+
+                    //Generate the inner results.
+                    auto curRes = expandIncludes(nextDoc, nextDoc->first_node());
+                    results.insert(results.end(), curRes.begin(), curRes.end());
+                    results = clearDuplicates(results);
                 }
-
-                //Next, search for the file.
-                path nextFile = loc;
-                if (!exists(nextFile)){
-                    continue;
-                }
-
-                //Open it for parsing.
-                rapidxml::file<> xmlFile(nextFile.string().c_str());
-                auto nextDoc = new rapidxml::xml_document<>();
-                nextDoc->parse<0>(xmlFile.data());
-
-                //Generate the inner results.
-                auto results = expandIncludes(nextDoc);
-                docs.insert(docs.end(), results.begin(), results.end());
             }
+        } else {
+            if (node->name() == NODE_NODE){
+                for (auto attr = node->first_attribute(); attr; attr = attr->next_attribute()) {
+                    if (attr->name() == PKG_ATTRIBUTE) {
+                        string val = attr->value();
+                        results.push_back(val);
+                        break;
+                    }
+                }
+            }
+
+            //Traverse downwards.
+            auto curRes = expandIncludes(curDoc, curNode->first_node());
+            results.insert(results.end(), curRes.begin(), curRes.end());
+            results = clearDuplicates(results);
         }
     }
 
-    return docs;
+    return results;
 }
 
 string ScenarioWalker::findPackage(string pkgName, path startDir){
@@ -143,17 +157,15 @@ string ScenarioWalker::findPackage(string pkgName, path startDir){
     return "";
 }
 
-vector<string> ScenarioWalker::getActivePackages(rapidxml::xml_document<>* doc){
-    vector<string> results;
+vector<string> ScenarioWalker::clearDuplicates(vector<string> dupArr){
+    vector<string> resArr;
 
-    for (auto node = doc->first_node(NODE_NODE.c_str()); node; node = node->next_sibling(NODE_NODE.c_str())){
-        for (auto attr = node->first_attribute(); attr; attr = attr->next_attribute()){
-            if (string(attr->name()) == PKG_ATTRIBUTE){
-                results.push_back(string(attr->value()));
-                continue;
-            }
+    //Iterate through all the elements.
+    for (string cur : dupArr){
+        if (find(resArr.begin(), resArr.end(), cur) == resArr.end()){
+            resArr.push_back(cur);
         }
     }
 
-    return results;
+    return resArr;
 }

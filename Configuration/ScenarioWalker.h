@@ -45,10 +45,11 @@ private:
 
     void readLaunchFile();
 
-    std::vector<rapidxml::xml_document<>*> expandIncludes(rapidxml::xml_document<> *doc);
+    std::vector<std::string> expandIncludes(rapidxml::xml_document<>* curDoc,
+                                                          rapidxml::xml_node<>* curNode);
     std::string findPackage(std::string pkgName, path startDir);
 
-    std::vector<std::string> getActivePackages(rapidxml::xml_document<>* doc);
+    std::vector<std::string> clearDuplicates(std::vector<std::string> dupArr);
 };
 
 

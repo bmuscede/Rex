@@ -234,8 +234,14 @@ bool RexHandler::processScenarioInformation(path scnPath, path rosPath){
     res = walker->processScenario();
     if (!res) return false;
 
+    vector<string> activePackages = walker->getActivePackages();
+    cout << "The following packages are active in this scenario:" << endl;
+    for (string pkg : activePackages) {
+        cout << " - " << pkg << endl;
+    }
+
     //Next, resolve graph information.
-    ParentWalker::onlyKeepFeatures(walker->getActivePackages());
+    ParentWalker::onlyKeepFeatures(activePackages);
     return true;
 }
 
