@@ -229,7 +229,9 @@ bool RexHandler::processScenarioInformation(path scnPath, path rosPath){
     //Create a scenario walker instance.
     ScenarioWalker* walker = new ScenarioWalker(scnPath, rosPath);
 
-    bool res = walker->processScenario();
+    bool res = walker->readFiles();
+    if (!res) return false;
+    res = walker->processScenario();
     if (!res) return false;
 
     //Next, resolve graph information.
