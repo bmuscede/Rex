@@ -1117,7 +1117,7 @@ void ParentWalker::recordTimer(const CallExpr* expr){
     //Finally, adds in the callback function.
     RexEdge* callbackEdge;
     if (callback){
-        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::CALLS);
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::SET_TIME);
     } else {
         //Remove the & at the beginning.
         string callback = timerArgs[1];
@@ -1125,7 +1125,7 @@ void ParentWalker::recordTimer(const CallExpr* expr){
             callback = callback.erase(0, 1);
         }
 
-        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::CALLS);
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::SET_TIME);
     }
     graph->addEdge(callbackEdge);
 
