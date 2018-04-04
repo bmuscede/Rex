@@ -556,6 +556,8 @@ RexEdge* ROSWalker::recordParentFunction(const Stmt* statement, RexNode* baseIte
  * @param astItem The node to add as parent.
  */
 void ROSWalker::recordASTControl(const Stmt* baseStmt, RexNode* astItem){
+    if (!astItem) return;
+
     //First, we need to determine if this is part of some control structure.
     bool getParent = true;
     bool isControlStmt = false;
