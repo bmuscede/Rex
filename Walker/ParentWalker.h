@@ -29,6 +29,7 @@
 #define REX_PARENTWALKER_H
 
 #include <map>
+#include <boost/filesystem.hpp>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -44,6 +45,8 @@ class MinimalROSWalker;
 using namespace llvm;
 using namespace clang;
 using namespace clang::tooling;
+
+namespace bs = boost::filesystem;
 
 class ParentWalker {
 public:
@@ -62,6 +65,10 @@ public:
     static void setCurrentGraphMinMode(bool minMode);
     static bool resolveAllTAModels(std::map<std::string, std::vector<std::string>> databaseMap);
     static bool onlyKeepFeatures(std::vector<std::string> features);
+    static bool changeGraphType(bool lowMem, std::string lowMemPath);
+    static bool purgeCurrentGraph();
+    static bool dumpCurrentFile(int fileNum, std::string fileName);
+    static bool dumpCurrentSettings(std::vector<bs::path> files, bool minMode);
 
     //Processing Operations
     void addLibrariesToIgnore(std::vector<std::string> libraries);

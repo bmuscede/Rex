@@ -54,7 +54,7 @@ set(SOURCE_FILES
 		XML/rapidxml_print.hpp
 		XML/rapidxml_utils.hpp
 		Configuration/ScenarioWalker.cpp
-		Configuration/ScenarioWalker.h)
+		Configuration/ScenarioWalker.h Graph/LowMemoryTAGraph.cpp Graph/LowMemoryTAGraph.h)
 
 add_executable(Rex ${SOURCE_FILES})
 

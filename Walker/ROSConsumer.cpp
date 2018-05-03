@@ -65,6 +65,10 @@ void ROSConsumer::setMode(Mode curMode){
     }
 }
 
+bool ROSConsumer::setLowMemory(bool low, std::string lowMemPath){
+    return ParentWalker::changeGraphType(low, lowMemPath);
+}
+
 /**
  * Sets the libraries to ignore.
  * @param libraries The libraries to ignore.

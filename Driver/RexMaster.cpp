@@ -52,6 +52,8 @@ const static string LIST_ARG = "list";
 const static string COMPONENT_ARG = "resolve";
 const static string SCENARIO_ARG = "scenario";
 const static string SCRIPT_ARG = "script";
+const static string RECOVER_ARG = "recover";
+const static string OLOC_ARG = "outLoc";
 
 /** Rex Command Handler */
 static RexHandler* masterHandle;
@@ -154,7 +156,8 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     (*helpMap)[GEN_ARG] = RexHelp(GEN_ARG, po::options_description("Options"));
     helpMap->at(GEN_ARG).desc->add_options()
             ("help,h", "Print help message for generate.")
-            ("minimal,m", "Runs a minimal analysis of the ROS files. Looks for ROS information.");
+            ("minimal,m", "Runs a minimal analysis of the ROS files. Looks for ROS information.")
+            ("low,l", "Enables low-memory mode.");
     stringstream ss;
     ss << *helpMap->at(GEN_ARG).desc;
     (*helpString)[GEN_ARG] = string("Generate Help\nUsage: " + GEN_ARG + "\nGenerates a graph based on the supplied"
@@ -242,6 +245,29 @@ void generateHelp(map<string, RexHelp>* helpMap, map<string, string>* helpString
     (*helpString)[SCENARIO_ARG] = string("Scenario Help\nUsage: " + SCENARIO_ARG + " directory\n"
             "(For ROS projects with launch files!)\nReads in ROS-based scenarios to determine which features\n"
             "are running and the number of each feature running.\n\n" + ss.str());
+
+    //Generate the help for recover.
+    (*helpMap)[RECOVER_ARG] = RexHelp(RECOVER_ARG, po::options_description("Options"));
+    helpMap->at(RECOVER_ARG).desc->add_options()
+            ("help,h", "Print help message for recover.")
+            ("compact,c", "Just finishes the current TA model.")
+            ("initial,i", po::value<std::string>(), "The initial location.");
+    ss.str(string());
+    ss << *helpMap->at(RECOVER_ARG).desc;
+    (*helpString)[RECOVER_ARG] = string("Recover Help\nUsage: " + RECOVER_ARG + " [options]\nRecovers a TA file that"
+            " was generated from a previous ClangEx run.\nThere must be at least 1 TA file in directory to do this.\n"
+            "Additionally, you can either output as is or re-run the generate command.\n\n" + ss.str());
+
+    //Generate the help for outLoc.
+    (*helpMap)[OLOC_ARG] = RexHelp(OLOC_ARG, po::options_description("Options"));
+    helpMap->at(OLOC_ARG).desc->add_options()
+            ("help,h", "Print help message for output.")
+            ("outputDir,o", po::value<std::vector<std::string>>(), "The output directory for low memory graph.");
+    ss.str(string());
+    ss << *helpMap->at(OLOC_ARG).desc;
+    (*helpString)[OLOC_ARG] = string("Output Help\nUsage: " + OLOC_ARG + " [options] outputFile\nOutputs the generated"
+             " graphs to a tuple-attribute (TA) file based on the\nClangEx schema. These models can then be used"
+             " by other programs.\n\n" + ss.str());
 }
 
 /**
@@ -262,7 +288,9 @@ void handleHelp(string line, map<string, string> messages) {
         "list           : Lists the current state of Rex.\n"
         "script         : Runs a script that handles program commands.\n"
         "resolve        : Resolves features from compilation databases.\n"
-        "scenario       : Adds Autonomoose scenario information into the TA model.\n\n"
+        "scenario       : Adds ROS-based scenario information into the TA model.\n"
+        "recover        : Recovers a previous low-memory run.\n"
+        "outLoc         : Changes the output location for low-memory mode.\n\n"
         "For more help type \"help [argument name]\" for more details.";
 
     auto tokens = tokenizeBySpace(line);
@@ -288,7 +316,7 @@ void handleHelp(string line, map<string, string> messages) {
  */
 void handleAbout() {
     cout << "Rex - The ROS Extractor" << endl
-         << "University of Waterloo, Copyright 2017" << endl
+         << "University of Waterloo, Copyright 2018" << endl
          << "Licensed under GNU Public License v3" << endl << endl
          << "This program is distributed in the hope that it will be useful," << endl
          << "but WITHOUT ANY WARRANTY; without even the implied warranty of" << endl
@@ -333,6 +361,7 @@ void generateGraph(string line, po::options_description desc) {
     int argc = (int) tokens.size();
 
     bool minMode = false;
+    bool lowMem = false;
     po::variables_map vm;
     try {
         po::store(po::parse_command_line(argc, (const char *const *) argv, desc), vm);
@@ -346,6 +375,9 @@ void generateGraph(string line, po::options_description desc) {
         //Sets up what's getting listed.
         if (vm.count("minimal")){
             minMode = true;
+        }
+        if (vm.count("low")){
+            lowMem = true;
         }
 
     } catch(po::error& e) {
@@ -363,7 +395,7 @@ void generateGraph(string line, po::options_description desc) {
 
     //Next, tells Rex to generate them.
     cout << "Processing " << numFiles << " file(s)..." << endl << "This may take some time!" << endl << endl;
-    bool success = masterHandle->processAllFiles(minMode);
+    bool success = masterHandle->processAllFiles(minMode, lowMem);
 
     //Checks the success of the operation.
     if (success) cout << "ROS contribution graph was created successfully!" << endl
@@ -783,6 +815,76 @@ void readScenario(string line, po::options_description desc){
     }
 }
 
+void processRecover(string line, po::options_description desc){
+    //Generates the arguments.
+    vector<string> tokens = tokenizeBySpace(line);
+    char** argv = createArgv(tokens);
+    int argc = (int) tokens.size();
+
+    //Processes the command line args.
+    po::variables_map vm;
+    string initial = ".";
+    bool compact = false;
+    try {
+        po::store(po::command_line_parser(argc, (const char* const*) argv).options(desc)
+                          .run(), vm);
+        po::notify(vm);
+
+        if (vm.count("help")) {
+            cout << "Usage: recover [options]" << endl << desc;
+            for (int i = 0; i < argc; i++) delete[] argv[i];
+            delete[] argv;
+            return;
+        }
+
+        if (vm.count("compact")){
+            compact = true;
+        }
+
+        if (vm.count("initial")){
+            initial = vm["initial"].as<std::string>();
+        }
+    } catch(po::error& e) {
+        cerr << "Error: " << e.what() << endl;
+        cerr << desc;
+        for (int i = 0; i < argc; i++) delete[] argv[i];
+        delete[] argv;
+        return;
+    }
+
+    //Next, prepares the recovery system.
+    if (compact){
+        masterHandle->recoverCompact(initial);
+    } else {
+        masterHandle->recoverFull(initial);
+    }
+}
+
+void processOutputLoc(string line, po::options_description desc){
+    //Tokenize by space.
+    vector<string> tokens = tokenizeBySpace(line);
+
+    //Next, we check for errors.
+    if (masterHandle->getNumGraphs() > 0) {
+        //TODO: Move graphs in processing.
+        cerr << "Error: You cannot change the current low memory graph output location now." << endl;
+        return;
+    } else if (tokens.size() != 2) {
+        cerr << "Error: You must include at least one file or directory to process." << endl;
+        return;
+    }
+
+    //Now we get the directory.
+    string directory = tokens.at(1);
+    bool status = masterHandle->changeLowMemoryLoc(directory);
+
+    if (!status){
+        cerr << "Error: Graph location did not change! Please supply a different filename." << endl;
+    } else {
+        cout << "Low memory graph location successfully changed to " << directory << "!" << endl;
+    }
+}
+
 /**
  * Simple method that prints the header for Rex
  * to display to users what program they're running.
@@ -883,6 +985,12 @@ bool processCommand(string line){
     } else if (!line.compare(0, SCENARIO_ARG.size(), SCENARIO_ARG) &&
             (line[SCENARIO_ARG.size()] == ' ' || line.size() == SCENARIO_ARG.size())){
         readScenario(line, *(helpInfo.at(SCENARIO_ARG).desc.get()));
+    } else if (!line.compare(0, RECOVER_ARG.size(), RECOVER_ARG) &&
+               (line[RECOVER_ARG.size()] == ' ' || line.size() == RECOVER_ARG.size())){
+        processRecover(line, *(helpInfo.at(RECOVER_ARG).desc.get()));
+    } else if (!line.compare(0, OLOC_ARG.size(), OLOC_ARG) &&
+               (line[OLOC_ARG.size()] == ' ' || line.size() == OLOC_ARG.size())){
+        processOutputLoc(line, *(helpInfo.at(OLOC_ARG).desc.get()));
     } else {
         cerr << "No such command: " << line << "\nType \'help\' for more information." << endl;
     }
@@ -948,5 +1056,6 @@ int main(int argc, const char** argv) {
         parseCommands();
     }
 
+    delete masterHandle;
     return 0;
 }

@@ -33,6 +33,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include "ParentWalker.h"
+#include "../Graph/LowMemoryTAGraph.h"
 
 using namespace std;
 
@@ -163,8 +164,52 @@ bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
     return true;
 }
 
+bool ParentWalker::changeGraphType(bool lowMem, string lowMemPath){
+    if (!graph->isEmpty()) return false;
+    bool minMode = graph->getMinMode();
+    delete graph;
+
+    if (lowMem) {
+        if (lowMemPath == "") graph = new LowMemoryTAGraph();
+        else graph = new LowMemoryTAGraph(lowMemPath);
+    } else {
+        graph = new TAGraph();
+    }
+
+    graph->setMinMode(minMode);
+    return true;
+}
+
+bool ParentWalker::purgeCurrentGraph(){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->purgeCurrentGraph();
+        return true;
+    }
+
+    return false;
+}
+
+bool ParentWalker::dumpCurrentFile(int fileNum, string fileName){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->dumpCurrentFile(fileNum, fileName);
+        return true;
+    }
+
+    return false;
+}
+
+bool ParentWalker::dumpCurrentSettings(vector<bs::path> files, bool minMode){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->dumpSettings(files, minMode);
+        return true;
+    }
+
+    return false;
+}
+
 /*
  * Sets particular libraries to ignore when processing.
+ * @param libraries The libraries to ignore.
  */
 void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
     ignoreLibraries = libraries;
@@ -1296,6 +1341,7 @@ string ParentWalker::validateStringArg(string name){
  * @param fileName The filename to save.
  * @return Status code.
  */
+ //TODO: Doesn't compact attributes.
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
@@ -1305,6 +1351,7 @@ int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     string model = graph->getTAModel();
 
     //Checks the correctness.
+    //TODO: Correctness doesn't work in LM.
     if (correctnessMsg.compare("") != 0){
         cerr << "Warning: TA model has some inconsistencies. See the TA file for error information." << endl;
         model = correctnessMsg + model;

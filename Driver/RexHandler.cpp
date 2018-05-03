@@ -29,10 +29,12 @@
 #include <boost/algorithm/string.hpp>
 #include <regex>
 #include <fstream>
+#include <boost/foreach.hpp>
 #include "RexHandler.h"
 #include "../Walker/ROSConsumer.h"
 #include "../JSON/json.h"
 #include "../Configuration/ScenarioWalker.h"
+#include "../Graph/LowMemoryTAGraph.h"
 
 using namespace std;
 using namespace clang::tooling;
@@ -118,8 +120,9 @@ bool RexHandler::processClangToolCode(int argc, const char** argv){
  * @param loadLoc The location to load the libraries to ignore (OPTIONAL).
  * @return Boolean indicating success.
  */
-bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
+bool RexHandler::processAllFiles(bool minimalWalk, bool lowMemory, int startNum, string loadLoc){
     bool success = true;
+
     //Creates the command line arguments.
     int argc = 0;
     char** argv = prepareArgs(&argc);
@@ -129,9 +132,6 @@ bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
 
     //Sets up the processor.
     CommonOptionsParser OptionsParser(argc, (const char**) argv, RexCategory);
-    ClangTool Tool(OptionsParser.getCompilations(), fileList);
-
-    //Runs the processor.
     if (minimalWalk){
         ROSConsumer::setMode(ROSConsumer::MINIMAL);
     } else {
@@ -141,13 +141,28 @@ bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
         vector<string> rexLibraries = loadLibraries(loadLoc);
         ROSConsumer::setLibrariesToIgnore(rexLibraries);
     }
+    if (lowMemory && lowMemoryPath.string() != ""){
+        ROSConsumer::setLowMemory(lowMemory, lowMemoryPath.string());
+    } else {
+        ROSConsumer::setLowMemory(lowMemory);
+    }
 
-    int code = Tool.run(newFrontendActionFactory<ROSAction>().get());
+    if (lowMemory) ParentWalker::dumpCurrentSettings(files, minimalWalk);
 
-    //Gets the code and checks for warnings.
-    if (code != 0) {
-        cerr << "Warning: Compilation errors were detected." << endl;
-        success = false;
+    int fileSplit = (lowMemory) ? 1 : getNumFiles();
+    for (int i = startNum; i < getNumFiles(); i += fileSplit){
+        if (lowMemory) ParentWalker::dumpCurrentFile(i, fileList.at(i));
+        ClangTool* Tool = new ClangTool(OptionsParser.getCompilations(), fileList.at(i));
+        int code = Tool->run(newFrontendActionFactory<ROSAction>().get());
+
+        //Gets the code and checks for warnings.
+        if (code != 0) {
+            cerr << "Warning: Compilation errors were detected." << endl;
+            success = false;
+        }
+
+        delete Tool;
+        if (lowMemory) ParentWalker::purgeCurrentGraph();
     }
 
     //Shifts the graphs.
@@ -156,8 +171,89 @@ bool RexHandler::processAllFiles(bool minimalWalk, string loadLoc){
     //Clears the graph.
     files.clear();
 
+    //Cleans up memory.
+    for (int i = 0; i  < argc; i++) delete argv[i];
+    delete[] argv;
+
     //Returns the success code.
     return success;
+}
+
+bool RexHandler::recoverCompact(string startDir){
+    path startPath = startDir;
+    if (!is_directory(startPath)){
+        cerr << "Recovery Error: The initial path must be a directory." << endl;
+        return false;
+    }
+
+    //Starts by checking for the TA files in the start directory.
+    vector<int> graphNums = getLMGraphs(startDir);
+    if (graphNums.size() == 0){
+        cerr << "Recovery Error: No graphs were found in the current directory." << endl;
+        return false;
+    }
+
+    //TODO!
+    //Now, we iterate and compact each graph.
+    /*for (int gNum : graphNums){
+        TAGraph* cur = new LowMemoryTAGraph(startDir, gNum);
+        cur->resolveExternalReferences(clangPrint, false);
+        cur->resolveFiles(toggle);
+        graphs.push_back(cur);
+    }*/
+
+    return true;
+}
+
+bool RexHandler::recoverFull(string startDir){
+    path startPath = startDir;
+    if (!is_directory(startPath)){
+        cerr << "Recovery Error: The initial path must be a directory." << endl;
+        return false;
+    }
+
+    //Starts by checking for the TA files in the start directory.
+    vector<int> graphNums = getLMGraphs(startDir);
+    if (graphNums.size() == 0){
+        cerr << "Recovery Error: No graphs were found in the current directory." << endl;
+        return false;
+    }
+
+    vector<string> ldFiles;
+    bool minMode;
+
+    for (int gNum : graphNums){
+        bool succ = readSettings(startDir + "/" + to_string(gNum) + "-" + LowMemoryTAGraph::CUR_SETTING_LOC, &ldFiles,
+                                 &minMode);
+        if (!succ) {
+            cerr << "Recovery Error: Settings could not be read for this file." << endl;
+            return false;
+        }
+
+        int startNum = readStartNum(startDir + "/" + to_string(gNum) + "-" + LowMemoryTAGraph::CUR_FILE_LOC);
+
+        vector<path> oldFiles = files;
+
+        //Sets up the file system.
+        recoveryMode = true;
+        auto tempLowMem = lowMemoryPath;
+        lowMemoryPath = startDir;
+        files.clear();
+        for (string curFile : ldFiles) files.push_back(path(curFile));
+
+        bool code = processAllFiles(minMode, true, startNum);
+
+        //Restores the system.
+        recoveryMode = false;
+        lowMemoryPath = tempLowMem;
+        files = oldFiles;
+
+        if (!code) {
+            cerr << "Recovery Error: System could not process the current graph." << endl;
+        }
+    }
+
+    return true;
 }
 
 /**
@@ -305,6 +401,13 @@ int RexHandler::removeByRegex(string regex) {
     }
 
     return num;
+}
+
+bool RexHandler::changeLowMemoryLoc(path curDir){
+    if (!is_directory(curDir)) return false;
+
+    lowMemoryPath = curDir;
+    return true;
 }
 
 /**
@@ -498,6 +601,75 @@ int RexHandler::removeDirectory(path directory){
     return numRemoved;
 }
 
+vector<int> RexHandler::getLMGraphs(string startDir){
+    vector<int> results;
+    std::regex fReg("[0-9]+-(instances|relations|attributes).ta");
+
+    //Gets the current directory.
+    path curDir = startDir;
+    unordered_map<int, int> vals;
+    directory_iterator it(curDir), eod;
+    BOOST_FOREACH(path const &cur, std::make_pair(it, eod)){
+        if (!is_regular_file(cur)) continue;
+
+        //Get the extension.
+        string extension = boost::filesystem::extension(cur);
+        if (extension != ".ta" || !regex_match(cur.filename().string(), fReg)) continue;
+
+        int num = extractIntegerWords(cur.filename().string());
+        if (num == -1) continue;
+        if (vals.find(num) != vals.end()){
+            vals[num]++;
+        } else {
+            vals[num] = 1;
+        }
+    }
+
+    //Populate with values.
+    for (auto it = vals.begin(); it != vals.end(); it++){
+        if (it->second == 3){
+            results.push_back(it->first);
+        }
+    }
+
+    //Returns the results.
+    return results;
+}
+
+bool RexHandler::readSettings(string loc, vector<string>* files, bool* minMode){
+    std::ifstream settingFile(loc);
+    if (!settingFile.is_open()) return false;
+
+    //Gets the file list.
+    string fileList;
+    getline(settingFile, fileList);
+    vector<string> filePath = splitList(fileList);
+    files->clear();
+    for (string curFile : filePath) files->push_back(curFile);
+
+    //Get the booleans.
+    string booleans;
+    getline(settingFile, booleans);
+    settingFile.close();
+
+    stringstream sstream = stringstream(booleans);
+
+    //Gets blob mode.
+    if (sstream.get() == '1') *minMode = true;
+    return true;
+}
+
+int RexHandler::readStartNum(string file){
+    std::ifstream curFile(file);
+    if (!curFile.is_open()) return 0;
+
+    int fileNum;
+    curFile >> fileNum;
+
+    curFile.close();
+    return fileNum;
+}
+
 /**
  * Adds a directory to the queue.
  * @param directory The directory to add.
@@ -592,4 +764,34 @@ vector<string> RexHandler::loadLibraries(string libs){
     }
 
     return output;
+}
+
+int RexHandler::extractIntegerWords(string str) {
+    stringstream ss;
+    ss << str;
+
+    string temp;
+    int found;
+    while (!ss.eof()) {
+        ss >> temp;
+
+        if (stringstream(temp) >> found) return found;
+
+        temp = "";
+    }
+
+    return -1;
+}
+
+vector<string> RexHandler::splitList(std::string list) {
+    stringstream ss(list);
+    vector<string> result;
+
+    while(ss.good()) {
+        string substr;
+        getline( ss, substr, ',' );
+        result.push_back( substr );
+    }
+
+    return result;
 }

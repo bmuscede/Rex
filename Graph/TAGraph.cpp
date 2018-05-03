@@ -48,14 +48,30 @@ TAGraph::TAGraph(RexEdge::EdgeType edgeType){
  * Destructor. Deletes all nodes and edges.
  */
 TAGraph::~TAGraph(){
+    clearGraph();
+}
+
+void TAGraph::clearGraph(){
     for (auto &entry : idList){
         delete entry.second;
     }
+    idList.clear();
     for (auto &entry : edgeSrcList){
         for (auto &vecEntry : entry.second){
             delete vecEntry;
         }
     }
+    edgeSrcList.clear();
+    edgeDstList.clear();
+}
+
+bool TAGraph::isEmpty(){
+    if (idList.size() == 0) return true;
+    return false;
+}
+
+bool TAGraph::getMinMode(){
+    return minMode;
 }
 
 /**
@@ -433,12 +449,28 @@ bool TAGraph::keepFeatures(vector<string> features){
 string TAGraph::getTAModel(){
     string model = (minMode) ? MINI_TA_SCHEMA : FULL_TA_SCHEMA;
 
-    //Writes the nodes.
     model += "FACT TUPLE :\n";
+    model += generateInstances();
+    model += generateRelations();
+    model += "\nFACT ATTRIBUTE :\n";
+    model += generateAttributes();
+
+    return model;
+}
+
+string TAGraph::generateInstances(){
+    //Writes the nodes.
+    string model = "";
     for (auto &entry : idList){
         if (entry.second == nullptr) continue;
         model += entry.second->generateTANode() + "\n";
     }
+
+    return model;
+}
+
+string TAGraph::generateRelations(){
+    string model = "";
 
     //Writes the edges.
     for (auto &entry : edgeSrcList){
@@ -447,8 +479,12 @@ string TAGraph::getTAModel(){
         }
     }
 
+    return model;
+}
+
+string TAGraph::generateAttributes(){
     //Writes the attributes.
-    model += "\nFACT ATTRIBUTE :\n";
+    string model = "";
     for (auto &entry : idList){
         if (entry.second == nullptr) continue;
         if (entry.second->getNumAttributes() == 0) continue;

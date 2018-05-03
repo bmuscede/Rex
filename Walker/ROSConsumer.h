@@ -40,6 +40,7 @@ public:
     //Mode Functions
     enum Mode {FULL, MINIMAL};
     static void setMode(Mode curMode);
+    static bool setLowMemory(bool low, std::string lowMemPath = "");
 
     //Library Functions
     static void setLibrariesToIgnore(std::vector<std::string> libraries);
