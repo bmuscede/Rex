@@ -152,7 +152,15 @@ bool RexHandler::processAllFiles(bool minimalWalk, bool lowMemory, int startNum,
     int fileSplit = (lowMemory) ? 1 : getNumFiles();
     for (int i = startNum; i < getNumFiles(); i += fileSplit){
         if (lowMemory) ParentWalker::dumpCurrentFile(i, fileList.at(i));
-        ClangTool* Tool = new ClangTool(OptionsParser.getCompilations(), fileList.at(i));
+
+	vector<string> toProcess;
+	if (lowMemory){
+		toProcess.push_back(fileList.at(i));
+	} else {
+		toProcess = fileList;
+	}
+
+        ClangTool* Tool = new ClangTool(OptionsParser.getCompilations(), toProcess);
         int code = Tool->run(newFrontendActionFactory<ROSAction>().get());
 
         //Gets the code and checks for warnings.
