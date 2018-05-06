@@ -100,6 +100,9 @@ protected:
     bool handleMinimalFieldDecl(FieldDecl* decl, bool pubEdge = true);
 
     //ROS Handlers
+    bool isNodeHandlerObj(const CXXConstructExpr* ctor);
+    bool isSubscriberObj(const CXXConstructExpr* ctor);
+    bool isPublisherObj(const CXXConstructExpr* ctor);
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
     bool isAdvertise(const CallExpr* expr);
@@ -110,11 +113,15 @@ protected:
     bool isInSystemHeader(const Decl* decl);
 
     //ROS Recorders
+    void recordParentSubscribe(const CXXConstructExpr* expr);
+    void recordParentPublish(const CXXConstructExpr* expr);
+    void recordParentGeneric(std::string parentID, RexNode::NodeType type);
     void recordSubscribe(const CallExpr* expr);
     void recordPublish(const CallExpr* expr);
     void recordAdvertise(const CallExpr* expr);
     void recordTimer(const CallExpr* expr);
     void recordTopic(std::string name);
+    const NamedDecl* generateROSNode(const CXXConstructExpr* expr, RexNode::NodeType type);
 
     //Name Helper Functions
     std::string generateID(const NamedDecl* decl);

@@ -188,11 +188,6 @@ void LowMemoryTAGraph::purgeCurrentGraph(){
     clearGraph();
 }
 
-string LowMemoryTAGraph::checkCorrectness() {
-    //Not required in low memory mode.
-    return "";
-}
-
 void LowMemoryTAGraph::purgeUnestablishedEdges(bool resolveFirst) {
     unordered_map<string, string> idMap;
 

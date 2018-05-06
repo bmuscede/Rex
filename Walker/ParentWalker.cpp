@@ -420,6 +420,14 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             recordAssociations(assignee, assignStmt, type);
             rtype = ROSType::SUB;
         }
+    } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
+        if (isSubscriberObj(cxxExpr)) {
+            recordParentSubscribe(cxxExpr);
+            rtype = ROSType::SUB;
+        } else if (isPublisherObj(cxxExpr)) {
+            recordParentPublish(cxxExpr);
+            rtype = ROSType::PUB;
+        }
     }
 
     //Handles the internals of each action.
@@ -490,6 +498,33 @@ bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     }
 
     return false;
+}
+
+/**
+ * Checks if we're constructing a node handle.
+ * @param ctor The CXX constructor.
+ * @return Whether its a node handle.
+ */
+bool ParentWalker::isNodeHandlerObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, NODE_HANDLE_CLASS);
+}
+
+/**
+ * Checks if we're constructing a subscriber.
+ * @param ctor The CXX constructor.
+ * @return Whether its a subscriber.
+ */
+bool ParentWalker::isSubscriberObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, SUBSCRIBER_CLASS);
+}
+
+/**
+ * Checks if we're constructing a publisher.
+ * @param ctor The CXX constructor.
+ * @return Whether its a publisher.
+ */
+bool ParentWalker::isPublisherObj(const CXXConstructExpr* ctor){
+    return isClass(ctor, PUBLISHER_CLASS);
 }
 
 /**
@@ -1021,6 +1056,54 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
 }
 
 /**
+ * Records the parent subscriber.
+ * @param expr The expression to add.
+ */
+void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
+    //First, see if we have parents.
+    const NamedDecl* parentVar = getParentAssign(expr);
+    if (!parentVar) {
+        parentVar = generateROSNode(expr, RexNode::SUBSCRIBER);
+    }
+
+    recordParentGeneric(generateID(parentVar), RexNode::SUBSCRIBER);
+}
+
+/**
+ * Records the parent publisher.
+ * @param expr The expression to add.
+ */
+void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
+    //First, see if we have parents.
+    const NamedDecl* parentVar = getParentAssign(expr);
+    if (!parentVar) {
+        parentVar = generateROSNode(expr, RexNode::PUBLISHER);
+    }
+
+    recordParentGeneric(generateID(parentVar), RexNode::PUBLISHER);
+}
+
+/**
+ * Records a generic parent ROS item.
+ * @param parentID The ID to add.
+ * @param parentName The name to add.
+ * @param type The type to add.
+ */
+void ParentWalker::recordParentGeneric(string parentID, RexNode::NodeType type){
+    //Next, we record the relationship between the two items.
+    RexNode* rosNode = graph->findNode(parentID);
+
+    //Keeps track of the node being published/subscribed.
+    if (type == RexNode::PUBLISHER) {
+        currentPublisher = rosNode;
+        currentPublisherOutdated = rosNode;
+    } else {
+        currentSubscriber = rosNode;
+    }
+
+}
+
+/**
  * Records a subscriber object.
  * @param expr The expression with the subscriber.
  */
@@ -1190,6 +1273,50 @@ void ParentWalker::recordTopic(string name){
     graph->addNode(node);
 }
 
+const NamedDecl* ParentWalker::generateROSNode(const CXXConstructExpr* expr, RexNode::NodeType type){
+    //First, get the parent NamedDecl.
+    bool getParent = true;
+    auto parent = Context->getParents(*expr);
+    const NamedDecl* result;
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        result = parent[0].get<clang::NamedDecl>();
+        if (result) {
+            getParent = false;
+            continue;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    //Next, create a node based on this.
+    bool notAdded = true;
+    int num = 0;
+    while (notAdded){
+        string ID = generateID(result) + "::" + to_string(num);
+        if (!graph->doesNodeExist(ID)){
+            string name = generateName(result) + "\'s " + ((type == RexNode::PUBLISHER) ? "Publisher" : "Subscriber");
+            RexNode* dst = new RexNode(ID, name, type);
+            graph->addNode(dst);
+
+            //Add a contains relation.
+            graph->addEdge(new RexEdge(graph->findNode(generateID(result)), dst, RexEdge::CONTAINS));
+            notAdded = false;
+            continue;
+        }
+
+        num++;
+    }
+
+    return result;
+}
+
 /**
  * Generates a unique ID based on a decl.
  * @param decl The decl to generate the ID.
@@ -1345,17 +1472,9 @@ string ParentWalker::validateStringArg(string name){
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
-    string correctnessMsg = graph->checkCorrectness();
 
     //Gets the string for the model.
     string model = graph->getTAModel();
-
-    //Checks the correctness.
-    //TODO: Correctness doesn't work in LM.
-    if (correctnessMsg.compare("") != 0){
-        cerr << "Warning: TA model has some inconsistencies. See the TA file for error information." << endl;
-        model = correctnessMsg + model;
-    }
 
     //Creates the file stream.
     ofstream file(fileName);

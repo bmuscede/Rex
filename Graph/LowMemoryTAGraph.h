@@ -24,7 +24,6 @@ public:
 
     void purgeCurrentGraph();
 
-    std::string checkCorrectness() override;
     void purgeUnestablishedEdges(bool resolveFirst = true) override;
 
     static const std::string CUR_FILE_LOC;

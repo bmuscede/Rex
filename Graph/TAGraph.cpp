@@ -315,44 +315,6 @@ bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeT
 }
 
 /**
- * Checks the TA graph for correctness to ensure it conforms to requirements.
- * @return A list of problems.
- */
-string TAGraph::checkCorrectness(){
-    string correctnessMsg = "";
-
-    //Go through the destination edges.
-    for(auto it = edgeDstList.begin(); it != edgeDstList.end(); it++) {
-        vector<RexEdge*> edges = it->second;
-        bool forestEncountered = false;
-        RexEdge* prevForest = nullptr;
-
-        //Go through the edges.
-        for (int i = 0; i < edges.size(); i++){
-            RexEdge* curEdge = edges.at(i);
-
-            if (curEdge->getType() == forestEdgeType){
-                if (forestEncountered){
-                    correctnessMsg += "Error! Trying to add edge " + curEdge->getSource()->getName() + " -> " +
-                            curEdge->getDestination()->getName() + "!\n";
-                    correctnessMsg += "\tEdge " + prevForest->getSource()->getName() + " -> " +
-                            prevForest->getDestination()->getName() + " already exists!\n";
-                } else {
-                    forestEncountered = true;
-                    prevForest = curEdge;
-                }
-            }
-        }
-    }
-
-    if (correctnessMsg.compare("") != 0){
-        correctnessMsg = "MODEL ERRORS:\n-------------------------------------------------------\n" + correctnessMsg;
-    }
-
-    return correctnessMsg;
-}
-
-/**
  * Reslolves components based on a map of databases to files.
  * @param databaseMap The map of files to compile commands databases.
  * @return Whether the operation was successful.

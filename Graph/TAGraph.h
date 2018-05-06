@@ -70,7 +70,6 @@ public:
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
     //Graph Clean Methods
-    virtual std::string checkCorrectness();
     bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap);
     void resolveUnestablishedEdges();
     virtual void purgeUnestablishedEdges(bool resolveFirst = true);
