@@ -418,7 +418,7 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             if (!assignee || !assignStmt) return ROSType::ROS_NONE;
 
             recordAssociations(assignee, assignStmt, type);
-            rtype = ROSType::SUB;
+            rtype = ROSType::TIMER;
         }
     } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
         if (isSubscriberObj(cxxExpr)) {
