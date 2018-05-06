@@ -366,7 +366,11 @@ void TAGraph::resolveUnestablishedEdges(){
 
             //Check if the edge is established.
             if (!curEdge->isEstablished()){
-                resolveEdge(curEdge);
+                bool res = resolveEdge(curEdge);
+
+                if (!res && curEdge->getType() == RexEdge::CALLS && curEdge->getDestination() == nullptr){
+                    resolveEdgeByName(curEdge);
+                }
             }
         }
     }
@@ -536,6 +540,12 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);
+    }
+
+    //Checks for callback.
+    if (edge->getType() == RexEdge::CALLS && edge->getSource()->getType() == RexNode::SUBSCRIBER &&
+        edge->getDestination()->getType() == RexNode::FUNCTION){
+        edge->getDestination()->addSingleAttribute(ROSWalker::CALLBACK_FLAG, "1");
     }
 
     return true;
