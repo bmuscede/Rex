@@ -14,6 +14,9 @@ public:
     LowMemoryTAGraph(std::string basePath, int curNum);
     ~LowMemoryTAGraph() override;
 
+    /** Changes the Root */
+    void changeRoot(std::string basePath);
+
     void addNode(RexNode* node) override;
     void addEdge(RexEdge* edge) override;
 
@@ -24,17 +27,19 @@ public:
 
     void purgeCurrentGraph();
 
+    bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap) override;
     void purgeUnestablishedEdges(bool resolveFirst = true) override;
 
     static const std::string CUR_FILE_LOC;
     static const std::string CUR_SETTING_LOC;
+    static const std::string BASE_INSTANCE_FN;
+    static const std::string BASE_RELATION_FN;
+    static const std::string BASE_MV_RELATION_FN;
+    static const std::string BASE_ATTRIBUTE_FN;
+
 
 private:
     const int PURGE_AMOUNT = 1000;
-    const std::string BASE_INSTANCE_FN = "instances.ta";
-    const std::string BASE_RELATION_FN = "relations.ta";
-    const std::string BASE_MV_RELATION_FN = "old.relations.ta";
-    const std::string BASE_ATTRIBUTE_FN = "attributes.ta";
 
     std::string instanceFN;
     std::string relationFN;
@@ -52,6 +57,8 @@ private:
     bool doesFileExist(std::string fN);
     void deleteFile(std::string fN);
 
+    std::vector<std::string> tokenize(std::string);
+    std::vector<std::pair<std::string, std::vector<std::string>>> generateStrAttributes(std::vector<std::string> line);
 };
 
 

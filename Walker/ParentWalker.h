@@ -55,6 +55,8 @@ public:
     virtual ~ParentWalker();
 
     //Graph Operations
+    static void addGraphs(std::vector<TAGraph*> graphs);
+    static TAGraph* getGraph(int num);
     static void deleteTAGraphs();
     static void deleteTAGraph(int num);
     static int getNumGraphs();

@@ -709,6 +709,11 @@ void runScript(string line, po::options_description desc){
     std::ifstream scriptFile;
     scriptFile.open(filename);
 
+    if (!scriptFile.is_open()){
+        cerr << "Error: The file " << filename << " could not be opened!" << endl;
+        return;
+    }
+
     //Loop until we hit eof.
     string curLine;
     bool continueLoop = true;
@@ -865,11 +870,7 @@ void processOutputLoc(string line, po::options_description desc){
     vector<string> tokens = tokenizeBySpace(line);
 
     //Next, we check for errors.
-    if (masterHandle->getNumGraphs() > 0) {
-        //TODO: Move graphs in processing.
-        cerr << "Error: You cannot change the current low memory graph output location now." << endl;
-        return;
-    } else if (tokens.size() != 2) {
+    if (tokens.size() != 2) {
         cerr << "Error: You must include at least one file or directory to process." << endl;
         return;
     }

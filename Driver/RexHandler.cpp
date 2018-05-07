@@ -201,15 +201,13 @@ bool RexHandler::recoverCompact(string startDir){
         return false;
     }
 
-    //TODO!
-    //Now, we iterate and compact each graph.
-    /*for (int gNum : graphNums){
+    vector<TAGraph*> graphs;
+    for (int gNum : graphNums){
         TAGraph* cur = new LowMemoryTAGraph(startDir, gNum);
-        cur->resolveExternalReferences(clangPrint, false);
-        cur->resolveFiles(toggle);
         graphs.push_back(cur);
-    }*/
+    }
 
+    ParentWalker::addGraphs(graphs);
     return true;
 }
 
@@ -413,6 +411,26 @@ int RexHandler::removeByRegex(string regex) {
 
 bool RexHandler::changeLowMemoryLoc(path curDir){
     if (!is_directory(curDir)) return false;
+
+    //Get the current loc.
+    vector<int> curG;
+    if (lowMemoryPath.string() == "") lowMemoryPath = ".";
+    curG = getLMGraphs(lowMemoryPath.string());
+
+    //Carry out the move operation.
+    if (curG.size() > 0){
+        for (int cur : curG){
+            string srcRoot = lowMemoryPath.string() + "/" + to_string(cur) + "-";
+            string dstRoot = curDir.string() + "/" + to_string(cur) + "-";
+            rename(srcRoot + LowMemoryTAGraph::CUR_SETTING_LOC, dstRoot + LowMemoryTAGraph::CUR_SETTING_LOC);
+            rename(srcRoot + LowMemoryTAGraph::CUR_FILE_LOC, dstRoot + LowMemoryTAGraph::CUR_FILE_LOC);
+            rename(srcRoot + LowMemoryTAGraph::BASE_INSTANCE_FN, dstRoot + LowMemoryTAGraph::BASE_INSTANCE_FN);
+            rename(srcRoot + LowMemoryTAGraph::BASE_RELATION_FN, dstRoot + LowMemoryTAGraph::BASE_RELATION_FN);
+            rename(srcRoot + LowMemoryTAGraph::BASE_ATTRIBUTE_FN, dstRoot + LowMemoryTAGraph::BASE_ATTRIBUTE_FN);
+
+            dynamic_cast<LowMemoryTAGraph*>(ParentWalker::getGraph(cur))->changeRoot(curDir.string());
+        }
+    }
 
     lowMemoryPath = curDir;
     return true;

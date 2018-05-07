@@ -70,7 +70,7 @@ public:
     bool doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeType type);
 
     //Graph Clean Methods
-    bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap);
+    virtual bool resolveComponents(std::map<std::string, std::vector<std::string>> databaseMap);
     void resolveUnestablishedEdges();
     virtual void purgeUnestablishedEdges(bool resolveFirst = true);
     bool keepFeatures(std::vector<std::string> features);
@@ -130,6 +130,8 @@ protected:
     std::string generateRelations();
     std::string generateAttributes();
 
+    //Helper Function
+    bool hasEnding(std::string const &fullString, std::string const &ending);
 private:
     //ROS Functionality
     std::string const FILENAME_ATTR = "filename";
@@ -142,9 +144,6 @@ private:
     //Edge Resolvers
     bool resolveEdge(RexEdge* edge);
     bool resolveEdgeByName(RexEdge* edge);
-
-    //Helper Function
-    bool hasEnding(std::string const &fullString, std::string const &ending);
 };
 
 

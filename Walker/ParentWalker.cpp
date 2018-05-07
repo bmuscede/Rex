@@ -55,6 +55,23 @@ ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {
 ParentWalker::~ParentWalker() {}
 
 /**
+ * Adds graphs to the graph list.
+ * @param graphs The graphs to add.
+ */
+void ParentWalker::addGraphs(vector<TAGraph *> graphs) {
+    graphList.insert(graphList.end(), graphs.begin(), graphs.end());
+}
+
+/**
+ * Gets the graph at the specified number.
+ * @param num The specified number to get.
+ * @return The graph at that location.
+ */
+TAGraph* ParentWalker::getGraph(int num) {
+    return graphList.at(num);
+}
+
+/**
  * Deletes all TA graphs being maintained.
  */
 void ParentWalker::deleteTAGraphs(){
@@ -157,6 +174,11 @@ bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
 bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
     //Goes through the graph and eliminates certain features.
     for (TAGraph* curGraph : graphList){
+        if (dynamic_cast<LowMemoryTAGraph*>(curGraph)) {
+            cerr << "Error: Scenario resolution cannot be conducted in low-memory mode! "
+                    "Reprocess this graph using the regular generation system!" << endl;
+            return false;
+        }
         bool status  = curGraph->keepFeatures(features);
         if (!status) return false;
     }
@@ -1466,7 +1488,6 @@ string ParentWalker::validateStringArg(string name){
  * @param fileName The filename to save.
  * @return Status code.
  */
- //TODO: Doesn't compact attributes.
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
