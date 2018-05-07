@@ -1,6 +1,28 @@
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ScenarioWalker.cpp
 //
-// Created by bmuscede on 13/03/18.
+// Created By: Bryan J Muscedere
+// Date: 13/03/18.
 //
+// Goes through a ROS scenario to find the ROS packages that
+// are active or inactive at the time of the scenario running.
+// This slims down the graph.
+//
+// Copyright (C) 2018, Bryan J. Muscedere
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../XML/rapidxml_utils.hpp"
 #include <boost/algorithm/string/predicate.hpp>
@@ -10,13 +32,25 @@
 
 using namespace std;
 
+/**
+ * Main constructor. Gets a scenario location and the root project directory.
+ * @param mainScenarioLoc The directory with the scenario XML files.
+ * @param rosPkgDir The ROS root project directory.
+ */
 ScenarioWalker::ScenarioWalker(path mainScenarioLoc, path rosPkgDir) {
     mainScenario = mainScenarioLoc;
     this->rosPkgDir = rosPkgDir;
 }
 
+/**
+ * Stub Destructor.
+ */
 ScenarioWalker::~ScenarioWalker() { }
 
+/**
+ * Reads scenario files and denotes success.
+ * @return Whether the operation was successful.
+ */
 bool ScenarioWalker::readFiles() {
     bool foundLaunch = false;
     bool foundJSON = false;
@@ -43,6 +77,10 @@ bool ScenarioWalker::readFiles() {
     return true;
 }
 
+/**
+ * Processes a scenario file.
+ * @return Whether the operation was successful.
+ */
 bool ScenarioWalker::processScenario(){
     if (!filesRead) return false;
 
@@ -50,6 +88,10 @@ bool ScenarioWalker::processScenario(){
     return true;
 }
 
+/**
+ * Gets all active ROS packages that are a part of the scenario.
+ * @return The active packages.
+ */
 vector<string> ScenarioWalker::getActivePackages(){
     return activePackages;
 }
@@ -66,6 +108,12 @@ void ScenarioWalker::readLaunchFile(){
     activePackages = results;
 }
 
+/**
+ * Visits other scenarios based on their includes in a main scenario file.
+ * @param curDoc The current document.
+ * @param curNode The current node.
+ * @return Expanded files to investigate.
+ */
 vector<string> ScenarioWalker::expandIncludes(rapidxml::xml_document<>* curDoc,
                                                                  rapidxml::xml_node<>* curNode){
     vector<string> results;
@@ -140,6 +188,12 @@ vector<string> ScenarioWalker::expandIncludes(rapidxml::xml_document<>* curDoc,
     return results;
 }
 
+/**
+ * Finds a ROS package by name recursively.
+ * @param pkgName The name of the package.
+ * @param startDir The start directory.
+ * @return The location.
+ */
 string ScenarioWalker::findPackage(string pkgName, path startDir){
     //Find the first instance of the package name.
     for (directory_iterator itr(startDir); itr!=directory_iterator(); ++itr) {
@@ -157,6 +211,11 @@ string ScenarioWalker::findPackage(string pkgName, path startDir){
     return "";
 }
 
+/**
+ * Removes duplicates from the results.
+ * @param dupArr The initial vector.
+ * @return A vector with no duplicates.
+ */
 vector<string> ScenarioWalker::clearDuplicates(vector<string> dupArr){
     vector<string> resArr;
 

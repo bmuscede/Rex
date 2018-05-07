@@ -776,6 +776,11 @@ void resolveComponents(string line, po::options_description desc){
     }
 }
 
+/**
+ * Reads a ROS scenario file.
+ * @param line The command line.
+ * @param desc The program options for this command.
+ */
 void readScenario(string line, po::options_description desc){
     //Tokenize by space.
     vector<string> tokens = tokenizeBySpace(line);
@@ -820,6 +825,11 @@ void readScenario(string line, po::options_description desc){
     }
 }
 
+/**
+ * Processes the recovery command.
+ * @param line The command line.
+ * @param desc The program options for this command.
+ */
 void processRecover(string line, po::options_description desc){
     //Generates the arguments.
     vector<string> tokens = tokenizeBySpace(line);
@@ -865,6 +875,11 @@ void processRecover(string line, po::options_description desc){
     }
 }
 
+/**
+ * Processes the outLoc command.
+ * @param line The command line.
+ * @param desc The program options for this command.
+ */
 void processOutputLoc(string line, po::options_description desc){
     //Tokenize by space.
     vector<string> tokens = tokenizeBySpace(line);

@@ -28,7 +28,7 @@ The following diagram higlights the information Rex extracts from a target C/C++
 This is the metamodel for full analysis mode.
 ## Installation Details
 ### Prerequisties
-Rex is based on `Clang 5.0.0` and requires `CMake 3.0.0` or greater to run. Additionally, to build Rex, `Boost` libraries are required. For `Boost`, the computer building Rex requires `Boost` version `1.5.8` or greater. If you meet any of these prerequisites, feel free to skip their associated section below.
+Rex is based on `Clang 5.0.0` and requires `CMake 3.0.0` or greater to run. Additionally, to build Rex, `Boost` libraries are required. For `Boost`, the computer building Rex requires `Boost` version `1.6` or greater. If you meet any of these prerequisites, feel free to skip their associated section below.
 
 #### Installing CMake
 First, CMake should be installed. On Linux, this is as simple as running:
@@ -114,7 +114,7 @@ $ export CLANG_VER=5.0.0
 You **must** have these set before you can build Rex.
 
 #### Obtaining Boost Libraries
-Boost libraries are also required. This process is very simple on Debian/Ubuntu systems.
+Boost libraries are also required. This process is very simple on Debian/Ubuntu systems. **Boost version 1.6 or higher is required or else Rex won't compile!**
 
 Simply run the following command to download and install Boost libraries to your system's `include` path:
 ```
@@ -175,91 +175,4 @@ $ lsedit
 If both `Grok` and `LSEdit` started successfully, SWAGKit was configured on your computer. You are now able to run `Rex` and analyze program models!
 
 ## Running Rex
-`Rex` has its own command line based system that allows for a user to add, remove, and manage extractions automatically. This is a specialized system that improves workflow.
-
-To run, Rex without any options enabled, simply run the following:
-```
-$ ./Rex
-```
-Once Rex runs, you will be presented with a command prompt with your username. From here, you can enter commands to direct ClangEx. By typing `help` you will be presented with all options. 
-
-The following steps provide information on how to do basic analysis with ClangEx. For more advanced options, read the help information included in Rex.
-
-### Adding and Removing Files
-To add files to Rex, you use the `add` command. Simply type the add command followed by a C/C++ file path or a directory and Rex will add it for processing. If you specify a folder, Rex will recursively search for all C/C++ files in that directory. An example of the add command:
-```
-$ add /home/main.cpp
-$ add /home/some-folder/
-```
-
-Removing is similar. The `remove` command will remove files or a collection of files based on a regular expression. The `-s` flag will remove a file (you have to specify the full file path). The `-r` flag will remove a collection of files based on a regular expression. An example of the remove command:
-```
-$ remove -s /home/main.cpp
-$ remove -r .*/home/.*
-```
-
-### Running Rex on Source Code
-Once files have been added, you can run the Rex analyzer. To do this, you simply need to use the `generate` command. This command only works if files have been added.
-
-There are two types of processing modes: *Full Analysis Mode* is invoked automatically. *Simple Analysis Mode* is invoked with the `-m` flag. Examples of the generate command:
-```
-$ generate
-$ generate -m
-```
-The first one generates a model in full mode. The second generates a model in minimal mode.
-
-**NOTE:** Rex requires the use of a compile_commands.json database located in some top level directory that tells Rex how to compile the files.
-
-### Resolving Components
-Since you might be analyzing multiple ROS packages at once, Rex has a `resolve` command which looks at the top level compilation database to determine which classes belong to which ROS components. This allows for detailed queries that allow you to look at interactions at the feature/component level. To resolve, simply do the following:
-```
-$ resolve <DIRECTORY>
-```
-By giving a directory containing each CMAKE file for each component, Rex will look at the file names of the model and then resolve each entity to a component. If the `resolve` command is not used, the compContains relation and component entity will not be in the resultant model.
-
-### Output TA Models
-Once Rex generated the TA model from the previous step, it now can be outputted. To do this, simply use the `output` command. While there are many different options, the most simple usage of this command is the following:
-```
-$ output SampleTA
-```
-
-This creates a TA file called SampleTA.ta.
-
-## Rex Analysis Modes
-There are two different analysis methodologies that `ClangEx` supports. The two modes are called *Full Analysis* and *Simple Analysis* mode. **By default, full analysis is performed*.
-
-### Full Analysis - [Default]
-Full analysis is enabled by default by `Rex`. Essentially, this looks at ROS messages and C/C++ language features juxtaposed together. This allows a user to see the full flow of information in a Rex project.
-
----
-**Pros of this Approach:**
-
-* Models that contain a large collection of information about the flow of information.
-
-* Models similar to the quality of the ones generated by ClangEx.
-
-**Cons of this Approach:**
-
-* Large model sizes. Potentially contains a lot of unnecessary information.
-
----
-
-Since this mode is enabled by default on `Rex` there is no need to invoke any flags.
-
-### Simple Analysis Mode
-Simple analysis is a special type of analysis in `Rex` that only considers ROS information. Classes are the only C/C++ language feature that is included. Since ROS is a C++ framework, this is acceptable.
-
----
-**Pros of this Approach:**
-
-* Models are a smaller size.
-* Could contain enough information to query about information flow.
-
-**Cons of this Approach:**
-
-* May not contain enough information for advanced queries.
-
----
-
-The `--minimal` or `-m` flag will tell `Rex` to use this anlysis mode.
-
+Rex usage instructions can be found in the Appendix of my thesis located [here.](https://storage.googleapis.com/wzukusers/user-32438510/documents/5aa1b51dc6e45zKYaonW/MastersThesis.pdf) 

@@ -187,6 +187,11 @@ bool RexHandler::processAllFiles(bool minimalWalk, bool lowMemory, int startNum,
     return success;
 }
 
+/**
+ * Recovers a low memory run. Only resolves.
+ * @param startDir The starting directory.
+ * @return Whether the recovery worked.
+ */
 bool RexHandler::recoverCompact(string startDir){
     path startPath = startDir;
     if (!is_directory(startPath)){
@@ -211,6 +216,11 @@ bool RexHandler::recoverCompact(string startDir){
     return true;
 }
 
+/**
+ * Recovers a low memory run. Picks up where the run last stopped.
+ * @param startDir The initial location.
+ * @return Whether the run was successful.
+ */
 bool RexHandler::recoverFull(string startDir){
     path startPath = startDir;
     if (!is_directory(startPath)){
@@ -327,6 +337,12 @@ bool RexHandler::resolveComponents(std::vector<path> databasePaths){
     return ParentWalker::resolveAllTAModels(results);
 }
 
+/**
+ * Processes a scenario.
+ * @param scnPath The scenario directory.
+ * @param rosPath The root ROS directory.
+ * @return Boolean denoting success.
+ */
 bool RexHandler::processScenarioInformation(path scnPath, path rosPath){
     //Create a scenario walker instance.
     ScenarioWalker* walker = new ScenarioWalker(scnPath, rosPath);
@@ -409,6 +425,11 @@ int RexHandler::removeByRegex(string regex) {
     return num;
 }
 
+/**
+ * Changes the location of the low memory mode output.
+ * @param curLoc The location to change to.
+ * @return Whether the change was successful.
+ */
 bool RexHandler::changeLowMemoryLoc(path curDir){
     if (!is_directory(curDir)) return false;
 
@@ -627,6 +648,11 @@ int RexHandler::removeDirectory(path directory){
     return numRemoved;
 }
 
+/**
+ * Gets the number for all the low memory graphs in the file.
+ * @param startDir The start directory to look in.
+ * @return A vector of low memory graph numbers.
+ */
 vector<int> RexHandler::getLMGraphs(string startDir){
     vector<int> results;
     std::regex fReg("[0-9]+-(instances|relations|attributes).ta");
@@ -662,6 +688,13 @@ vector<int> RexHandler::getLMGraphs(string startDir){
     return results;
 }
 
+/**
+ * Reads the setting file for a previous low memory run.
+ * @param loc The location to read.
+ * @param files The files in the setting.
+ * @param minMode The min mode toggle in the settings.
+ * @return Whether the read was successful.
+ */
 bool RexHandler::readSettings(string loc, vector<string>* files, bool* minMode){
     std::ifstream settingFile(loc);
     if (!settingFile.is_open()) return false;
@@ -685,6 +718,11 @@ bool RexHandler::readSettings(string loc, vector<string>* files, bool* minMode){
     return true;
 }
 
+/**
+ * Gets the initial file to start reading again.
+ * @param file The file to read.
+ * @return The start number.
+ */
 int RexHandler::readStartNum(string file){
     std::ifstream curFile(file);
     if (!curFile.is_open()) return 0;
@@ -792,6 +830,11 @@ vector<string> RexHandler::loadLibraries(string libs){
     return output;
 }
 
+/**
+ * Gets integers from a string.
+ * @param str The string to extract.
+ * @return The integer that was extracted.
+ */
 int RexHandler::extractIntegerWords(string str) {
     stringstream ss;
     ss << str;
@@ -809,6 +852,11 @@ int RexHandler::extractIntegerWords(string str) {
     return -1;
 }
 
+/**
+ * Splits by a comma delimiter.
+ * @param list The initial string.
+ * @return The vector of tokens.
+ */
 vector<string> RexHandler::splitList(std::string list) {
     stringstream ss(list);
     vector<string> result;

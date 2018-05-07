@@ -171,6 +171,11 @@ bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
     return true;
 }
 
+/**
+ * Only keeps features of a particular string.
+ * @param features The features to keep.
+ * @return Boolean indicating success.
+ */
 bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
     //Goes through the graph and eliminates certain features.
     for (TAGraph* curGraph : graphList){
@@ -186,6 +191,12 @@ bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
     return true;
 }
 
+/**
+ * Changes the type of the graph.
+ * @param lowMem Low Memory mode toggle.
+ * @param lowMemPath Low memory path.
+ * @return Boolean indicating success.
+ */
 bool ParentWalker::changeGraphType(bool lowMem, string lowMemPath){
     if (!graph->isEmpty()) return false;
     bool minMode = graph->getMinMode();
@@ -202,6 +213,10 @@ bool ParentWalker::changeGraphType(bool lowMem, string lowMemPath){
     return true;
 }
 
+/**
+ * Purges the current graph.
+ * @return Boolean indicating success.
+ */
 bool ParentWalker::purgeCurrentGraph(){
     if (dynamic_cast<LowMemoryTAGraph*>(graph)){
         dynamic_cast<LowMemoryTAGraph*>(graph)->purgeCurrentGraph();
@@ -211,6 +226,12 @@ bool ParentWalker::purgeCurrentGraph(){
     return false;
 }
 
+/**
+ * Dumps current file to disk.
+ * @param fileNum The current file number.
+ * @param fileName The current file.
+ * @return Boolean indicating success.
+ */
 bool ParentWalker::dumpCurrentFile(int fileNum, string fileName){
     if (dynamic_cast<LowMemoryTAGraph*>(graph)){
         dynamic_cast<LowMemoryTAGraph*>(graph)->dumpCurrentFile(fileNum, fileName);
@@ -220,6 +241,12 @@ bool ParentWalker::dumpCurrentFile(int fileNum, string fileName){
     return false;
 }
 
+/**
+ * Dumps the settings to disk.
+ * @param files A list of files.
+ * @param minMode Min mode toggle.
+ * @return Boolean indicating success.
+ */
 bool ParentWalker::dumpCurrentSettings(vector<bs::path> files, bool minMode){
     if (dynamic_cast<LowMemoryTAGraph*>(graph)){
         dynamic_cast<LowMemoryTAGraph*>(graph)->dumpSettings(files, minMode);
@@ -1232,6 +1259,10 @@ void ParentWalker::recordAdvertise(const CallExpr* expr) {
     currentPublisher = nullptr;
 }
 
+/**
+ * Records a ROS timer from a call expression.
+ * @param expr The call expression to record.
+ */
 void ParentWalker::recordTimer(const CallExpr* expr){
     if (currentTimer == nullptr) return;
 
@@ -1295,6 +1326,12 @@ void ParentWalker::recordTopic(string name){
     graph->addNode(node);
 }
 
+/**
+ * Generates a ROS node.
+ * @param expr The expression.
+ * @param type The type of node.
+ * @return The decl generated.
+ */
 const NamedDecl* ParentWalker::generateROSNode(const CXXConstructExpr* expr, RexNode::NodeType type){
     //First, get the parent NamedDecl.
     bool getParent = true;

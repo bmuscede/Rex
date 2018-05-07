@@ -52,6 +52,7 @@ public:
     bool processClangToolCode(int argc, const char** argv);
     bool processAllFiles(bool minimalWalk, bool lowMemory, int startNum = 0, std::string loadLoc = DEFAULT_LOAD);
 
+    /** Recovery Systems */
     bool recoverCompact(std::string startDir);
     bool recoverFull(std::string startDir);
 
@@ -68,6 +69,7 @@ public:
     int removeByPath(path curPath);
     int removeByRegex(std::string regex);
 
+    /** Low Memory System */
     bool changeLowMemoryLoc(path curDir);
 
 private:

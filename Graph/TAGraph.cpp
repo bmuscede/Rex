@@ -51,6 +51,9 @@ TAGraph::~TAGraph(){
     clearGraph();
 }
 
+/**
+ * Clears the graph from disk.
+ */
 void TAGraph::clearGraph(){
     for (auto &entry : idList){
         delete entry.second;
@@ -65,11 +68,19 @@ void TAGraph::clearGraph(){
     edgeDstList.clear();
 }
 
+/**
+ * Checks if the graph is empty.
+ * @return Whether the graph is empty.
+ */
 bool TAGraph::isEmpty(){
     if (idList.size() == 0) return true;
     return false;
 }
 
+/**
+ * Gets the mode the graph is in.
+ * @return The mode of the graph.
+ */
 bool TAGraph::getMinMode(){
     return minMode;
 }
@@ -110,6 +121,10 @@ void TAGraph::addEdge(RexEdge* edge){
     edgeDstList[edge->getDestinationID()].push_back(edge);
 }
 
+/**
+ * Removes a hierarchy of elements.
+ * @param toRemove The node to remove.
+ */
 void TAGraph::hierarchyRemove(RexNode* toRemove){
     auto edges = findEdgesBySrc(toRemove->getID());
     for (auto &item : edges){
@@ -236,6 +251,11 @@ RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     return nullptr;
 }
 
+/**
+ * Finds nodes by a particular type.
+ * @param type The type to search for.
+ * @return A collection of nodes of that type.
+ */
 vector<RexNode*> TAGraph::findNodesByType(RexNode::NodeType type){
     vector<RexNode*> nodes;
 
@@ -407,6 +427,11 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
     }
 }
 
+/**
+ * Only keep features of a particular name. Remove all descendants.
+ * @param features The features to keep.
+ * @return Boolean indicating success.
+ */
 bool TAGraph::keepFeatures(vector<string> features){
     //Find features by name.
     vector<RexNode*> featureNodes = findNodesByType(RexNode::COMPONENT);
@@ -433,6 +458,10 @@ string TAGraph::getTAModel(){
     return model;
 }
 
+/**
+ * Generates instances of the TA graph.
+ * @return The instances in string form.
+ */
 string TAGraph::generateInstances(){
     //Writes the nodes.
     string model = "";
@@ -444,6 +473,10 @@ string TAGraph::generateInstances(){
     return model;
 }
 
+/**
+ * Generates relations of the TA graph.
+ * @return The relations.
+ */
 string TAGraph::generateRelations(){
     string model = "";
 
@@ -457,6 +490,10 @@ string TAGraph::generateRelations(){
     return model;
 }
 
+/**
+ * Generates attributes of the TA graph.
+ * @return The attributes.
+ */
 string TAGraph::generateAttributes(){
     //Writes the attributes.
     string model = "";

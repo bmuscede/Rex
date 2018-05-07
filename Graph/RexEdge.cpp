@@ -189,12 +189,20 @@ void RexEdge::setSourceID(string ID){
     }
 }
 
+/**
+ * Sets the name of the source.
+ * @param name The new name.
+ */
 void RexEdge::setSourceName(string name){
     if (!sourceNode){
         sourceName = name;
     }
 }
 
+/**
+ * Sets the name of the destination.
+ * @param name The new name.
+ */
 void RexEdge::setDestName(string name){
     if (!destNode){
         destName = name;
@@ -265,6 +273,10 @@ string RexEdge::getDestinationID(){
     return destID;
 }
 
+/**
+ * Gets the name of the source.
+ * @return The name.
+ */
 string RexEdge::getSourceName(){
     if (sourceNode) {
         return sourceNode->getName();
@@ -272,6 +284,10 @@ string RexEdge::getSourceName(){
     return sourceName;
 }
 
+/**
+ * Gets the name of the destination.
+ * @return The name.
+ */
 string RexEdge::getDestinationName(){
     if (destNode) {
         return destNode->getName();
