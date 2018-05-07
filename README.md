@@ -130,7 +130,7 @@ First, we must checkout the current version of Rex from GitHub. This will be dow
 
 To download, run the following:
 ```
-$ git checkout https://github.com/bmuscede/Rex.git
+$ git clone https://github.com/bmuscede/Rex.git
 ```
 
 Next, we want to build the source code. This process may take several minutes due to the heavyweight size of the Clang libraries. This guide will build clang to the `Rex-Build` directory that is adjacent to the `Rex` library. If you want to build to a different directory, replace the following `Rex-Build`s  to the directory of your choice.
