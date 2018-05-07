@@ -14,6 +14,7 @@ $INHERIT	rosTopic		rosMsg
 $INHERIT	rosPublisher		rosMsg
 $INHERIT	rosSubscriber		rosMsg
 $INHERIT	rosNodeHandle		rosMsg
+$INHERIT	rosTimer		rosMsg
 
 //Relationships
 compContain	cComponent	cClass
@@ -28,6 +29,7 @@ read		cVariable	cFunction
 varWrite	cVariable	cVariable
 varInfluence	cVariable	rosMsg
 varInfFunc	cVariable	cFunction
+time		rosTimer	cFunction
 
 SCHEME ATTRIBUTE :
 $ENTITY {

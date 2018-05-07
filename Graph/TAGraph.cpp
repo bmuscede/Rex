@@ -48,14 +48,30 @@ TAGraph::TAGraph(RexEdge::EdgeType edgeType){
  * Destructor. Deletes all nodes and edges.
  */
 TAGraph::~TAGraph(){
+    clearGraph();
+}
+
+void TAGraph::clearGraph(){
     for (auto &entry : idList){
         delete entry.second;
     }
+    idList.clear();
     for (auto &entry : edgeSrcList){
         for (auto &vecEntry : entry.second){
             delete vecEntry;
         }
     }
+    edgeSrcList.clear();
+    edgeDstList.clear();
+}
+
+bool TAGraph::isEmpty(){
+    if (idList.size() == 0) return true;
+    return false;
+}
+
+bool TAGraph::getMinMode(){
+    return minMode;
 }
 
 /**
@@ -94,6 +110,17 @@ void TAGraph::addEdge(RexEdge* edge){
     edgeDstList[edge->getDestinationID()].push_back(edge);
 }
 
+void TAGraph::hierarchyRemove(RexNode* toRemove){
+    auto edges = findEdgesBySrc(toRemove->getID());
+    for (auto &item : edges){
+        if (item == nullptr) continue;
+        if (item->getType() == RexEdge::COMP_CONTAINS || item->getType() == RexEdge::CONTAINS){
+            hierarchyRemove(item->getDestination());
+        }
+    }
+
+    removeNode(toRemove->getID());
+}
 
 /**
  * Removes a node.
@@ -180,6 +207,8 @@ RexNode* TAGraph::findNode(std::string nodeID){
 RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
     //Loop through the map.
     for (auto entry : idList){
+        if (!entry.second) continue;
+
         string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
         if (entryName.compare(nodeName) == 0)
             return entry.second;
@@ -196,6 +225,8 @@ RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
  */
 RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     for (auto entry: idList){
+        if (!entry.second) continue;
+
         string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
         if (hasEnding(entryName, endName)) {
             return entry.second;
@@ -203,6 +234,16 @@ RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     }
 
     return nullptr;
+}
+
+vector<RexNode*> TAGraph::findNodesByType(RexNode::NodeType type){
+    vector<RexNode*> nodes;
+
+    for (auto entry : idList){
+        if (entry.second->getType() == type) nodes.push_back(entry.second);
+    }
+
+    return nodes;
 }
 
 /**
@@ -275,44 +316,6 @@ bool TAGraph::doesEdgeExist(std::string srcID, std::string dstID, RexEdge::EdgeT
     }
 
     return false;
-}
-
-/**
- * Checks the TA graph for correctness to ensure it conforms to requirements.
- * @return A list of problems.
- */
-string TAGraph::checkCorrectness(){
-    string correctnessMsg = "";
-
-    //Go through the destination edges.
-    for(auto it = edgeDstList.begin(); it != edgeDstList.end(); it++) {
-        vector<RexEdge*> edges = it->second;
-        bool forestEncountered = false;
-        RexEdge* prevForest = nullptr;
-
-        //Go through the edges.
-        for (int i = 0; i < edges.size(); i++){
-            RexEdge* curEdge = edges.at(i);
-
-            if (curEdge->getType() == forestEdgeType){
-                if (forestEncountered){
-                    correctnessMsg += "Error! Trying to add edge " + curEdge->getSource()->getName() + " -> " +
-                            curEdge->getDestination()->getName() + "!\n";
-                    correctnessMsg += "\tEdge " + prevForest->getSource()->getName() + " -> " +
-                            prevForest->getDestination()->getName() + " already exists!\n";
-                } else {
-                    forestEncountered = true;
-                    prevForest = curEdge;
-                }
-            }
-        }
-    }
-
-    if (correctnessMsg.compare("") != 0){
-        correctnessMsg = "MODEL ERRORS:\n-------------------------------------------------------\n" + correctnessMsg;
-    }
-
-    return correctnessMsg;
 }
 
 /**
@@ -389,12 +392,27 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
         for (int i = 0; i < edges.size(); i++){
             RexEdge* curEdge = edges.at(i);
 
-            //Check if the edge is established.
+            //Check if the edge is established
             if (!curEdge->isEstablished()){
                 bool remove = true;
-                if (resolveFirst) remove = !resolveEdge(curEdge);
+                if (resolveFirst) {
+                    remove = !resolveEdge(curEdge);
+                    if (remove && curEdge->getType() == RexEdge::CALLS && curEdge->getDestination() == nullptr){
+                        remove = !resolveEdgeByName(curEdge);
+                    }
+                }
                 if (remove) removeEdge(curEdge->getSourceID(), curEdge->getDestinationID(), curEdge->getType(), true);
             }
+        }
+    }
+}
+
+bool TAGraph::keepFeatures(vector<string> features){
+    //Find features by name.
+    vector<RexNode*> featureNodes = findNodesByType(RexNode::COMPONENT);
+    for (RexNode* curNode : featureNodes){
+        if (find(features.begin(), features.end(), curNode->getName()) == features.end()){
+            hierarchyRemove(curNode);
         }
     }
 }
@@ -406,12 +424,28 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
 string TAGraph::getTAModel(){
     string model = (minMode) ? MINI_TA_SCHEMA : FULL_TA_SCHEMA;
 
-    //Writes the nodes.
     model += "FACT TUPLE :\n";
+    model += generateInstances();
+    model += generateRelations();
+    model += "\nFACT ATTRIBUTE :\n";
+    model += generateAttributes();
+
+    return model;
+}
+
+string TAGraph::generateInstances(){
+    //Writes the nodes.
+    string model = "";
     for (auto &entry : idList){
         if (entry.second == nullptr) continue;
         model += entry.second->generateTANode() + "\n";
     }
+
+    return model;
+}
+
+string TAGraph::generateRelations(){
+    string model = "";
 
     //Writes the edges.
     for (auto &entry : edgeSrcList){
@@ -420,8 +454,12 @@ string TAGraph::getTAModel(){
         }
     }
 
+    return model;
+}
+
+string TAGraph::generateAttributes(){
     //Writes the attributes.
-    model += "\nFACT ATTRIBUTE :\n";
+    string model = "";
     for (auto &entry : idList){
         if (entry.second == nullptr) continue;
         if (entry.second->getNumAttributes() == 0) continue;
@@ -435,26 +473,6 @@ string TAGraph::getTAModel(){
     }
 
     return model;
-}
-
-/**
- * Generates a unique ROS-based node.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @return The node generated.
- */
-RexNode* TAGraph::generateSubscriberNode(std::string parentID, std::string parentName){
-    return generateROSNode(parentID, parentName, RexNode::SUBSCRIBER);
-}
-
-/**
- * Generates a unique ROS-based node.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @return The node generated.
- */
-RexNode* TAGraph::generatePublisherNode(std::string parentID, std::string parentName){
-    return generateROSNode(parentID, parentName, RexNode::PUBLISHER);
 }
 
 /**
@@ -527,84 +545,29 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
     //Look for the source and destination.
     if (edge->getSource() == nullptr){
         //Resolves the source ID.
-        string sourceName = edge->getSourceID();
-        RexNode* srcNode = findNodeByName(sourceName, true);
+        string sourceName = edge->getSourceName();
+        RexNode* srcNode = findNodeByEndName(sourceName);
         if (srcNode == nullptr) return false;
 
         edge->setSource(srcNode);
     }
     if (edge->getDestination() == nullptr){
         //Resolves the source ID.
-        string destName = edge->getDestinationID();
-        RexNode* destNode = findNodeByName(destName, true);
+        string destName = edge->getDestinationName();
+        RexNode* destNode = findNodeByEndName(destName);
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);
     }
 
-    //Checks for callback.
     if (edge->getType() == RexEdge::CALLS && edge->getSource()->getType() == RexNode::SUBSCRIBER &&
-        edge->getDestination()->getType() == RexNode::FUNCTION){
+            edge->getDestination()->getType() == RexNode::FUNCTION){
         edge->getDestination()->addSingleAttribute(ROSWalker::CALLBACK_FLAG, "1");
+
     }
+
 
     return true;
-}
-
-/**
- * Generates a ROS node based on parent information.
- * @param parentID The ID of the parent.
- * @param parentName The name of the parent.
- * @param type The type of the node.
- * @return The generated node.
- */
-RexNode* TAGraph::generateROSNode(string parentID, string parentName, RexNode::NodeType type){
-    //Generates the ID.
-    string rosID = parentID + "::" + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + "::";
-
-    //Generates the name.
-    string rosName = parentName + "\'s " + ((type == RexNode::PUBLISHER) ? PUB_NAME : SUB_NAME) + " ";
-
-    //Gets the current number.
-    int num = getLastROSNumber(rosID);
-    rosID += to_string(num);
-    rosName += to_string(num);
-
-    //Now creates the node.
-    RexNode* node = new RexNode(rosID, rosName, type);
-    node->addSingleAttribute(ROS_NUM, to_string(num));
-    addNode(node);
-
-    return node;
-}
-
-/**
- * Generates a unique number based on the ROS ID.
- * @param rosID The ID of the entity.
- * @return The unique number.
- */
-int TAGraph::getLastROSNumber(std::string rosID){
-    int curNum = 0;
-    bool exists = true;
-
-    //Loops through until we don't find an entry.
-    while (exists) {
-        bool found = false;
-
-        //Loops through the map.
-        for (auto mapItem : idList){
-            if (mapItem.first.compare(rosID + to_string(curNum)) == 0){
-                found = true;
-                break;
-            }
-        }
-
-        //Check if we found the item.
-        if (!found) exists = false;
-        else curNum++;
-    }
-
-    return curNum;
 }
 
 /**

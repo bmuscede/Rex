@@ -57,6 +57,9 @@ string RexNode::typeToString(RexNode::NodeType type){
         case SUBSCRIBER:
             return "rosSubscriber";
 
+        case TIMER:
+            return "rosTimer";
+
         case NODE_HANDLE:
             return "rosNodeHandle";
 

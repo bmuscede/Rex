@@ -50,17 +50,25 @@ public:
 
     /** Processing Systems */
     bool processClangToolCode(int argc, const char** argv);
-    bool processAllFiles(bool minimalWalk, std::string loadLoc = DEFAULT_LOAD);
+    bool processAllFiles(bool minimalWalk, bool lowMemory, int startNum = 0, std::string loadLoc = DEFAULT_LOAD);
+
+    bool recoverCompact(std::string startDir);
+    bool recoverFull(std::string startDir);
 
     /** Output Helpers */
     bool outputIndividualModel(int modelNum, std::string fileName = std::string());
     bool outputAllModels(std::string baseFileName);
+
+    /** TA Helpers */
     bool resolveComponents(std::vector<path> databasePaths);
+    bool processScenarioInformation(path scnPath, path rosPath);
 
     /** Add and Remove Functions */
     int addByPath(path curPath);
     int removeByPath(path curPath);
     int removeByRegex(std::string regex);
+
+    bool changeLowMemoryLoc(path curDir);
 
 private:
     /** Default Arguments */
@@ -82,6 +90,8 @@ private:
     std::vector<path> files;
     std::vector<std::string> ext;
     llvm::cl::OptionCategory RexCategory;
+    path lowMemoryPath = "";
+    bool recoveryMode = false;
 
     /** Arg Helper Methods */
     const char** prepareUpdatedArgs(int *argc, const char** argv);
@@ -94,6 +104,11 @@ private:
     int removeFile(path file);
     int removeDirectory(path directory);
 
+    /** Recovery Helper */
+    std::vector<int> getLMGraphs(std::string startDir);
+    bool readSettings(std::string file, std::vector<std::string>* files, bool* minMode);
+    int readStartNum(std::string file);
+
     /** Resolve Helper Methods */
     std::map<std::string, std::string> addDirectory(path directory, std::map<std::string, std::string> databases);
     std::map<std::string, std::vector<std::string>> resolveJSON(std::map<std::string, std::string> databases);
@@ -101,6 +116,9 @@ private:
     /** Loading Helper Methods */
     std::vector<std::string> loadLibraries(std::string libs);
 
+    /** Low Memory System */
+    int extractIntegerWords(std::string str);
+    std::vector<std::string> splitList(std::string list);
 };
 
 #endif //REX_REXHANDLER_H

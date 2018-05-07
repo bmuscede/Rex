@@ -79,7 +79,7 @@ private:
     void recordControlFlow(const MemberExpr* expr);
     void recordControlFlow(const ValueDecl* decl);
     RexEdge* recordParentFunction(const Stmt* statement, RexNode* baseItem);
-    void recordASTControl(const Stmt* baseStmt, RexNode* rosItem);
+    void recordASTControl(const Stmt* baseStmt, RexNode* rosItem, std::string rosID, RexNode::NodeType type);
 
     //Var Recorders
     std::vector<const NamedDecl*> getVars(const IfStmt* stmt);

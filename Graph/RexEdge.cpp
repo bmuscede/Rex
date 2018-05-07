@@ -72,6 +72,9 @@ string RexEdge::typeToString(RexEdge::EdgeType type){
 
         case VAR_INFLUENCE_FUNC:
             return "varInfFunc";
+
+        case SET_TIME:
+            return "time";
     }
 
     return "unknown";
@@ -88,6 +91,8 @@ RexEdge::RexEdge(RexNode* src, RexNode* dst, RexEdge::EdgeType type){
     destNode = dst;
     sourceID = src->getID();
     destID = dst->getID();
+    sourceName = src->getName();
+    destName = dst->getName();
     this->type = type;
 }
 
@@ -102,6 +107,8 @@ RexEdge::RexEdge(string src, string dst, RexEdge::EdgeType type){
     destNode = nullptr;
     sourceID = src;
     destID = dst;
+    sourceName = src;
+    destName = dst;
     this->type = type;
 }
 
@@ -116,6 +123,8 @@ RexEdge::RexEdge(RexNode* src, string dst, RexEdge::EdgeType type){
     destNode = nullptr;
     sourceID = src->getID();
     destID = dst;
+    sourceName = src->getName();
+    destName = dst;
     this->type = type;
 }
 
@@ -130,6 +139,8 @@ RexEdge::RexEdge(string src, RexNode* dst, RexEdge::EdgeType type){
     destNode = dst;
     sourceID = src;
     destID = dst->getID();
+    sourceName = src;
+    destName = dst->getName();
     this->type = type;
 }
 
@@ -155,6 +166,7 @@ bool RexEdge::isEstablished(){
 void RexEdge::setSource(RexNode* src){
     sourceNode = src;
     sourceID = src->getID();
+    sourceName = src->getName();
 }
 
 /**
@@ -164,6 +176,7 @@ void RexEdge::setSource(RexNode* src){
 void RexEdge::setDestination(RexNode* dst){
     destNode = dst;
     destID = dst->getID();
+    destName = dst->getName();
 }
 
 /**
@@ -173,6 +186,18 @@ void RexEdge::setDestination(RexNode* dst){
 void RexEdge::setSourceID(string ID){
     if (!sourceNode){
         sourceID = ID;
+    }
+}
+
+void RexEdge::setSourceName(string name){
+    if (!sourceNode){
+        sourceName = name;
+    }
+}
+
+void RexEdge::setDestName(string name){
+    if (!destNode){
+        destName = name;
     }
 }
 
@@ -238,6 +263,20 @@ string RexEdge::getDestinationID(){
         return destNode->getID();
     }
     return destID;
+}
+
+string RexEdge::getSourceName(){
+    if (sourceNode) {
+        return sourceNode->getName();
+    }
+    return sourceName;
+}
+
+string RexEdge::getDestinationName(){
+    if (destNode) {
+        return destNode->getName();
+    }
+    return destName;
 }
 
 /**

@@ -33,8 +33,8 @@
 class RexEdge {
 public:
     //Node Type Information
-    enum EdgeType {CONTAINS, COMP_CONTAINS, VAR_WRITES,  REFERENCES, CALLS, READS, WRITES,
-        ADVERTISE, SUBSCRIBE, PUBLISH, VAR_INFLUENCE, VAR_INFLUENCE_FUNC};
+    enum EdgeType {CONTAINS, COMP_CONTAINS, VAR_WRITES, REFERENCES, CALLS, READS, WRITES,
+        ADVERTISE, SUBSCRIBE, PUBLISH, VAR_INFLUENCE, VAR_INFLUENCE_FUNC, SET_TIME};
     static std::string typeToString(EdgeType type);
 
     //Constructor/Destructor
@@ -52,6 +52,8 @@ public:
     void setDestination(RexNode* dst);
     void setSourceID(std::string ID);
     void setDestinationID(std::string ID);
+    void setSourceName(std::string name);
+    void setDestName(std::string name);
     void setType(EdgeType type);
 
     //Getters
@@ -60,6 +62,8 @@ public:
     EdgeType getType();
     std::string getSourceID();
     std::string getDestinationID();
+    std::string getSourceName();
+    std::string getDestinationName();
     int getNumAttributes();
 
     //Attribute Manager
@@ -78,6 +82,8 @@ private:
 
     std::string sourceID;
     std::string destID;
+    std::string sourceName;
+    std::string destName;
 
     EdgeType type;
 

@@ -12,6 +12,7 @@ $INHERIT	rosTopic		rosMsg
 $INHERIT	rosPublisher		rosMsg
 $INHERIT	rosSubscriber		rosMsg
 $INHERIT	rosNodeHandle		rosMsg
+$INHEIRT	rosTimer		rosMsg
 
 //Relationships
 compContain	cComponent	cClass

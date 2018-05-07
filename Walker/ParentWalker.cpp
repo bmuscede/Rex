@@ -30,7 +30,10 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include "ParentWalker.h"
+#include "../Graph/LowMemoryTAGraph.h"
 
 using namespace std;
 
@@ -50,6 +53,23 @@ ParentWalker::ParentWalker(ASTContext *Context) : Context(Context) {
  * Destructor.
  */
 ParentWalker::~ParentWalker() {}
+
+/**
+ * Adds graphs to the graph list.
+ * @param graphs The graphs to add.
+ */
+void ParentWalker::addGraphs(vector<TAGraph *> graphs) {
+    graphList.insert(graphList.end(), graphs.begin(), graphs.end());
+}
+
+/**
+ * Gets the graph at the specified number.
+ * @param num The specified number to get.
+ * @return The graph at that location.
+ */
+TAGraph* ParentWalker::getGraph(int num) {
+    return graphList.at(num);
+}
 
 /**
  * Deletes all TA graphs being maintained.
@@ -151,8 +171,67 @@ bool ParentWalker::resolveAllTAModels(map<string, vector<string>> databaseMap){
     return true;
 }
 
+bool ParentWalker::onlyKeepFeatures(std::vector<std::string> features){
+    //Goes through the graph and eliminates certain features.
+    for (TAGraph* curGraph : graphList){
+        if (dynamic_cast<LowMemoryTAGraph*>(curGraph)) {
+            cerr << "Error: Scenario resolution cannot be conducted in low-memory mode! "
+                    "Reprocess this graph using the regular generation system!" << endl;
+            return false;
+        }
+        bool status  = curGraph->keepFeatures(features);
+        if (!status) return false;
+    }
+
+    return true;
+}
+
+bool ParentWalker::changeGraphType(bool lowMem, string lowMemPath){
+    if (!graph->isEmpty()) return false;
+    bool minMode = graph->getMinMode();
+    delete graph;
+
+    if (lowMem) {
+        if (lowMemPath == "") graph = new LowMemoryTAGraph();
+        else graph = new LowMemoryTAGraph(lowMemPath);
+    } else {
+        graph = new TAGraph();
+    }
+
+    graph->setMinMode(minMode);
+    return true;
+}
+
+bool ParentWalker::purgeCurrentGraph(){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->purgeCurrentGraph();
+        return true;
+    }
+
+    return false;
+}
+
+bool ParentWalker::dumpCurrentFile(int fileNum, string fileName){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->dumpCurrentFile(fileNum, fileName);
+        return true;
+    }
+
+    return false;
+}
+
+bool ParentWalker::dumpCurrentSettings(vector<bs::path> files, bool minMode){
+    if (dynamic_cast<LowMemoryTAGraph*>(graph)){
+        dynamic_cast<LowMemoryTAGraph*>(graph)->dumpSettings(files, minMode);
+        return true;
+    }
+
+    return false;
+}
+
 /*
  * Sets particular libraries to ignore when processing.
+ * @param libraries The libraries to ignore.
  */
 void ParentWalker::addLibrariesToIgnore(vector<string> libraries){
     ignoreLibraries = libraries;
@@ -338,7 +417,7 @@ map<string, ParentWalker::AccessMethod> ParentWalker::getAccessType(const UnaryO
 ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
     ROSType rtype = ROSType::ROS_NONE;
 
-    //Looks for advertise and subscribe.
+    //Looks for publish, subscribe, and time.
     if (CXXOperatorCallExpr* overload = dyn_cast<CXXOperatorCallExpr>(statement)){
         string type = overload->getType().getAsString();
         if (type.compare("class " + PUBLISHER_CLASS) == 0){
@@ -355,12 +434,16 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
 
             recordAssociations(assignee, assignStmt, type);
             rtype = ROSType::SUB;
+        } else if (type.compare("class " + TIMER_CLASS) == 0) {
+            const NamedDecl *assignee = getAssignee(overload);
+            const MemberExpr *assignStmt = getAssignStmt(overload);
+            if (!assignee || !assignStmt) return ROSType::ROS_NONE;
+
+            recordAssociations(assignee, assignStmt, type);
+            rtype = ROSType::TIMER;
         }
     } else if (CXXConstructExpr* cxxExpr = dyn_cast<CXXConstructExpr>(statement)) {
-        if (isNodeHandlerObj(cxxExpr)) {
-            recordNodeHandle(cxxExpr);
-            recordParentNodeHandle(cxxExpr);
-        } else if (isSubscriberObj(cxxExpr)) {
+        if (isSubscriberObj(cxxExpr)) {
             recordParentSubscribe(cxxExpr);
             rtype = ROSType::SUB;
         } else if (isPublisherObj(cxxExpr)) {
@@ -380,6 +463,9 @@ ParentWalker::ROSType ParentWalker::handleMinimalStmt(Stmt *statement) {
             rtype = ROSType::SUB;
         } else if (isAdvertise(callExpr)) {
             recordAdvertise(callExpr);
+        } else if (isTimer(callExpr)) {
+            recordTimer(callExpr);
+            rtype = ROSType::TIMER;
         }
     }
 
@@ -402,7 +488,8 @@ bool ParentWalker::handleMinimalVarDecl(VarDecl *decl, bool pubEdge) {
     string parentName = parent->getQualifiedNameAsString();
     if (parentName.compare(PUBLISHER_CLASS) == 0 ||
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
-        parentName.compare(NODE_HANDLE_CLASS) == 0){
+        parentName.compare(NODE_HANDLE_CLASS) == 0 ||
+        parentName.compare(TIMER_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
         return true;
     }
@@ -426,7 +513,8 @@ bool ParentWalker::handleMinimalFieldDecl(FieldDecl *decl, bool pubEdge) {
     string parentName = parent->getQualifiedNameAsString();
     if (parentName.compare(PUBLISHER_CLASS) == 0 ||
         parentName.compare(SUBSCRIBER_CLASS) == 0 ||
-        parentName.compare(NODE_HANDLE_CLASS) == 0){
+        parentName.compare(NODE_HANDLE_CLASS) == 0 ||
+        parentName.compare(TIMER_CLASS) == 0){
         recordROSActionMinimal(decl, parentName, pubEdge);
         return true;
     }
@@ -488,6 +576,10 @@ bool ParentWalker::isAdvertise(const CallExpr* expr){
     return isFunction(expr, ADVERTISE_FUNCTION);
 }
 
+bool ParentWalker::isTimer(const CallExpr* expr){
+    return isFunction(expr, TIMER_FUNCTION);
+}
+
 /**
  * Records any associations that might exist between entities.
  * @param assignee The assignee.
@@ -515,8 +607,10 @@ void ParentWalker::recordAssociations(const NamedDecl* assignee, const MemberExp
     if (type.compare("class " + PUBLISHER_CLASS) == 0){
         currentPublisher = assigneeNode;
         currentPublisherOutdated = assigneeNode;
-    } else {
+    } else if (type.compare("class " + SUBSCRIBER_CLASS) == 0) {
         currentSubscriber = assigneeNode;
+    } else {
+        currentTimer = assigneeNode;
     }
 }
 
@@ -562,9 +656,16 @@ void ParentWalker::recordROSActionMinimal(const NamedDecl* decl, string type, bo
     //Next, we make our Rex variable object.
     string varNodeID = generateID(decl);
     string varNodeName = generateName(decl);
-    RexNode::NodeType nType = (type.compare(PUBLISHER_CLASS) == 0 ? RexNode::PUBLISHER :
-                               ((type.compare(SUBSCRIBER_CLASS) == 0) ? RexNode::SUBSCRIBER :
-                                RexNode::NodeType::NODE_HANDLE));
+    RexNode::NodeType nType;
+    if (type.compare(PUBLISHER_CLASS) == 0){
+        nType = RexNode::PUBLISHER;
+    } else if (type.compare(SUBSCRIBER_CLASS) == 0){
+        nType = RexNode::SUBSCRIBER;
+    } else if (type.compare(TIMER_CLASS) == 0){
+        nType = RexNode::TIMER;
+    } else {
+        nType = RexNode::NODE_HANDLE;
+    }
 
     RexNode* rexVarNode = new RexNode(varNodeID, varNodeName, nType);
     graph->addNode(rexVarNode);
@@ -821,7 +922,6 @@ ParentWalker::AccessMethod ParentWalker::determineAccess(bool lhs, BinaryOperato
         case BinaryOperator::Opcode::BO_RemAssign:
         case BinaryOperator::Opcode::BO_ShlAssign:
         case BinaryOperator::Opcode::BO_ShrAssign:
-
         case BinaryOperator::Opcode::BO_XorAssign:
             return ParentWalker::AccessMethod::WRITE;
         case BinaryOperator::Opcode::BO_PtrMemD:
@@ -899,7 +999,6 @@ map<string, ParentWalker::AccessMethod> ParentWalker::buildAccessMap(ParentWalke
     }
 
 #ifdef EXPR_DEBUG
-    //TODO: Experimental! Fix later.
     cerr << "Error: Expression cannot be detected!" << endl;
     cerr << "Expression on line " << Context->getSourceManager().getSpellingLineNumber(curExpr->getLocStart())
          << " in file " << Context->getSourceManager().getFilename(curExpr->getLocStart()).str() << endl;
@@ -985,9 +1084,11 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
 void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
     //First, see if we have parents.
     const NamedDecl* parentVar = getParentAssign(expr);
-    if (!parentVar) return;
+    if (!parentVar) {
+        parentVar = generateROSNode(expr, RexNode::SUBSCRIBER);
+    }
 
-    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::SUBSCRIBER);
+    recordParentGeneric(generateID(parentVar), RexNode::SUBSCRIBER);
 }
 
 /**
@@ -997,9 +1098,11 @@ void ParentWalker::recordParentSubscribe(const CXXConstructExpr* expr){
 void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
     //First, see if we have parents.
     const NamedDecl* parentVar = getParentAssign(expr);
-    if (!parentVar) return;
+    if (!parentVar) {
+        parentVar = generateROSNode(expr, RexNode::PUBLISHER);
+    }
 
-    recordParentGeneric(generateID(parentVar), generateName(parentVar), RexNode::PUBLISHER);
+    recordParentGeneric(generateID(parentVar), RexNode::PUBLISHER);
 }
 
 /**
@@ -1008,46 +1111,18 @@ void ParentWalker::recordParentPublish(const CXXConstructExpr* expr){
  * @param parentName The name to add.
  * @param type The type to add.
  */
-void ParentWalker::recordParentGeneric(string parentID, string parentName, RexNode::NodeType type){
+void ParentWalker::recordParentGeneric(string parentID, RexNode::NodeType type){
     //Next, we record the relationship between the two items.
-    RexNode* src = graph->findNode(parentID);
-    RexNode* dst;
-    if (type == RexNode::PUBLISHER) {
-        src->addSingleAttribute(ROS_PUB_VAR_FLAG, "1");
-        dst = graph->generatePublisherNode(parentID, parentName);
-    } else {
-        src->addSingleAttribute(ROS_SUB_VAR_FLAG, "1");
-        dst = graph->generateSubscriberNode(parentID, parentName);
-    }
-
-    //Creates the edge.
-    RexEdge* edge = new RexEdge(src, dst, ((type == RexNode::PUBLISHER) ? RexEdge::PUBLISH : RexEdge::SUBSCRIBE));
-    graph->addEdge(edge);
+    RexNode* rosNode = graph->findNode(parentID);
 
     //Keeps track of the node being published/subscribed.
     if (type == RexNode::PUBLISHER) {
-        currentPublisher = dst;
-        currentPublisherOutdated = dst;
+        currentPublisher = rosNode;
+        currentPublisherOutdated = rosNode;
     } else {
-        currentSubscriber = dst;
+        currentSubscriber = rosNode;
     }
 
-}
-
-/**
- * Records the parent node handle.
- * @param expr The expression to add.
- */
-void ParentWalker::recordParentNodeHandle(const CXXConstructExpr* expr){
-    //TODO
-}
-
-/**
- * Records a node handle.
- * @param expr The expression to add.
- */
-void ParentWalker::recordNodeHandle(const CXXConstructExpr* expr){
-    //TODO
 }
 
 /**
@@ -1157,6 +1232,56 @@ void ParentWalker::recordAdvertise(const CallExpr* expr) {
     currentPublisher = nullptr;
 }
 
+void ParentWalker::recordTimer(const CallExpr* expr){
+    if (currentTimer == nullptr) return;
+
+    //First, get the arguments.
+    int numArgs = expr->getNumArgs();
+    auto timerArgs = getArgs(expr);
+
+    //Gets the duration.
+    string timerFreq = timerArgs[0];
+    if (boost::starts_with(timerFreq, TIMER_PREFIX_1)){
+        boost::replace_all(timerFreq, TIMER_PREFIX_1, "");
+        boost::replace_all(timerFreq, ")", "");
+    } else if (boost::starts_with(timerFreq, TIMER_PREFIX_2)){
+        boost::replace_all(timerFreq, TIMER_PREFIX_2, "");
+        boost::replace_all(timerFreq, ")", "");
+    }
+
+    //Checks if we have a one shot timer.
+    string oneshot = timerArgs[3];
+    if (oneshot == "" || oneshot == "false"){
+        oneshot = "0";
+    } else {
+        oneshot = "1";
+    }
+
+    //Adds specific attributes.
+    currentTimer->addSingleAttribute(TIMER_DURATION, timerFreq);
+    currentTimer->addSingleAttribute(TIMER_ONESHOT, oneshot);
+
+    //Get the callback function.
+    RexNode* callback = findCallbackFunction(timerArgs[1]);
+
+    //Finally, adds in the callback function.
+    RexEdge* callbackEdge;
+    if (callback){
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::SET_TIME);
+    } else {
+        //Remove the & at the beginning.
+        string callback = timerArgs[1];
+        if (callback.at(0) == '&'){
+            callback = callback.erase(0, 1);
+        }
+
+        callbackEdge = new RexEdge(currentTimer, callback, RexEdge::SET_TIME);
+    }
+    graph->addEdge(callbackEdge);
+
+    currentTimer = nullptr;
+}
+
 /**
  * Records a topic.
  * @param name The name of the topic.
@@ -1168,6 +1293,50 @@ void ParentWalker::recordTopic(string name){
     //Create the node.
     RexNode* node = new RexNode(ID, name, RexNode::TOPIC);
     graph->addNode(node);
+}
+
+const NamedDecl* ParentWalker::generateROSNode(const CXXConstructExpr* expr, RexNode::NodeType type){
+    //First, get the parent NamedDecl.
+    bool getParent = true;
+    auto parent = Context->getParents(*expr);
+    const NamedDecl* result;
+    while(getParent){
+        //Check if it's empty.
+        if (parent.empty()){
+            getParent = false;
+            continue;
+        }
+
+        //Get the current decl as named.
+        result = parent[0].get<clang::NamedDecl>();
+        if (result) {
+            getParent = false;
+            continue;
+        }
+
+        parent = Context->getParents(parent[0]);
+    }
+
+    //Next, create a node based on this.
+    bool notAdded = true;
+    int num = 0;
+    while (notAdded){
+        string ID = generateID(result) + "::" + to_string(num);
+        if (!graph->doesNodeExist(ID)){
+            string name = generateName(result) + "\'s " + ((type == RexNode::PUBLISHER) ? "Publisher" : "Subscriber");
+            RexNode* dst = new RexNode(ID, name, type);
+            graph->addNode(dst);
+
+            //Add a contains relation.
+            graph->addEdge(new RexEdge(graph->findNode(generateID(result)), dst, RexEdge::CONTAINS));
+            notAdded = false;
+            continue;
+        }
+
+        num++;
+    }
+
+    return result;
 }
 
 /**
@@ -1251,8 +1420,6 @@ string ParentWalker::generateName(const NamedDecl* decl){
     //Check if we have a main method.
     if (name.compare("main") == 0){
         name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
-    } else {
-        return generateID(decl);
     }
 
     return name;
@@ -1324,16 +1491,9 @@ string ParentWalker::validateStringArg(string name){
 int ParentWalker::generateTAModel(TAGraph* graph, string fileName){
     //Purge the edges.
     graph->purgeUnestablishedEdges(true);
-    string correctnessMsg = graph->checkCorrectness();
 
     //Gets the string for the model.
     string model = graph->getTAModel();
-
-    //Checks the correctness.
-    if (correctnessMsg.compare("") != 0){
-        cerr << "Warning: TA model has some inconsistencies. See the TA file for error information." << endl;
-        model = correctnessMsg + model;
-    }
 
     //Creates the file stream.
     ofstream file(fileName);

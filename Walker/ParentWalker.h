@@ -29,6 +29,7 @@
 #define REX_PARENTWALKER_H
 
 #include <map>
+#include <boost/filesystem.hpp>
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -45,6 +46,8 @@ using namespace llvm;
 using namespace clang;
 using namespace clang::tooling;
 
+namespace bs = boost::filesystem;
+
 class ParentWalker {
 public:
     //Constructor/Destructor
@@ -52,6 +55,8 @@ public:
     virtual ~ParentWalker();
 
     //Graph Operations
+    static void addGraphs(std::vector<TAGraph*> graphs);
+    static TAGraph* getGraph(int num);
     static void deleteTAGraphs();
     static void deleteTAGraph(int num);
     static int getNumGraphs();
@@ -61,6 +66,11 @@ public:
     static int generateAllTAModels(std::vector<std::string> fileName);
     static void setCurrentGraphMinMode(bool minMode);
     static bool resolveAllTAModels(std::map<std::string, std::vector<std::string>> databaseMap);
+    static bool onlyKeepFeatures(std::vector<std::string> features);
+    static bool changeGraphType(bool lowMem, std::string lowMemPath);
+    static bool purgeCurrentGraph();
+    static bool dumpCurrentFile(int fileNum, std::string fileName);
+    static bool dumpCurrentSettings(std::vector<bs::path> files, bool minMode);
 
     //Processing Operations
     void addLibrariesToIgnore(std::vector<std::string> libraries);
@@ -70,7 +80,7 @@ public:
 protected:
     const std::string FILENAME_ATTR = "filename";
 
-    enum ROSType {ROS_NONE, PUB, SUB};
+    enum ROSType {ROS_NONE, PUB, SUB, TIMER};
     static TAGraph* graph;
     static std::vector<TAGraph*> graphList;
     ASTContext *Context;
@@ -78,11 +88,13 @@ protected:
     RexNode* currentSubscriber = nullptr;
     RexNode* currentPublisherOutdated = nullptr;
     RexNode* currentPublisher = nullptr;
+    RexNode* currentTimer = nullptr;
 
     //ROS Names
     const std::string PUBLISHER_CLASS = "ros::Publisher";
     const std::string SUBSCRIBER_CLASS = "ros::Subscriber";
     const std::string NODE_HANDLE_CLASS = "ros::NodeHandle";
+    const std::string TIMER_CLASS = "ros::Timer";
 
     //Minimal Handlers
     ParentWalker::ROSType handleMinimalStmt(Stmt* statement);
@@ -96,6 +108,7 @@ protected:
     bool isPublish(const CallExpr* expr);
     bool isSubscribe(const CallExpr* expr);
     bool isAdvertise(const CallExpr* expr);
+    bool isTimer(const CallExpr* expr);
 
     //System Headers
     bool isInSystemHeader(const Stmt* statement);
@@ -104,13 +117,13 @@ protected:
     //ROS Recorders
     void recordParentSubscribe(const CXXConstructExpr* expr);
     void recordParentPublish(const CXXConstructExpr* expr);
-    void recordParentGeneric(std::string parentID, std::string parentName, RexNode::NodeType type);
-    void recordParentNodeHandle(const CXXConstructExpr* expr);
-    void recordNodeHandle(const CXXConstructExpr* expr);
+    void recordParentGeneric(std::string parentID, RexNode::NodeType type);
     void recordSubscribe(const CallExpr* expr);
     void recordPublish(const CallExpr* expr);
     void recordAdvertise(const CallExpr* expr);
+    void recordTimer(const CallExpr* expr);
     void recordTopic(std::string name);
+    const NamedDecl* generateROSNode(const CXXConstructExpr* expr, RexNode::NodeType type);
 
     //Name Helper Functions
     std::string generateID(const NamedDecl* decl);
@@ -133,16 +146,18 @@ private:
     const std::string PUBLISH_FUNCTION = "ros::Publisher::publish";
     const std::string SUBSCRIBE_FUNCTION = "ros::NodeHandle::subscribe";
     const std::string ADVERTISE_FUNCTION = "ros::NodeHandle::advertise";
+    const std::string TIMER_FUNCTION = "ros::NodeHandle::createTimer";
+    const std::string TIMER_PREFIX_1 = "ros::Duration(";
+    const std::string TIMER_PREFIX_2 = "Duration(";
 
     //ROS Attributes
-    const std::string ROS_SUB_VAR_FLAG = "isSubscriber";
-    const std::string ROS_PUB_VAR_FLAG = "isPublisher";
     const std::string ROS_TOPIC_BUF_SIZE = "bufferSize";
     const std::string ROS_NUM_ATTRIBUTES = "numAttributes";
     const std::string ROS_CALLBACK = "callbackFunc";
     const std::string ROS_PUB_TYPE = "publisherType";
-    const std::string ROS_NUMBER = "rosNumber";
     const std::string ROS_PUB_DATA = "pubData";
+    const std::string TIMER_DURATION = "timerDuration";
+    const std::string TIMER_ONESHOT = "isOneshot";
     const int PUB_MAX = 30;
 
     //Header Libraries
