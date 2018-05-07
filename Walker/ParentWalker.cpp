@@ -1398,8 +1398,6 @@ string ParentWalker::generateName(const NamedDecl* decl){
     //Check if we have a main method.
     if (name.compare("main") == 0){
         name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
-    } else {
-        return generateID(decl);
     }
 
     return name;

@@ -207,6 +207,8 @@ RexNode* TAGraph::findNode(std::string nodeID){
 RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
     //Loop through the map.
     for (auto entry : idList){
+        if (!entry.second) continue;
+
         string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
         if (entryName.compare(nodeName) == 0)
             return entry.second;
@@ -223,6 +225,8 @@ RexNode* TAGraph::findNodeByName(string nodeName, bool MD5Check) {
  */
 RexNode* TAGraph::findNodeByEndName(string endName, bool MD5Check) {
     for (auto entry: idList){
+        if (!entry.second) continue;
+
         string entryName = (MD5Check) ? getMD5(entry.second->getName()) : entry.second->getName();
         if (hasEnding(entryName, endName)) {
             return entry.second;
@@ -365,7 +369,11 @@ void TAGraph::resolveUnestablishedEdges(){
 
             //Check if the edge is established.
             if (!curEdge->isEstablished()){
-                resolveEdge(curEdge);
+                bool res = resolveEdge(curEdge);
+
+                if (res && curEdge->getType() == RexEdge::CALLS && curEdge->getDestination() == nullptr){
+                    resolveEdgeByName(curEdge);
+                }
             }
         }
     }
@@ -387,7 +395,12 @@ void TAGraph::purgeUnestablishedEdges(bool resolveFirst){
             //Check if the edge is established
             if (!curEdge->isEstablished()){
                 bool remove = true;
-                if (resolveFirst) remove = !resolveEdge(curEdge);
+                if (resolveFirst) {
+                    remove = !resolveEdge(curEdge);
+                    if (remove && curEdge->getType() == RexEdge::CALLS && curEdge->getDestination() == nullptr){
+                        remove = !resolveEdgeByName(curEdge);
+                    }
+                }
                 if (remove) removeEdge(curEdge->getSourceID(), curEdge->getDestinationID(), curEdge->getType(), true);
             }
         }
@@ -532,20 +545,26 @@ bool TAGraph::resolveEdgeByName(RexEdge* edge){
     //Look for the source and destination.
     if (edge->getSource() == nullptr){
         //Resolves the source ID.
-        string sourceName = edge->getSourceID();
-        RexNode* srcNode = findNodeByName(sourceName, true);
+        string sourceName = edge->getSourceName();
+        RexNode* srcNode = findNodeByEndName(sourceName);
         if (srcNode == nullptr) return false;
 
         edge->setSource(srcNode);
     }
     if (edge->getDestination() == nullptr){
         //Resolves the source ID.
-        string destName = edge->getDestinationID();
-        RexNode* destNode = findNodeByName(destName, true);
+        string destName = edge->getDestinationName();
+        RexNode* destNode = findNodeByEndName(destName);
         if (destNode == nullptr) return false;
 
         edge->setDestination(destNode);
     }
+
+    if (edge->getType() == RexEdge::CALLS && edge->getSource()->getType() == RexNode::SUBSCRIBER &&
+            edge->getDestination()->getType() == RexNode::FUNCTION){
+        edge->getDestination()->addSingleAttribute(ROSWalker::CALLBACK_FLAG, "1");
+    }
+
 
     return true;
 }
