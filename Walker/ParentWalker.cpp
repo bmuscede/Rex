@@ -924,8 +924,10 @@ NamedDecl* ParentWalker::getParentVariable(const Expr *callExpr) {
     //Next, get the implicit object.
     auto parentVar = call->getImplicitObjectArgument();
     if (parentVar == nullptr) return nullptr;
+    auto refCalleeDecl = parentVar->getReferencedDeclOfCallee();
+    if (refCalleeDecl == nullptr) return nullptr;
 
-    return dyn_cast<NamedDecl>(parentVar->getReferencedDeclOfCallee());
+    return dyn_cast<NamedDecl>(refCalleeDecl);
 }
 
 /**
@@ -1073,7 +1075,7 @@ bool ParentWalker::isInSystemHeader(const Stmt *statement) {
         auto &manager = Context->getSourceManager();
 
         //Check if in header.
-        isIn = isInSystemHeader(manager, statement->getLocStart());
+        isIn = isInSystemHeader(manager, statement->getBeginLoc());
     } catch (...) {
         return false;
     }
@@ -1096,7 +1098,7 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
         auto &manager = Context->getSourceManager();
 
         //Check if in header.
-        isIn = isInSystemHeader(manager, decl->getLocStart());
+        isIn = isInSystemHeader(manager, decl->getBeginLoc());
     } catch (...) {
         return false;
     }
@@ -1440,7 +1442,7 @@ string ParentWalker::generateID(const NamedDecl* decl){
 
     //Finally, check if we have a main method.
     if (name.compare("int-main-int-char **") == 0 || name.compare("int-main") == 0){
-        name = Context->getSourceManager().getFilename(originalDecl->getLocStart()).str() + "--" + name;
+        name = Context->getSourceManager().getFilename(originalDecl->getBeginLoc()).str() + "--" + name;
     }
 
     return name;
@@ -1456,7 +1458,7 @@ string ParentWalker::generateName(const NamedDecl* decl){
 
     //Check if we have a main method.
     if (name.compare("main") == 0){
-        name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
+        name = Context->getSourceManager().getFilename(decl->getBeginLoc()).str() + "\'s " + name;
     }
 
     return name;
@@ -1470,7 +1472,7 @@ string ParentWalker::generateName(const NamedDecl* decl){
 string ParentWalker::generateFileName(const NamedDecl* decl){
     //Gets the file name.
     SourceManager& SrcMgr = Context->getSourceManager();
-    auto fullLoc = Context->getFullLoc(decl->getLocStart());
+    auto fullLoc = Context->getFullLoc(decl->getBeginLoc());
     if (!fullLoc.isValid()) return string();
 
     string fileName = SrcMgr.getFilename(fullLoc).str();

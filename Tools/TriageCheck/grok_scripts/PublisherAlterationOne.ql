@@ -1,0 +1,35 @@
+$INSTANCE = eset;
+
+//Sets the input file and loads.
+inputFile = $1;
+getta(inputFile);
+
+//Gets the relations important for all phases.
+direct = contain o publish o subscribe o call;
+indirect = contain o publish o subscribe o inv contain;
+indirect = indirect+;
+
+callbackFuncs = rng(subscribe o call);
+masterRel = varWrite + varInfluence + varInfFunc + call + write;
+masterRel = masterRel+;
+
+//Gets all publisher alterations.
+pubAlter = callbackFuncs o masterRel o publish;
+comboM = masterRel + publish;
+
+//Loops through the results.
+for item in dom pubAlter {
+	cbS = {item} . @label;
+	
+	//Get the items for this domain.
+	vars = {item} . pubAlter;
+	for var in vars {
+		varS = {var} . @label;
+
+		//Print the combination.
+		print "####";
+		print cbS;
+		print varS;
+		showpath(item, var, comboM);
+	}
+}
