@@ -1,9 +1,2 @@
-#######################################
-# Exclude Elements File
-#######################################
-
-Variables:
-#<NONE>
-
-Callback Functions:
-#<NONE>
+example_regex_to_remove
+other_example_regex_to_remove

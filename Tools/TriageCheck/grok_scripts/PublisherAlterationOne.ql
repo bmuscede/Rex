@@ -4,12 +4,24 @@ $INSTANCE = eset;
 inputFile = $1;
 getta(inputFile);
 
+//Processes the regular expression system.
+if $# == 2 {
+	getcsv($2);
+}
+
 //Gets the relations important for all phases.
 direct = contain o publish o subscribe o call;
 indirect = contain o publish o subscribe o inv contain;
 indirect = indirect+;
 
 callbackFuncs = rng(subscribe o call);
+if $# == 2 {
+	for str in dom CSVDATA {
+		toRemove = grep(callbackFuncs, str);
+		callbackFuncs = callbackFuncs - toRemove;
+	}
+}
+
 masterRel = varWrite + varInfluence + varInfFunc + call + write;
 masterRel = masterRel+;
 

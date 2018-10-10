@@ -4,6 +4,11 @@ $INSTANCE = eset;
 inputFile = $1;
 getta(inputFile);
 
+//Processes the regular expression system.
+if $# == 2 {
+	getcsv($2);
+}
+
 //Gets the direct and indirect relations.
 direct = contain o publish o subscribe o call;
 indirect = contain o publish o subscribe o inv contain;
@@ -11,7 +16,21 @@ indirect = indirect+;
 
 //Generates relations to track the flow of data.
 callbackFuncs = rng(subscribe o call);
+if $# == 2 {
+	for str in dom CSVDATA {
+		toRemove = grep(callbackFuncs, str);
+		callbackFuncs = callbackFuncs - toRemove;
+	}
+}
+
 controlFlowVars = @isControlFlow . {"\"1\""};
+if $# == 2 {
+        for str in dom CSVDATA {
+                toRemove = grep(controlFlowVars, str);
+                controlFlowVars = controlFlowVars - toRemove;
+        }
+}
+
 masterRel = varWrite + call + write + varInfFunc;
 masterRel = masterRel+;
 

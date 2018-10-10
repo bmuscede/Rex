@@ -4,6 +4,11 @@ $INSTANCE = eset;
 inputFile = $1;
 getta(inputFile);
 
+//Processes the regular expression system.
+if $# == 2 {
+	getcsv($2);
+}
+
 //Gets the relations important for all phases.
 direct = publish o subscribe o inv contain;
 indirect = contain o publish o subscribe o inv contain;
@@ -11,7 +16,19 @@ indirect = indirect+;
 
 //Gets all the timers and timer callbacks.
 timers = $INSTANCE . {"rosTimer"};
+if $# == 2 {
+	for str in dom CSVDATA {
+		toRemove = grep(timers, str);
+		tim = timers - toRemove;
+	}
+}
 tmrCallback = rng time;
+if $# == 2 {
+	for str in dom CSVDATA {
+		toRemove = grep(tmrCallback, str);
+		tmrCallback = tmrCallback - toRemove;
+	}
+}
 
 //Generates a master relation.
 masterRel = varWrite + varInfluence + varInfFunc + call + write;

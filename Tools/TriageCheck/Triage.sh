@@ -93,19 +93,17 @@ TMP_MODEL=$(mktemp /tmp/ScriptModel.XXXXX)
 
 # Injects elements into the model.
 if [ -f $EXCLUDE_ELEMENTS ]; then
-	echo -n "Adding elements to remove from calcuations..."
-	# TODO!
-	success_msg "Done!"
+	TMP_REMOVE=$EXCLUDE_FILE
 fi
 
 # Get the model type.
 echo -n "Getting all path lengths from hotspot..."
 if [ "$MODEL_TYPE" == "BEH" ]; then
-	ql grok_scripts/BehaviourAlterationOne.ql $INPUT_MODEL > $TMP_FILE_MDL 
+	ql grok_scripts/BehaviourAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL 
 elif [ "$MODEL_TYPE" == "PUB" ]; then
-	ql grok_scripts/PublisherAlterationOne.ql $INPUT_MODEL > $TMP_FILE_MDL
+	ql grok_scripts/PublisherAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL
 elif [ "$MODEL_TYPE" == "TIME" ]; then
-	ql grok_scripts/TimerAlterationOne.ql $INPUT_MODEL > $TMP_FILE_MDL
+	ql grok_scripts/TimerAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL
 fi
 success_msg "Done!"
 
@@ -120,11 +118,11 @@ echo -n "Generating hotspot results..."
 cat $INPUT_MODEL > $TMP_MODEL
 python3 helper_scripts/model_modifier.py $TMP_FILE_TRI >> $TMP_MODEL
 if [ "$MODEL_TYPE" == "BEH" ]; then
-        ql grok_scripts/BehaviourAlterationTwo.ql $TMP_MODEL > $TMP_FILE_MDL
+        ql grok_scripts/BehaviourAlterationTwo.ql $TMP_MODEL $TMP_REMOVE > $TMP_FILE_MDL
 elif [ "$MODEL_TYPE" == "PUB" ]; then
-        ql grok_scripts/PublisherAlterationTwo.ql $TMP_MODEL > $TMP_FILE_MDL
+        ql grok_scripts/PublisherAlterationTwo.ql $TMP_MODEL $TMP_REMOVE > $TMP_FILE_MDL
 elif [ "$MODEL_TYPE" == "TIME" ]; then
-        ql grok_scripts/TimerAlterationTwo.ql $TMP_MODEL > $TMP_FILE_MDL
+        ql grok_scripts/TimerAlterationTwo.ql $TMP_MODEL $TMP_REMOVE > $TMP_FILE_MDL
 fi
 success_msg "Done!"
 
