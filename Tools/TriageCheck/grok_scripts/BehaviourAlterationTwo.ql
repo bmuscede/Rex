@@ -14,11 +14,13 @@ direct = contain o publish o subscribe o call;
 indirect = contain o publish o subscribe o inv contain;
 indirect = indirect+;
 
-//Generates relations to track the flow of data.
+//Generates relations to track the flow of data. 
 callbackFuncs = rng(subscribe o call);
 if $# == 2 {
 	for str in dom CSVDATA {
-		toRemove = grep(callbackFuncs, str);
+		names = callbackFuncs . @label;
+		toRemove = grep(names, str);
+		toRemove = toRemove . inv @label;
 		callbackFuncs = callbackFuncs - toRemove;
 	}
 }
@@ -26,9 +28,11 @@ if $# == 2 {
 controlFlowVars = @isControlFlow . {"\"1\""};
 if $# == 2 {
         for str in dom CSVDATA {
-                toRemove = grep(controlFlowVars, str);
+                names = controlFlowVars . @label;
+		toRemove = grep(names, str);
+		toRemove = toRemove . inv @label;
                 controlFlowVars = controlFlowVars - toRemove;
-        }
+	}
 }
 
 masterRel = varWrite + call + write + varInfFunc;

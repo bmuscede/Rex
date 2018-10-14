@@ -17,7 +17,9 @@ indirect = indirect+;
 callbackFuncs = rng(subscribe o call);
 if $# == 2 {
 	for str in dom CSVDATA {
-		toRemove = grep(callbackFuncs, str);
+		names = callbackFuncs . @label;
+		toRemove = grep(names, str);
+		toRemove = toRemove . inv @label;
 		callbackFuncs = callbackFuncs - toRemove;
 	}
 }
@@ -52,7 +54,8 @@ for item in dom pubAlter {
 			print strTopicItem + " - ";
 			for size in sizes {
 				print "\t" + size;
-			} 	
+			}
+		}
 	}
 	print "";
 

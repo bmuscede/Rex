@@ -1,2 +1,2 @@
-example_regex_to_remove
-other_example_regex_to_remove
+"__ros.*"
+"_boost.*"

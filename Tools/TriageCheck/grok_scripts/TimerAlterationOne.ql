@@ -18,14 +18,18 @@ indirect = indirect+;
 timers = $INSTANCE . {"rosTimer"};
 if $# == 2 {
 	for str in dom CSVDATA {
-		toRemove = grep(timers, str);
-		tim = timers - toRemove;
+		names = timers . @label;
+		toRemove = grep(names, str);
+		toRemove = toRemove . inv @label;
+		timers = timers - toRemove;
 	}
 }
 tmrCallback = rng time;
 if $# == 2 {
 	for str in dom CSVDATA {
-		toRemove = grep(tmrCallback, str);
+		names = tmrCallback . @label;
+		toRemove = grep(names, str);
+		toRemove = toRemove . inv @label;
 		tmrCallback = tmrCallback - toRemove;
 	}
 }
