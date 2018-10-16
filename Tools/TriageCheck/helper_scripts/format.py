@@ -1,7 +1,7 @@
 import sys
 
 # Gets the temp name passed in.
-if len(sys.argv) != 3:
+if len(sys.argv) < 3:
 	print("You must supply a valid filename and ignore flag to continue.")
 	print("Usage: " + sys.argv[0] + " " + "filename.txt" + "[ignore/n-ignore]")
 
@@ -10,6 +10,9 @@ if len(sys.argv) != 3:
 ignoreFlag = False
 if sys.argv[2] == "ignore":
 	ignoreFlag = True
+pathOutput = False
+if len(sys.argv) == 4:
+	pathOutput = True
 
 # Opens up the temporary file and processes it.
 with open(sys.argv[1]) as f:
@@ -39,11 +42,19 @@ for line in content:
 	
 		# Add to tuple.
 		if ignoreFlag:
-			tp = (size, delim[0], delim[len(delim) - 1])
-			results.append(tp)
+			if pathOutput:
+				tp = (size, delim[0], delim[len(delim) - 1], line)
+				results.append(tp)
+			else:
+				tp = (size, delim[0], delim[len(delim) - 1])
+				results.append(tp)
 		else:
-			tp = (size, cbName, varName)
-			results.append(tp)
+			if pathOutput:
+				tp = (size, cbName, varName, line)
+				results.append(tp)
+			else:
+				tp = (size, cbName, varName)
+				results.append(tp)
 
 # Coverts to set.
 results=list(set(results))
@@ -52,3 +63,5 @@ results=list(set(results))
 results= sorted(results, key=lambda tup: tup[0], reverse=True)
 for line in results:
 	print(str(line[0]) + " " + str(line[1]) + " " + str(line[2]))
+	if pathOutput:
+		print(str(line[3]) + "\n")
