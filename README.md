@@ -28,7 +28,7 @@ The following diagram higlights the information Rex extracts from a target C/C++
 This is the metamodel for full analysis mode.
 ## Installation Details
 ### Prerequisties
-Rex is based on `Clang 5.0.0` and requires `CMake 3.0.0` or greater to run. Additionally, to build Rex, `Boost` libraries are required. For `Boost`, the computer building Rex requires `Boost` version `1.6` or greater. If you meet any of these prerequisites, feel free to skip their associated section below.
+Rex requires at least `Clang 5.0.0` and requires `CMake 3.0.0` or greater to run. Additionally, to build Rex, `Boost` libraries are required. For `Boost`, the computer building Rex requires `Boost` version `1.6` or greater. Additionally, other libraries are required that will be defined in their own section below. If you meet any of these prerequisites, feel free to skip their associated section below.
 
 #### Installing CMake
 First, CMake should be installed. On Linux, this is as simple as running:
@@ -123,6 +123,23 @@ $ sudo apt-get install libboost-all-dev
 
 **IMPORTANT NOTE:** Boost libraries are also needed on your system *even if* you are simply running the executable built on another system. Follow the instructions above to get the necessary Boost libraries to run the portable executable.
 
+#### Other Important Libraries
+Rex requires some other libraries to run. In the future, it is expected that these libraries will be included via a build management system such as `Conan`. Until then, these libraries are required to build Rex:
+
+* ZLib
+
+* PThread
+
+* DL
+
+* Crypto
+
+* Curses
+
+* XML2
+
+If you don't have any of these libraries, please be sure to download the **DEVELOPMENT** version of these before continuing.
+ 
 ### Building Rex
 Now that the prerequisties are all satisfied, you can now download and build Rex! If all prerequisties are truly satisfied, Rex should build without issue. Importantly you should have the `LLVM_BUILD` and `CLANG_VER` variables set. See the Clang section if this is not the case for ore information.
 

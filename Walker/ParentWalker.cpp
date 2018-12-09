@@ -1075,7 +1075,12 @@ bool ParentWalker::isInSystemHeader(const Stmt *statement) {
         auto &manager = Context->getSourceManager();
 
         //Check if in header.
+        statement->getLocStart();
+#ifdef CLANG_VER_LTE
+        isIn = isInSystemHeader(manager, statement->getLocStart());
+#else
         isIn = isInSystemHeader(manager, statement->getBeginLoc());
+#endif
     } catch (...) {
         return false;
     }
@@ -1098,7 +1103,11 @@ bool ParentWalker::isInSystemHeader(const Decl *decl){
         auto &manager = Context->getSourceManager();
 
         //Check if in header.
+#ifdef CLANG_VER_LTE
+        isIn = isInSystemHeader(manager, decl->getLocStart());
+#else
         isIn = isInSystemHeader(manager, decl->getBeginLoc());
+#endif
     } catch (...) {
         return false;
     }
@@ -1442,7 +1451,11 @@ string ParentWalker::generateID(const NamedDecl* decl){
 
     //Finally, check if we have a main method.
     if (name.compare("int-main-int-char **") == 0 || name.compare("int-main") == 0){
+#if CLANG_VER_LTE
+        name = Context->getSourceManager().getFilename(originalDecl->getLocStart()).str() + "--" + name;
+#else
         name = Context->getSourceManager().getFilename(originalDecl->getBeginLoc()).str() + "--" + name;
+#endif
     }
 
     return name;
@@ -1458,7 +1471,11 @@ string ParentWalker::generateName(const NamedDecl* decl){
 
     //Check if we have a main method.
     if (name.compare("main") == 0){
+#if CLANG_VER_LTE
+        name = Context->getSourceManager().getFilename(decl->getLocStart()).str() + "\'s " + name;
+#else
         name = Context->getSourceManager().getFilename(decl->getBeginLoc()).str() + "\'s " + name;
+#endif
     }
 
     return name;
@@ -1472,7 +1489,11 @@ string ParentWalker::generateName(const NamedDecl* decl){
 string ParentWalker::generateFileName(const NamedDecl* decl){
     //Gets the file name.
     SourceManager& SrcMgr = Context->getSourceManager();
+#if CLANG_VER_LTE
+    auto fullLoc = Context->getFullLoc(decl->getLocStart());
+#else
     auto fullLoc = Context->getFullLoc(decl->getBeginLoc());
+#endif
     if (!fullLoc.isValid()) return string();
 
     string fileName = SrcMgr.getFilename(fullLoc).str();

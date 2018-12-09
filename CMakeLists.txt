@@ -1,7 +1,10 @@
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.0.0)
 project(Rex)
+
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 
 find_package(Boost 1.58 COMPONENTS system filesystem serialization regex program_options REQUIRED)
 include_directories(${Boost_INCLUDE_DIR})
@@ -9,6 +12,13 @@ include_directories(${Boost_INCLUDE_DIR})
 # Sets up LLVM.
 if(DEFINED ENV{CLANG_VER})
 	set(CLANG_VER $ENV{CLANG_VER})
+
+    # Get the appropriate version.
+    if(CLANG_VERSION_STRING VERSION_LESS 7.0.0)
+        add_definitions(-DCLANG_VER_LTE)
+    else()
+        add_compile_definitions(-DCLANG_VER_GT)
+    endif()
 else()
 	message( FATAL_ERROR "The CLANG_VER environment variable is not set. Please set it before compiling Rex." )
 endif()
@@ -54,7 +64,9 @@ set(SOURCE_FILES
 		XML/rapidxml_print.hpp
 		XML/rapidxml_utils.hpp
 		Configuration/ScenarioWalker.cpp
-		Configuration/ScenarioWalker.h Graph/LowMemoryTAGraph.cpp Graph/LowMemoryTAGraph.h)
+		Configuration/ScenarioWalker.h
+        Graph/LowMemoryTAGraph.cpp
+        Graph/LowMemoryTAGraph.h)
 
 add_executable(Rex ${SOURCE_FILES})
 
@@ -73,139 +85,12 @@ target_link_libraries(Rex
         clangTooling
         )
 
-target_link_libraries(Rex
-        LLVMLTO
-        LLVMPasses
-        LLVMObjCARCOpts
-        LLVMMIRParser
-        LLVMSymbolize
-        LLVMDebugInfoPDB
-        LLVMDebugInfoDWARF
-        LLVMCoverage
-        LLVMTableGen
-        LLVMDlltoolDriver
-        LLVMOrcJIT
-        LLVMXCoreDisassembler
-        LLVMXCoreCodeGen
-        LLVMXCoreDesc
-        LLVMXCoreInfo
-        LLVMXCoreAsmPrinter
-        LLVMSystemZDisassembler
-        LLVMSystemZCodeGen
-        LLVMSystemZAsmParser
-        LLVMSystemZDesc
-        LLVMSystemZInfo
-        LLVMSystemZAsmPrinter
-        LLVMSparcDisassembler
-        LLVMSparcCodeGen
-        LLVMSparcAsmParser
-        LLVMSparcDesc
-        LLVMSparcInfo
-        LLVMSparcAsmPrinter
-        LLVMPowerPCDisassembler
-        LLVMPowerPCCodeGen
-        LLVMPowerPCAsmParser
-        LLVMPowerPCDesc
-        LLVMPowerPCInfo
-        LLVMPowerPCAsmPrinter
-        LLVMNVPTXCodeGen
-        LLVMNVPTXDesc
-        LLVMNVPTXInfo
-        LLVMNVPTXAsmPrinter
-        LLVMMSP430CodeGen
-        LLVMMSP430Desc
-        LLVMMSP430Info
-        LLVMMSP430AsmPrinter
-        LLVMMipsDisassembler
-        LLVMMipsCodeGen
-        LLVMMipsAsmParser
-        LLVMMipsDesc
-        LLVMMipsInfo
-        LLVMMipsAsmPrinter
-        LLVMLanaiDisassembler
-        LLVMLanaiCodeGen
-        LLVMLanaiAsmParser
-        LLVMLanaiDesc
-        LLVMLanaiAsmPrinter
-        LLVMLanaiInfo
-        LLVMHexagonDisassembler
-        LLVMHexagonCodeGen
-        LLVMHexagonAsmParser
-        LLVMHexagonDesc
-        LLVMHexagonInfo
-        LLVMBPFDisassembler
-        LLVMBPFCodeGen
-        LLVMBPFDesc
-        LLVMBPFInfo
-        LLVMBPFAsmPrinter
-        LLVMARMDisassembler
-        LLVMARMCodeGen
-        LLVMARMAsmParser
-        LLVMARMDesc
-        LLVMARMInfo
-        LLVMARMAsmPrinter
-        LLVMARMUtils
-        LLVMAMDGPUDisassembler
-        LLVMAMDGPUCodeGen
-        LLVMAMDGPUAsmParser
-        LLVMAMDGPUDesc
-        LLVMAMDGPUInfo
-        LLVMAMDGPUAsmPrinter
-        LLVMAMDGPUUtils
-        LLVMAArch64Disassembler
-        LLVMAArch64CodeGen
-        LLVMAArch64AsmParser
-        LLVMAArch64Desc
-        LLVMAArch64Info
-        LLVMAArch64AsmPrinter
-        LLVMAArch64Utils
-        LLVMObjectYAML
-        LLVMLibDriver
-        LLVMOption
-        LLVMWindowsManifest
-        LLVMFuzzMutate
-        LLVMX86Disassembler
-        LLVMX86AsmParser
-        LLVMX86CodeGen
-        LLVMGlobalISel
-        LLVMSelectionDAG
-        LLVMAsmPrinter
-        LLVMDebugInfoCodeView
-        LLVMDebugInfoMSF
-        LLVMX86Desc
-        LLVMMCDisassembler
-        LLVMX86Info
-        LLVMX86AsmPrinter
-        LLVMX86Utils
-        LLVMMCJIT
-        LLVMLineEditor
-        LLVMInterpreter
-        LLVMExecutionEngine
-        LLVMRuntimeDyld
-        LLVMCodeGen
-        LLVMTarget
-        LLVMCoroutines
-        LLVMipo
-        LLVMInstrumentation
-        LLVMVectorize
-        LLVMScalarOpts
-        LLVMLinker
-        LLVMIRReader
-        LLVMAsmParser
-        LLVMInstCombine
-        LLVMTransformUtils
-        LLVMBitWriter
-        LLVMAnalysis
-        LLVMProfileData
-        LLVMObject
-        LLVMMCParser
-        LLVMMC
-        LLVMBitReader
-        LLVMCore
-        LLVMBinaryFormat
-        LLVMSupport
-        LLVMDemangle
-        )
+# Find the libraries that correspond to the LLVM components
+# that we wish to use
+llvm_map_components_to_libnames(llvm_libs all)
+
+# Link against LLVM libraries
+target_link_libraries(Rex ${llvm_libs})
 
 include(FindCurses)
 target_link_libraries(Rex
