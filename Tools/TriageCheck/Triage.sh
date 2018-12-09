@@ -15,7 +15,7 @@ OUTPUT_FILE="out.txt"
 EXCLUDE_FILE="ExcludeElements.txt"
 
 # Performs option processing.
-while getopts ":i:o:hm:e:" opt; do
+while getopts ":i:o:hm:e:p" opt; do
 	case $opt in
 		i)
 			INPUT_MODEL=$OPTARG
@@ -44,6 +44,10 @@ while getopts ":i:o:hm:e:" opt; do
 				print_help
 				exit 1
 			fi
+			;;
+		p)
+			# Output the path length.
+			OUTPUT_PATH_LENGTH=true
 			;;
       
 		\?)
@@ -76,6 +80,9 @@ fi
 if [ "$EXCLUDE_FILE" == "ExcludeElements.txt" ]; then
 	warn_msg "WARN: Using default exclude file to remove false positives from model."
 fi
+if [ ! -z $OUTPUT_PATH_LENGTH ]; then
+	echo "NOTE: Path length details will be outputted with triage stats."
+fi
 
 # QL check.
 ql fake_file 2> /dev/null
@@ -90,6 +97,7 @@ TMP_FILE_MDL=$(mktemp /tmp/ScriptRes.XXXXXX)
 TMP_FILE_TRI=$(mktemp /tmp/ScriptTriage.XXXXX)
 TMP_FILE_RES=$(mktemp /tmp/ScriptTriageRes.XXXXX)
 TMP_MODEL=$(mktemp /tmp/ScriptModel.XXXXX)
+TMP_FILE_PT=$(mktemp /tmp/ScriptResTwo.XXXXXX)
 
 # Injects elements into the model.
 if [ -f $EXCLUDE_ELEMENTS ]; then
@@ -100,17 +108,30 @@ fi
 echo -n "Getting all path lengths from hotspot..."
 if [ "$MODEL_TYPE" == "BEH" ]; then
 	ql grok_scripts/BehaviourAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL 
+	if [ ! -z $OUTPUT_PATH_LENGTH ]; then
+		ql grok_scripts/BehaviourAlterationOne.ql $INPUT_MODEL $TMP_REMOVE true > $TMP_FILE_PT 
+	fi
 elif [ "$MODEL_TYPE" == "PUB" ]; then
 	ql grok_scripts/PublisherAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL
+	if [ ! -z $OUTPUT_PATH_LENGTH ]; then
+                ql grok_scripts/PublisherAlterationOne.ql $INPUT_MODEL $TMP_REMOVE true > $TMP_FILE_PT
+        fi
 elif [ "$MODEL_TYPE" == "TIME" ]; then
 	ql grok_scripts/TimerAlterationOne.ql $INPUT_MODEL $TMP_REMOVE > $TMP_FILE_MDL
+	if [ ! -z $OUTPUT_PATH_LENGTH ]; then
+                ql grok_scripts/TimerAlterationOne.ql $INPUT_MODEL $TMP_REMOVE true > $TMP_FILE_PT
+        fi
 fi
 success_msg "Done!"
 
 # Next, pretty print the results.
 echo -n "Preparing triage information..."
 python3 helper_scripts/format.py $TMP_FILE_MDL ignore > $TMP_FILE_TRI
-python3 helper_scripts/format.py $TMP_FILE_MDL n-ignore > $TMP_FILE_RES
+if [ ! -z $OUTPUT_PATH_LENGTH ]; then
+	python3 helper_scripts/format.py $TMP_FILE_PT n-ignore true > $TMP_FILE_RES
+else
+	python3 helper_scripts/format.py $TMP_FILE_MDL n-ignore > $TMP_FILE_RES
+fi
 success_msg "Done!"
 
 # Last, generates the control flow results.
@@ -132,7 +153,7 @@ output_results $TMP_FILE_RES $TMP_FILE_MDL $MODEL_TYPE $OUTPUT_FILE
 success_msg "Done!"
 
 # Cleans the script up and ends.
-rm $TMP_MODEL $TMP_FILE_MDL $TMP_FILE_TRI $TMP_FILE_RES
+rm $TMP_MODEL $TMP_FILE_MDL $TMP_FILE_TRI $TMP_FILE_RES $TMP_FILE_PT
 echo ""
 success_msg "Results successfully written to ${OUTPUT_FILE}!"
 

@@ -5,7 +5,7 @@ inputFile = $1;
 getta(inputFile);
 
 //Processes the regular expression system.
-if $# == 2 {
+if $# >= 2 {
 	getcsv($2);
 }
 
@@ -16,7 +16,7 @@ indirect = indirect+;
 
 //Generates relations to track the flow of data. 
 callbackFuncs = rng(subscribe o call);
-if $# == 2 {
+if $# >= 2 {
 	for str in dom CSVDATA {
 		names = callbackFuncs . @label;
 		toRemove = grep(names, str);
@@ -26,7 +26,7 @@ if $# == 2 {
 }
 
 controlFlowVars = @isControlFlow . {"\"1\""};
-if $# == 2 {
+if $# >= 2 {
         for str in dom CSVDATA {
                 names = controlFlowVars . @label;
 		toRemove = grep(names, str);
@@ -41,6 +41,9 @@ masterRel = masterRel+;
 //Gets the behaviour alterations.
 behAlter = callbackFuncs o masterRel o controlFlowVars;
 
+//Transforms masterRel
+plainMasterRel = inv @label o masterRel o @label;
+
 //Loops through the results.
 for item in dom behAlter {
 	cbS = {item} . @label;
@@ -54,6 +57,10 @@ for item in dom behAlter {
 		print "####";
 		print cbS;
 		print varS;
-		showpath(item, var, masterRel);
+		if $# == 3 {
+			for cbSS in cbS { for varSS in varS { showpath(cbSS, varSS, plainMasterRel); } }
+		} else {
+			showpath(item, var, masterRel);
+		}
 	}
 }

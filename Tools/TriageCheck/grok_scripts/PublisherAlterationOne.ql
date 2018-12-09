@@ -5,7 +5,7 @@ inputFile = $1;
 getta(inputFile);
 
 //Processes the regular expression system.
-if $# == 2 {
+if $# >= 2 {
 	getcsv($2);
 }
 
@@ -15,7 +15,7 @@ indirect = contain o publish o subscribe o inv contain;
 indirect = indirect+;
 
 callbackFuncs = rng(subscribe o call);
-if $# == 2 {
+if $# >= 2 {
 	for str in dom CSVDATA {
 		names = callbackFuncs . @label;
 		toRemove = grep(names, str);
@@ -30,6 +30,7 @@ masterRel = masterRel+;
 //Gets all publisher alterations.
 pubAlter = callbackFuncs o masterRel o publish;
 comboM = masterRel + publish;
+plainComboM = inv @label o comboM o @label;
 
 //Loops through the results.
 for item in dom pubAlter {
@@ -44,6 +45,10 @@ for item in dom pubAlter {
 		print "####";
 		print cbS;
 		print varS;
-		showpath(item, var, comboM);
+		if $# == 3 {
+ 			for cbSS in cbS { for varSS in varS { showpath(cbSS, varSS, plainComboM); } }
+		} else {
+			showpath(item, var, comboM);
+		}
 	}
 }
