@@ -347,7 +347,20 @@ bool TAGraph::resolveComponents(map<string, vector<string>> databaseMap){
     //Go through the list of nodes.
     for (auto entry : idList){
         RexNode* curNode = entry.second;
-        if (curNode->getType() != RexNode::CLASS) continue;
+        if (curNode->getType() != RexNode::CLASS) {
+            //Check if the node has a contains relationship already.
+            auto edges = findEdgesByDst(curNode->getID());
+            bool hasContains = false;
+
+            //Get the relationships.
+            for ( RexEdge* edge : edges){
+                if (edge->getType() == RexEdge::CONTAINS) {
+                    hasContains = true;
+                    break;
+                }
+            }
+            if (hasContains) continue;
+        }
 
         //Get the filename.
         vector<string> filenames = curNode->getMultiAttribute(FILENAME_ATTR);

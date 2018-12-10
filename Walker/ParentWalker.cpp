@@ -1532,6 +1532,13 @@ void ParentWalker::recordParentClassLoc(const FunctionDecl* decl){
 string ParentWalker::validateStringArg(string name){
     //Checks the topic name.
     std::string prefix("\"");
+
+    //Checks if we have a variable.
+    if (name.at(0) != '"') {
+        cerr << "Rex Warning: Variable is used to record topic name. Topic name is " << name << "!" << endl;
+    }
+
+    //Removes the quotes if present.
     if (!name.compare(0, prefix.size(), prefix)){
         name = name.substr(1);
     }
