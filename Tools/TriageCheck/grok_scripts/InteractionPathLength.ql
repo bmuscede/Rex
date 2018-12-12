@@ -13,9 +13,15 @@ direct = containTC o (publish o subscribe) o (inv containTC);
 //Gets callback functions.
 callbackFuncs = rng(subscribe o call);
 cbBelong = containTC o callbackFuncs;
+if $2 == "true" {
+        callbackFuncs = callbackFuncs . @label;
+}
 
 direct = direct + cbBelong;
 indirect = direct+;
+if $2 == "true" {
+	indirect = inv @label o indirect o @label;
+}
 
 //Finally, shows the path.
 for item in dom indirect {

@@ -17,4 +17,7 @@ masterRel = masterRel+;
 
 //Gets the behaviour alterations.
 behAlter = callbackFuncs o masterRel o controlFlowVars;
+if $2 == "true" {
+	behAlter = inv @label o behAlter o @label;
+}
 behAlter;
